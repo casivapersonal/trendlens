@@ -1,24 +1,18 @@
-name: Refresh momentum ideas
+name: Daily data
 on:
   schedule:
-    # 4 runs per trading day (IST 09:25, 11:25, 13:25 and 15:45 after the close)
-    - cron: "55 3,5,7 * * 1-5"
+    # 08:45 IST pre-market (03:15 UTC) and 15:45 IST after the close (10:15 UTC), Mon-Fri
+    - cron: "15 3 * * 1-5"
     - cron: "15 10 * * 1-5"
   workflow_dispatch: {}
 permissions:
   contents: write
 concurrency:
-  group: refresh
+  group: repo-write
   cancel-in-progress: false
 jobs:
-  refresh:
+  daily:
     runs-on: ubuntu-latest
-    env:
-      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-      VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
-      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
-      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
-      SITE_URL: ${{ secrets.SITE_URL }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -28,26 +22,12 @@ jobs:
           cache: pip
           cache-dependency-path: pipeline/requirements.txt
       - run: pip install -r pipeline/requirements.txt
-      - name: Screen stocks and rebuild picks.json
-        run: python pipeline/update_picks.py web/picks.json picks.new.json
-      - name: Check output before publishing
-        run: |
-          python - <<'PY'
-          import json, datetime as dt
-          d = json.load(open("picks.new.json"))
-          assert d.get("watching", 0) >= 100, "too few stocks screened"
-          assert "NIFTY 50" in d["bars"], "index data missing"
-          age = (dt.date.today() - dt.date.fromisoformat(d["asof"])).days
-          assert age <= 5, f"stale data: {d['asof']}"
-          print("ok", d["asof"], d["watching"], "screened", len(d["live"]), "live", len(d["alerts_today"]), "alerts")
-          PY
-          mv picks.new.json web/picks.json
-      - name: Commit if changed (Vercel redeploys automatically)
+      - name: Refresh prices, universe and history
+        working-directory: pipeline
+        run: python update_picks.py ../web/picks.json ../web/history.json
+      - name: Commit
         run: |
           git config user.name "trendlens-bot"
           git config user.email "trendlens-bot@users.noreply.github.com"
-          git add web/picks.json
-          git diff --cached --quiet || (git commit -m "Refresh momentum ideas $(date -u +%Y-%m-%dT%H:%MZ)" && git push)
-      - name: Push notifications for new entry/exit alerts
-        if: ${{ env.VAPID_PRIVATE_KEY != '' && env.UPSTASH_REDIS_REST_URL != '' }}
-        run: python pipeline/notify.py web/picks.json
+          git add web/picks.json web/history.json
+          git diff --cached --quiet || (git commit -m "Daily data $(date -u +%Y-%m-%dT%H:%MZ)" && git pull --rebase && git push)
