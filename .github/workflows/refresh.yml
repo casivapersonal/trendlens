@@ -29,7 +29,7 @@ jobs:
           cache-dependency-path: pipeline/requirements.txt
       - run: pip install -r pipeline/requirements.txt
       - name: Screen stocks and rebuild picks.json
-        run: python pipeline/update_picks.py picks.json picks.new.json
+        run: python pipeline/update_picks.py web/picks.json picks.new.json
       - name: Check output before publishing
         run: |
           python - <<'PY'
@@ -41,13 +41,13 @@ jobs:
           assert age <= 5, f"stale data: {d['asof']}"
           print("ok", d["asof"], d["watching"], "screened", len(d["live"]), "live", len(d["alerts_today"]), "alerts")
           PY
-          mv picks.new.json picks.json
+          mv picks.new.json web/picks.json
       - name: Commit if changed (Vercel redeploys automatically)
         run: |
           git config user.name "trendlens-bot"
           git config user.email "trendlens-bot@users.noreply.github.com"
-          git add picks.json
+          git add web/picks.json
           git diff --cached --quiet || (git commit -m "Refresh momentum ideas $(date -u +%Y-%m-%dT%H:%MZ)" && git push)
       - name: Push notifications for new entry/exit alerts
         if: ${{ env.VAPID_PRIVATE_KEY != '' && env.UPSTASH_REDIS_REST_URL != '' }}
-        run: python pipeline/notify.py picks.json
+        run: python pipeline/notify.py web/picks.json
