@@ -1,18 +1,20 @@
-name: Price warnings
+name: Live screener
 on:
   schedule:
-    # Every 10 minutes while NSE is open (09:15-15:30 IST), Mon-Fri
+    # Every 10 minutes while NSE is open (09:15-15:30 IST = 03:45-10:00 UTC), Mon-Fri
     - cron: "45,55 3 * * 1-5"
     - cron: "*/10 4-9 * * 1-5"
     - cron: "0 10 * * 1-5"
   workflow_dispatch: {}
+permissions:
+  contents: write
 concurrency:
-  group: warnings
-  cancel-in-progress: true
+  group: repo-write
+  cancel-in-progress: false
 jobs:
-  warn:
+  live:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     env:
       VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
       VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
@@ -24,5 +26,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -q pywebpush requests
-      - run: python pipeline/warnings_push.py web/picks.json
+      - run: pip install -q pywebpush requests pandas
+      - name: Rank on live prices, alert and push
+        working-directory: pipeline
+        run: python live_screen.py ../web/picks.json ../web/history.json
+      - name: Commit new ideas
+        run: |
+          git config user.name "trendlens-bot"
+          git config user.email "trendlens-bot@users.noreply.github.com"
+          git add web/picks.json
+          git diff --cached --quiet || (git commit -m "Live alerts $(date -u +%Y-%m-%dT%H:%MZ)" && git pull --rebase && git push)
