@@ -25,9 +25,14 @@ jobs:
       - name: Refresh prices, universe and history
         working-directory: pipeline
         run: python update_picks.py ../web/picks.json ../web/history.json
+      - name: Refresh fundamentals (pre-market run and manual runs only)
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '15 3 * * 1-5'
+        working-directory: pipeline
+        continue-on-error: true
+        run: python fundamentals.py ../web/history.json ../web/fundamentals.json
       - name: Commit
         run: |
           git config user.name "trendlens-bot"
           git config user.email "trendlens-bot@users.noreply.github.com"
-          git add web/picks.json web/history.json
+          git add web/picks.json web/history.json web/fundamentals.json 2>/dev/null || git add web/picks.json web/history.json
           git diff --cached --quiet || (git commit -m "Daily data $(date -u +%Y-%m-%dT%H:%MZ)" && git pull --rebase && git push)
