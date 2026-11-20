@@ -1,0 +1,116 @@
+# Breaking Money AI Trading Arena: configuration
+# Everything is simulated. There is no setting that enables real orders.
+
+[account]
+starting_capital = 100000      # virtual rupees
+challenge_days = 15            # the run stops after this many trading days
+
+[market]
+# Live price source: "yahoo" (no signup) or "upstox" (free API, needs your Upstox login)
+feed = "yahoo"
+# "static" = trade the watchlist below. "scan" = scan the whole universe each morning, trade a short list of the strongest.
+watchlist_mode = "scan"
+watchlist = ["RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "SBIN", "BHARTIARTL", "ITC", "LT", "AXISBANK"]
+# NSE trading holidays (YYYY-MM-DD). Weekends are skipped automatically.
+# Copy the current list from the NSE website before you start a challenge.
+holidays = []
+
+[strategy]
+# "balanced" uses the numbers below. "aggressive" = up to 3 concentrated positions of 35% each, 6% daily loss
+# limit, and only A+ momentum breakouts with quick profit-taking (it overrides the matching settings below).
+profile = "balanced"
+# Who makes the calls: "auto" picks your Claude Code login if installed, else an API key, else the free rules strategy.
+# Or force one: "claude-cli", "claude-api", "rules"
+brain = "auto"
+model = "claude-opus-5-5"      # used by claude-api
+effort = "medium"              # low | medium | high: how hard Claude thinks per decision
+cli_model = ""                 # optional --model for claude-cli
+decision_minutes = 15          # Claude is asked for calls this often
+poll_seconds = 30              # prices are checked this often (stops/targets run on every poll)
+bar_minutes = 5                # candle size used for indicators
+product = "intraday"           # "intraday" = auto square-off every day; "delivery" = may hold overnight
+square_off_time = "15:15"
+no_new_entries_after = "14:45"
+max_positions = 5
+max_position_pct = 20          # max % of equity in one stock
+default_stop_loss_pct = 1.5
+default_target_pct = 3.0
+max_daily_loss_pct = 3.0       # kill switch: close everything and stop entries for the day
+# Free-text guidance passed to Claude. Use it to try different styles across the series.
+notes = ""
+
+[universe]
+name = "nifty500"              # reads universe/nifty500.csv or pipeline/nifty500.txt; use "nifty1000" later
+shortlist_size = 15            # stocks watched each decision cycle (Yahoo cannot serve hundreds of candle series every 15 minutes)
+pool_size = 40                 # morning scan keeps this many; the short list is re-ranked from the pool on live strength
+min_price = 20
+min_avg_value_cr = 5           # 20-day average traded value, crore rupees
+
+[risk]
+max_loss_per_trade = 500       # rupees, charges included; 0 = off. Allocation is cut so the loss at the stop stays inside this
+max_trades_per_day = 3         # 0 = off
+
+[timemachine]
+gate = false                   # true = refuse a BUY if the past sessions lost money after charges (slower: downloads 60 days of bars)
+replays = 2000
+
+[committee]
+enabled = true                 # analysts' memo (technical, fundamentals, news, macro, risk officer) is added to Claude's context
+# Only the risk officer can block a trade. The other analysts are evidence, not rules: they have no back-test.
+
+[execution]
+spread_bps = 4                 # assumed bid-ask spread; we cross half of it
+slippage_bps = 3               # extra adverse slippage per order
+impact_bps_per_pct_of_volume = 2   # extra cost per 1% of the bar's volume we take
+max_participation = 0.05       # never fill more than 5% of a bar's volume
+replay_latency_seconds = 60    # in replay, orders fill on the next bar after the decision
+
+[charges]
+# Indian equity charges. Check your broker's current schedule and update if rates change.
+brokerage_intraday_pct = 0.03
+brokerage_intraday_cap = 20.0
+brokerage_delivery_pct = 0.0
+brokerage_delivery_cap = 0.0
+stt_intraday_sell_pct = 0.025
+stt_delivery_pct = 0.1
+exchange_txn_pct = 0.00297
+sebi_per_crore = 10.0
+stamp_intraday_buy_pct = 0.003
+stamp_delivery_buy_pct = 0.015
+gst_pct = 18.0
+dp_charge_per_sell = 15.93
+
+[report]
+refresh_seconds = 60
+
+[paths]
+data_dir = "data"
+db = "data/arena.db"
+report = "reports/results.html"
+log = "data/arena.log"
+
+[safety]
+paper_only = true              # cannot be changed; the program refuses to start otherwise
+
+[ideas]
+# Ideas are NOT trades. The coded judge scores a candidate, a human decision-maker approves it, and only then it is posted.
+# It stays live until the decision-maker closes it (or you switch auto_close on). No real-time trading anywhere in this system.
+max_live = 10                  # live ideas at once
+max_new_per_day = 3            # proposals sent to the decision-maker per scan
+entry_rank = 20                # momentum rank that earns judge points (the original TrendLens entry rule)
+exit_rank = 50                 # momentum ideas are FLAGGED when their rank falls below this; the decision-maker closes
+approve_score = 6              # judge score for APPROVE (decision-maker still has the final say); starting point, not back-tested
+watch_score = 4                # judge score for WATCH
+max_atr_pct = 7                # too volatile for ATR-based levels above this daily ATR %
+news_hard_reject = true        # negative headline flags (SEBI order, probe, fraud...) reject a candidate
+entry_atr = 0.4                # entry range = close +/- this x ATR
+short_days = 15                # trading days
+short_stop_atr = 1.5
+short_r = 2.5                  # target = r x stop distance
+medium_days = 60
+medium_stop_atr = 2.5
+medium_r = 3.0
+min_rr = 2.0                   # risk check blocks approval below this reward-to-risk
+timemachine_points = 1         # judge points for / against the Time Machine verdict (needs 20+ past samples); evidence, not back-tested
+timemachine_gate = false       # true = hard reject when past samples lost money after charges
+auto_close = false             # false = exit signals are flagged and the decision-maker closes; true = closes at the signal price

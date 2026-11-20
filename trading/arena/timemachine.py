@@ -1,0 +1,132 @@
+"""Time Machine: replays the rest of the session 10,000 times from a stock's own 5-minute bars, then repeats the same trade
+(same time of day, same stop and target %) on every past session. A simulation, not a prediction."""
+from __future__ import annotations
+
+import random
+
+from . import charges as ch
+
+
+def sessions(df):
+    """DataFrame (IST index, open/high/low/close/volume) -> {date: [(minute_of_day, o, h, l, c), ...]}"""
+    out: dict = {}
+    for ts, r in df.iterrows():
+        out.setdefault(ts.date(), []).append((ts.hour * 60 + ts.minute, float(r["open"]), float(r["high"]), float(r["low"]), float(r["close"])))
+    return {d: sorted(v) for d, v in sorted(out.items())}
+
+
+def _pool(sess):
+    pool: dict = {}
+    for bars in sess.values():
+        for i in range(1, len(bars)):
+            pc = bars[i - 1][4]
+            if pc > 0:
+                m, o, h, l, c = bars[i]
+                pool.setdefault(m, []).append((c / pc - 1, h / pc - 1, l / pc - 1))
+    return pool
+
+
+def simulate(pool, start_min, end_min, entry, stop, target, n=10000, seed=19):
+    slots = list(range(start_min + 5, end_min + 1, 5)); rnd = random.Random(seed); res = {"target": 0, "stop": 0, "open": 0}
+    for _ in range(n):
+        p, out = entry, "open"
+        for m in slots:
+            opts = pool.get(m)
+            if not opts:
+                continue
+            cr, hr, lr = rnd.choice(opts)
+            if p * (1 + lr) <= stop: out = "stop"; break        # stop first inside a bar: conservative
+            if p * (1 + hr) >= target: out = "target"; break
+            p *= 1 + cr
+        res[out] += 1
+    return {k: round(v / n * 100, 1) for k, v in res.items()}
+
+
+def replay_same_trade(sess, start_min, end_min, stop_pct, target_pct, qty, product, rates, skip=None):
+    w = l = f = 0; pnl = 0.0
+    for d, bars in sess.items():
+        if d == skip:
+            continue
+        i = next((k for k, b in enumerate(bars) if b[0] == start_min), None)
+        if i is None:
+            continue
+        entry = bars[i][4]; stop = entry * (1 - stop_pct / 100); target = entry * (1 + target_pct / 100)
+        exit_px, kind = entry, "flat"
+        for b in bars[i + 1:]:
+            if b[0] > end_min: break
+            exit_px = b[4]
+            if b[3] <= stop: exit_px, kind = min(b[1], stop), "stop"; break      # gap-aware
+            if b[2] >= target: exit_px, kind = max(b[1], target) if b[1] > target else target, "target"; break
+        net = qty * (exit_px - entry) - ch.compute("BUY", qty, entry, product, rates).total - ch.compute("SELL", qty, exit_px, product, rates).total
+        pnl += net; w += kind == "target"; l += kind == "stop"; f += kind == "flat"
+    n = w + l + f
+    return {"sessions": n, "target": w, "stop": l, "neither": f, "net_pnl": round(pnl, 2), "avg_net": round(pnl / n, 2) if n else None}
+
+
+def verdict(sim, real):
+    if real["sessions"] < 20:
+        return "too few past sessions to judge (fewer than 20)"
+    edge = sim["target"] - sim["stop"]
+    if real["net_pnl"] < 0 and edge <= 5:
+        return "past sessions lost money after charges: unfavourable"
+    return "close to a coin flip" if abs(edge) <= 5 else ("tilted toward the target" if edge > 0 else "tilted toward the stop")
+
+
+def run(df, now, entry, stop_pct, target_pct, qty, cfg, n=10000, seed=19):
+    sess = sessions(df); today = now.date(); past = {d: b for d, b in sess.items() if d != today}
+    st_m = now.hour * 60 + now.minute - now.minute % 5
+    en_m = int(cfg["strategy"]["square_off_time"][:2]) * 60 + int(cfg["strategy"]["square_off_time"][3:])
+    sim = simulate(_pool(past), st_m, en_m, entry, entry * (1 - stop_pct / 100), entry * (1 + target_pct / 100), n, seed)
+    real = replay_same_trade(past, st_m, en_m, stop_pct, target_pct, max(qty, 1), cfg["strategy"]["product"], cfg.get("charges", {}))
+    return {"replays": n, "sim": sim, "real": real, "verdict": verdict(sim, real), "note": "A simulation, not a prediction."}
+
+
+# ---------------------------------------------------------------- daily-bar version (used by the ideas flow)
+def _daily_pool(d):
+    """Day-over-day (close, high, low) moves as fractions of the previous close, from a daily OHLC frame."""
+    c, h, l = d["close"].values, d["high"].values, d["low"].values
+    return [(float(c[i] / c[i - 1] - 1), float(h[i] / c[i - 1] - 1), float(l[i] / c[i - 1] - 1)) for i in range(1, len(c)) if c[i - 1] > 0]
+
+
+def simulate_daily(pool, entry, stop, target, days, n=2000, seed=19):
+    """Replays the idea's holding period n times, drawing each day from the stock's own daily moves. Stop first inside a day: conservative."""
+    rnd = random.Random(seed); res = {"target": 0, "stop": 0, "open": 0}
+    if not pool:
+        return {k: None for k in res}
+    for _ in range(n):
+        p, out = entry, "open"
+        for _d in range(days):
+            cr, hr, lr = rnd.choice(pool)
+            if p * (1 + lr) <= stop: out = "stop"; break
+            if p * (1 + hr) >= target: out = "target"; break
+            p *= 1 + cr
+        res[out] += 1
+    return {k: round(v / n * 100, 1) for k, v in res.items()}
+
+
+def replay_daily(d, stop_pct, target_pct, days, cfg, notional=50000.0):
+    """Re-runs the SAME stop/target (as % of entry) from every past close in the frame, holding at most `days` sessions. Gap-aware, charges included (delivery).
+    Overlapping starts, so the samples are not independent."""
+    rates = cfg.get("charges", {}); o, h, l, c = (d[k].values for k in ("open", "high", "low", "close"))
+    w = s = t = 0; net_pct = 0.0; last = len(c) - 1
+    for i in range(0, last - days + 1 if last - days + 1 > 0 else 0):
+        entry = float(c[i]); stop = entry * (1 - stop_pct / 100); target = entry * (1 + target_pct / 100); px, kind = float(c[i + days]), "time"
+        for j in range(i + 1, i + days + 1):
+            if o[j] <= stop: px, kind = float(o[j]), "stop"; break
+            if l[j] <= stop: px, kind = stop, "stop"; break
+            if h[j] >= target: px, kind = max(float(o[j]), target), "target"; break
+        qty = max(int(notional // entry), 1)
+        cost = ch.compute("BUY", qty, entry, "delivery", rates).total + ch.compute("SELL", qty, px, "delivery", rates).total
+        net_pct += ((px - entry) * qty - cost) / (qty * entry) * 100
+        w += kind == "target"; s += kind == "stop"; t += kind == "time"
+    n = w + s + t
+    return {"sessions": n, "target": w, "stop": s, "neither": t, "net_pnl": round(net_pct, 2), "avg_net": round(net_pct / n, 3) if n else None, "unit": "sum of % returns after charges"}
+
+
+def run_daily(d, entry, stop, target, days, cfg, n=None, seed=19):
+    """Time Machine for an idea: simulation + same-levels replay on the stock's own daily history. A simulation, not a prediction; not back-tested as a filter."""
+    n = n or int(cfg.get("timemachine", {}).get("replays", 2000))
+    sim = simulate_daily(_daily_pool(d), entry, stop, target, days, n, seed)
+    real = replay_daily(d, (1 - stop / entry) * 100, (target / entry - 1) * 100, days, cfg)
+    return {"replays": n, "sim": sim, "real": real, "verdict": verdict(sim, real) if sim["target"] is not None else "no history",
+            "note": "A simulation, not a prediction. Not back-tested as a filter."}
