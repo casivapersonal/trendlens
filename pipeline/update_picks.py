@@ -1,11 +1,12 @@
 """Daily data job (pre-market and after close): refresh 2 years of prices, the 300-stock universe,
-history.json for the live screener, and chart bars in picks.json. After the close it also applies
-the entry/exit rules on closing prices.
+history.json for the live screener, and chart bars in picks.json. After the close it also
+refreshes prices and ranks on live ideas and flags momentum ideas whose rank has faded. It never opens or
+closes an idea: new ideas come from `python -m arena ideas scan`, and a decision-maker approves and closes them.
 Usage: python pipeline/update_picks.py web/picks.json web/history.json
 """
 import json, os, sys, datetime as dt
 import pandas as pd, numpy as np, yfinance as yf
-from core import UNIVERSE, STATS, ENTRY_RANK, EXIT_RANK, ist_now, market_open, ranks_now, apply_rules, load_nse
+from core import UNIVERSE, STATS, ENTRY_RANK, EXIT_RANK, ist_now, market_open, ranks_now, refresh_live, rank_exit_flags, load_nse
 
 PICKS, HIST = sys.argv[1], sys.argv[2]
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -41,12 +42,12 @@ hist = {"dates": [d.date().isoformat() for d in tail.index], "universe": univers
 json.dump(hist, open(HIST, "w"), separators=(",", ":"))
 
 nifty = frames["^NSEI"]["Close"]
-if last == today and not market_open(now):     # after the close: apply the rules on closing prices
+if last == today and not market_open(now):     # after the close: refresh live ideas on closing prices and flag faded momentum
     prices = {s: hist["closes"][s][-1] for s in hist["closes"] if hist["closes"][s][-1]}
     rk, mom = ranks_now(hist, prices, today)
     blocked, results = load_nse(os.path.join(HERE, "..", "nse"))
-    alerts = apply_rules(state, rk, mom, prices, float(nifty.iloc[-1]), now, blocked, results)
-    print("close alerts", alerts)
+    refresh_live(state, rk, prices, float(nifty.iloc[-1]), now, blocked, results)
+    print("exit flags (decision-maker closes):", rank_exit_flags(state, rk, now))
 def ohlc(x, n=330):
     x = x.iloc[-n:]
     return [[str(i.date()), round(float(r.Open), 2), round(float(r.High), 2), round(float(r.Low), 2), round(float(r.Close), 2), int(r.Volume)] for i, r in zip(x.index, x.itertuples())]
@@ -54,7 +55,7 @@ need = {e["sym"] for e in state["live"]} | {c["sym"] for c in state["closed"][:6
 state["bars"] = {s: ohlc(D[s]) for s in need if s in D}
 state["bars"]["NIFTY 50"] = ohlc(frames["^NSEI"]); state["bars"]["NIFTY BANK"] = ohlc(frames["^NSEBANK"])
 state.update(asof=last, updated_ist=now.strftime("%d %b %Y, %I:%M %p IST"), provisional=False, watching=len(universe), stats=STATS,
-             rules=dict(entry_rank=ENTRY_RANK, exit_rank=EXIT_RANK, universe=UNIVERSE, basis="12-month return divided by 12-month volatility, live prices"))
+             rules=dict(entry_rank=ENTRY_RANK, exit_rank=EXIT_RANK, universe=UNIVERSE, basis="12-month return divided by 12-month volatility, closing prices", approval="decision-maker"))
 state.setdefault("recent_alerts", []); state["alerts_today"] = [a for a in state["recent_alerts"] if a["date"] == today]
 json.dump(state, open(PICKS, "w"), separators=(",", ":"))
 print("asof", last, "universe", len(universe), "live", len(state["live"]), "closed", len(state["closed"]))

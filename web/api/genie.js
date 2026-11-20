@@ -136,7 +136,7 @@ function build(sym, q, H, F, P) {
   for (const s of H.universe) { const cs = ffill(H.closes[s] || []); const v = s === sym ? momScore(c, price, k) : momScore(cs, cs[cs.length - 1], k); if (v != null) sc2[s] = v; }
   const order = Object.keys(sc2).sort((a, b) => sc2[b] - sc2[a]); d.rank = sc2[sym] != null ? order.indexOf(sym) + 1 : null; d.rankOf = order.length;
   const L = P && (P.live || []).find(e => e.sym === sym), C = P && (P.closed || []).find(e => e.sym === sym);
-  d.idea = L ? { status: 'live', since: L.entry_date, entry: L.entry_price, entryRank: L.entry_rank, surveillance: L.surveillance, results: L.results_date } : C ? { status: 'closed', exitDate: C.exit_date, reason: C.reason, ret: C.ret_pct } : null;
+  d.idea = L ? { status: 'live', since: L.entry_date, approvedBy: L.approved_by, entry: L.entry_price, entryRank: L.entry_rank, surveillance: L.surveillance, results: L.results_date } : C ? { status: 'closed', exitDate: C.exit_date, reason: C.reason, ret: C.ret_pct } : null;
   // fundamentals, recomputed on the live price
   const f = F && F.stocks && F.stocks[sym]; d.f = null;
   if (f) {
@@ -162,8 +162,8 @@ const T = {
   fund: d => !d.f ? [`**Fundamentals**`, 'Fundamentals are not available for this stock yet (the data file refreshes each trading morning).'] : [`**Fundamentals** (${d.f.sector || 'sector n/a'}${d.f.industry ? ', ' + d.f.industry : ''}; financials as of ${d.f.asof}, valuation on the price above)`,
     `P/E ${peTxt(d.f)}${d.f.fpe ? ` (forward ${d.f.fpe.toFixed(1)}x)` : ''} · EPS ${inr(d.f.eps)} · P/B ${d.f.pb ? d.f.pb.toFixed(1) + 'x' : 'n/a'} · Market cap ${cr(d.f.mcap)} · Dividend yield ${d.f.dy ? d.f.dy.toFixed(2) + '%' : 'none or n/a'}.`,
     `ROE ${pl(d.f.roe)} · Debt/equity ${num(d.f.de)} · Revenue growth ${pc(d.f.revg)} · Earnings growth ${pc(d.f.eg)} · Net margin ${pl(d.f.nm)} · Beta ${num(d.f.beta)}.`],
-  mom: d => [`**TrendLens momentum**`, d.rank ? `Risk-adjusted 12-month momentum rank is about #${d.rank} of ${d.rankOf} (other stocks at their last close). Ideas enter at #20 or better and exit below #50.` : 'Not enough history to rank this stock.',
-    d.idea ? (d.idea.status === 'live' ? `It is a live TrendLens idea since ${d.idea.since} at ${inr(d.idea.entry)} (entered at rank #${d.idea.entryRank}).${d.idea.surveillance ? ' NSE surveillance flag: ' + d.idea.surveillance + '.' : ''}${d.idea.results ? ' Results due ' + d.idea.results + '.' : ''}` : `Its last idea closed on ${d.idea.exitDate}: ${d.idea.reason} (${pc(d.idea.ret)}).`) : 'It is not currently a TrendLens idea.']
+  mom: d => [`**TrendLens momentum**`, d.rank ? `Risk-adjusted 12-month momentum rank is about #${d.rank} of ${d.rankOf} (other stocks at their last close). A stock in the top 20 becomes a candidate; it is posted as an idea only if the TrendLens decision-maker approves it, and is closed by the decision-maker.` : 'Not enough history to rank this stock.',
+    d.idea ? (d.idea.status === 'live' ? `It is a live TrendLens idea since ${d.idea.since} at ${inr(d.idea.entry)} ${d.idea.entryRank ? ` (momentum rank #${d.idea.entryRank} at the time)` : ''}.${d.idea.surveillance ? ' NSE surveillance flag: ' + d.idea.surveillance + '.' : ''}${d.idea.results ? ' Results due ' + d.idea.results + '.' : ''}` : `Its last idea closed on ${d.idea.exitDate}: ${d.idea.reason} (${pc(d.idea.ret)}).`) : 'It is not currently a TrendLens idea.']
 };
 function route(q) {
   const l = q.toLowerCase(), t = [];

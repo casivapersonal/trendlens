@@ -1,4 +1,4 @@
-"""Send web-push notifications for new entry/exit alerts in picks.json.
+"""Send web-push notifications when an idea is posted (approved) or closed by the decision-maker (alerts_today in picks.json).
 
 Env: VAPID_PRIVATE_KEY, VAPID_SUBJECT (mailto:you@example.com), UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 Each alert is pushed once (tracked in Redis set trendlens:notified). Dead subscriptions are removed.
@@ -20,11 +20,12 @@ for a in d.get("alerts_today", []):
     if redis("SISMEMBER", "trendlens:notified", key):
         continue
     if a["type"] == "entry":
-        title = f'Entry alert: {a["sym"]}'
-        body = f'Ranked #{a["rank"]} by 12-month momentum. Added to Live ideas at about Rs {a["price"]:,.2f}.'
+        title = f'New idea: {a["sym"]}'
+        lv = f' Stop-loss Rs {a["stop"]:,.2f}, target Rs {a["target"]:,.2f}.' if a.get("stop") and a.get("target") else ''
+        body = f'Bullish view posted at about Rs {a["price"]:,.2f}.{lv} Approved by the decision-maker.'
     else:
-        title = f'Exit alert: {a["sym"]}'
-        body = f'Momentum rank fell to #{a["rank"]}. Result {a["ret_pct"]:+.2f}%. Moved to Closed ideas.'
+        title = f'Idea closed: {a["sym"]}'
+        body = f'{a.get("reason") or "Closed by the decision-maker"}. Result {a["ret_pct"]:+.2f}%. Moved to Closed ideas.'
     payload = json.dumps({"title": title, "body": body, "tag": key, "url": SITE})
     for s in subs:
         try:

@@ -1,9 +1,10 @@
-"""Shared logic for the TrendLens live momentum screener (rule: 12-month return up to now)."""
+"""Shared logic for the TrendLens momentum screener (rule: 12-month return up to now).
+The rank is evidence for the ideas pipeline (trading/arena). Nothing here opens or closes an idea: a decision-maker approves and closes."""
 import json, datetime as dt, requests
 from concurrent.futures import ThreadPoolExecutor
 
 ENTRY_RANK, EXIT_RANK, UNIVERSE = 20, 50, 300
-STATS = {"rule": "12-month return up to the latest price, divided by 12-month volatility. Entry at top 20, exit below #50", "periods": [
+STATS = {"rule": "12-month return up to the latest price, divided by 12-month volatility. Back-test rule: enter at top 20, exit below #50", "periods": [
     {"period": "2011–2019", "cagr": 34.2, "nifty": 8.1, "maxdd": -21.7, "trades": 948, "win": 43.7, "avg_win": 34.5, "avg_loss": -7.2, "med_days": 65},
     {"period": "2020–2026", "cagr": 40.4, "nifty": 11.4, "maxdd": -35.3, "trades": 649, "win": 41.9, "avg_win": 47.9, "avg_loss": -9.5, "med_days": 67}]}
 
@@ -48,53 +49,37 @@ def ranks_now(hist, prices, today):
     order = sorted(score, key=lambda s: -score[s])
     return {s: i + 1 for i, s in enumerate(order)}, mom
 
-def apply_rules(state, rk, mom, prices, nifty_now, now, blocked=None, results=None):
-    """Mutates state; returns list of new alerts."""
-    alerts, date, tm = [], now.date().isoformat(), now.strftime("%I:%M %p")
-    live = {e["sym"]: e for e in state["live"]}
-    internal = set(state.get("internal", []))
-    # exits
-    for s in list(live):
-        r = rk.get(s)
+RANK_EXIT_TERMS = ("momentum", "medium")      # only ideas built on momentum rank are flagged when the rank fades
+
+
+def rank_exit_flags(state, rk, now):
+    """Flags (never closes) live ideas whose momentum rank has faded. The decision-maker closes ideas.
+    Short-term setup ideas (breakout, flag, bounce) are not judged on rank: a bounce idea starts from a weak rank by design."""
+    date = now.date().isoformat(); flagged = []
+    for e in state["live"]:
+        if e.get("term", "momentum") not in RANK_EXIT_TERMS:
+            e.pop("rank_exit", None); continue
+        r = rk.get(e["sym"])
         if r is None or r > EXIT_RANK:
-            e = live.pop(s); px = prices.get(s, e.get("price_now", e["entry_price"]))
-            c = dict(e, status="closed", exit_date=date, exit_time=tm, exit_price=round(px, 2), exit_rank=r,
-                     reason=("Left the 300 most-traded stocks" if r is None else f"Momentum rank fell to #{r} (exit rule: below #{EXIT_RANK})"),
-                     ret_pct=round((px / e["entry_price"] - 1) * 100, 2),
-                     nifty_pct=round((nifty_now / e["nifty_entry"] - 1) * 100, 2) if nifty_now and e.get("nifty_entry") else None)
-            state["closed"].insert(0, c)
-            alerts.append(dict(type="exit", sym=s, date=date, time=tm, rank=r, price=c["exit_price"], ret_pct=c["ret_pct"]))
-    for s in list(internal):
-        r = rk.get(s)
-        if r is None or r > EXIT_RANK:
-            internal.discard(s)
-    # entries
-    for s, r in sorted(rk.items(), key=lambda x: x[1]):
-        if r > ENTRY_RANK:
-            break
-        if s in live or s in internal:
-            continue
-        if not state.get("seeded"):
-            internal.add(s); continue
-        if blocked and s in blocked:
-            continue                      # industry practice: no new ideas in NSE surveillance stocks
-        e = dict(sym=s, status="live", entry_date=date, entry_time=tm, entry_price=round(prices[s], 2), entry_rank=r,
-                 mom_pct=round(mom[s] * 100, 1), nifty_entry=nifty_now)
-        if results and s in results and results[s] >= date:
-            e["results_date"] = results[s]
-        live[s] = e
-        alerts.append(dict(type="entry", sym=s, date=date, time=tm, rank=r, price=e["entry_price"]))
-    for s, e in live.items():
+            if not e.get("rank_exit"): flagged.append(e["sym"])
+            e["rank_exit"] = dict(date=date, rank=r, reason=("Left the 300 most-traded stocks" if r is None
+                                  else f"Momentum rank fell to #{r} (flag level: below #{EXIT_RANK})"))
+        else:
+            e.pop("rank_exit", None)
+    return flagged
+
+
+def refresh_live(state, rk, prices, nifty_now, now, blocked=None, results=None):
+    """Updates price, rank, NIFTY comparison and NSE flags on live ideas. Opens and closes nothing."""
+    date = now.date().isoformat()
+    for e in state["live"]:
+        s = e["sym"]
         e["results_date"] = (results or {}).get(s) if (results or {}).get(s, "") >= date else None
         e["surveillance"] = (blocked or {}).get(s)
         e["rank_now"] = rk.get(s); e["price_now"] = round(prices.get(s, e.get("price_now", e["entry_price"])), 2)
         if nifty_now and e.get("nifty_entry"):
             e["nifty_pct"] = round((nifty_now / e["nifty_entry"] - 1) * 100, 2)
-    state["live"] = sorted(live.values(), key=lambda e: (e["entry_date"], e.get("entry_time", "")), reverse=True)
-    state["internal"] = sorted(internal); state["seeded"] = True
-    state["recent_alerts"] = (alerts[::-1] + state.get("recent_alerts", []))[:60]
-    state["alerts_today"] = [a for a in state["recent_alerts"] if a["date"] == date]
-    return alerts
+
 
 def fallback_bars(hist, s):
     return [[d, c, c, c, c, 0] for d, c in zip(hist["dates"], hist["closes"][s]) if c]
