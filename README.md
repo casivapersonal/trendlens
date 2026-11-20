@@ -4,17 +4,18 @@ Momentum Ideas on real NSE prices. A static web app (index.html + picks.json) pl
 Python screener that GitHub Actions runs on a schedule. No server and no Claude needed.
 
 ## How it works
-- `pipeline/update_picks.py` downloads ~2 years of daily prices (Yahoo Finance) for the
-  stocks in `pipeline/syms.txt`, ranks the 300 most-traded by 12-month momentum
-  (skipping the latest month), and replays the rules:
-  - ENTRY alert: stock enters the top 20  -> Live ideas
-  - EXIT alert: rank falls below #50, or it leaves the top-300 -> Closed ideas (with reason and result)
-- `.github/workflows/refresh.yml` runs it 4 times a trading day (09:25, 11:25, 13:25 and after the
-  close at 15:45 IST), then commits `picks.json`. Vercel redeploys on every commit.
-- `api/quotes.js` (Vercel serverless function) serves live prices; the page polls it every
-  60 seconds in market hours to update prices, P&L and intraday alerts (sharp moves,
-  new 20-day lows, breaks below the 50-day average). Browser notifications are optional.
-- During market hours the day's alerts are marked "Provisional"; the after-close run confirms them.
+- `pipeline/update_picks.py` downloads ~2 years of daily prices (Yahoo Finance) for the stocks in
+  `pipeline/syms.txt`, ranks the 300 most-traded by 12-month risk-adjusted momentum (skipping the latest
+  month) and refreshes `history.json`. It **never opens or closes an idea**: it updates price/rank on live
+  ideas and flags momentum ideas whose rank has fallen below #50.
+- Ideas are **approval-based**. `python -m arena ideas scan` (run by `.github/workflows/ideas.yml` at 16:15 IST)
+  proposes candidates: daily setups plus the top 20 by momentum rank. A coded judge (no AI) scores each, and a
+  decision-maker approves (`ideas approve`) or rejects it. Approved ideas go live in `picks.json` with an entry
+  range, stop-loss, target and time frame, and stay live until the decision-maker closes them (`ideas close`).
+  The monitor only flags exit signals (stop, target, time up, faded rank). See `trading/TRENDLENS.md`.
+- `.github/workflows/refresh.yml` runs the data job (08:45 and 15:45 IST), then commits `picks.json`.
+- `api/quotes.js` serves live prices; the page polls it every 60 seconds in market hours. The 10-minute
+  live job (`warnings.yml`) pushes price warnings on approved live ideas. Browser notifications are optional.
 
 ## One-time setup (about 15 minutes)
 1. Create a free GitHub account and a new **private** repository, e.g. `trendlens`.
@@ -26,7 +27,7 @@ Python screener that GitHub Actions runs on a schedule. No server and no Claude 
    Add a domain if you like (e.g. a subdomain of kycb.in).
 
 ## Push notifications (optional, about 10 minutes)
-Entry and exit alerts reach your phone or desktop even when the site is closed.
+Alerts for newly posted ideas, closed ideas and price warnings reach your phone or desktop even when the site is closed.
 1. On your computer: `pip install cryptography` then `python pipeline/make_vapid_keys.py`.
    Keep the printed keys private.
 2. Upstash: create a free Redis database (you already use Upstash for KYCB). Copy its
