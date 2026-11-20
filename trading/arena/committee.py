@@ -104,8 +104,10 @@ class Committee:
     @staticmethod
     def score_headlines(items, name: str, sym: str) -> dict:
         """Keeps only headlines that mention the company (its first two name words, or the symbol) and flags them with whole-word patterns."""
-        words = [w for w in re.split(r"\s+", name) if w.lower().strip("&.,") not in _LEGAL and w.strip("&.,")][:2]
-        keys = {k for k in (_norm("".join(words)), _norm(sym)) if len(k) >= 3}
+        ws = [w for w in re.split(r"\s+", name) if w.strip("&.,") and w.lower().strip("&.,") not in _LEGAL]
+        ws2 = [w for w in ws if w.lower() not in ("of", "the", "and", "&")]
+        keys = {k for k in (_norm("".join(ws)), _norm("".join(ws[:2])), _norm("".join(ws2[:2]))) if len(k) >= 8}   # too-short keys ("bankof") match other companies
+        if len(_norm(sym)) >= 3: keys.add(_norm(sym))
         rel = [(t, d) for t, d in items if any(k in _norm(t) for k in keys)]
         text = " | ".join(t for t, _ in rel)
         neg = [x for x in (_hit(p, text) for p in NEG) if x]; pos = [x for x in (_hit(p, text) for p in POS) if x]

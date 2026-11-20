@@ -27,6 +27,30 @@ class News(unittest.TestCase):
         r = S([("Acme dividend declared; profit jumps", "")], "Acme Limited", "ACME"); self.assertEqual(r["neg_flags"], []); self.assertEqual(r["stance"], "positive flags")
 
 
+class News2(unittest.TestCase):
+    def test_bank_of_baroda_is_not_state_bank_of_india(self):
+        r = S([("State Bank of India (SBIN.NS) Stock Price, News", ""), ("Bank of Baroda Q2 profit rises", "")], "Bank of Baroda Limited", "BANKBARODA")
+        self.assertEqual(r["headlines"], ["Bank of Baroda Q2 profit rises"])
+    def test_eds_is_not_ed(self):
+        self.assertEqual(S([("GIC Re appoints Canara Bank, Bank of India EDs as directors", "")], "Canara Bank", "CANBK")["stance"], "quiet")
+
+
+class QueueRoom(unittest.TestCase):
+    def test_watch_items_do_not_block_new_approvals_and_are_rescored(self):
+        import tempfile, copy
+        from arena import ideas
+        from arena.config import load_config
+        sys.path.insert(0, str(ROOT / "tests"))
+        from test_ideas import FakeCommittee, FakeShort, NOW, frame, paths
+        cfg = load_config()
+        with tempfile.TemporaryDirectory() as t:
+            pp, pu = paths(t)
+            ideas._save(pp, {"asof": "x", "queue": [{"id": f"Z{i}", "sym": f"Z{i}", "status": "watch"} for i in range(10)] + [{"id": "AAA-old", "sym": "AAA", "status": "watch"}], "log": []})
+            pen = ideas.scan(cfg, FakeShort({"AAA": frame()}, {"AAA": [{"setup": "breakout20", "why": "x"}]}, {"AAA": .97}), FakeCommittee(cfg), NOW, pp, pu, ranks={"AAA": 3}, moms={"AAA": .5})
+            ids = [q["id"] for q in pen["queue"]]
+            self.assertNotIn("AAA-old", ids); self.assertTrue(any(i.startswith("AAA-") and i != "AAA-old" for i in ids))
+
+
 class Verdict(unittest.TestCase):
     def test_high_reward_ideas_judged_in_r(self):
         real = {"sessions": 233, "net_pnl": 5.0}

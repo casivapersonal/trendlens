@@ -94,7 +94,7 @@ def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | 
     ranking (the original entry rule). `shortlister.frames` must hold daily bars for all of them."""
     ranks, moms = ranks or {}, moms or {}
     pub, pen = public(public_path), pending(pending_path)
-    live_syms = {i["sym"] for i in pub["live"]}; queued = {q["sym"] for q in pen["queue"]}
+    live_syms = {i["sym"] for i in pub["live"]}; queued = {q["sym"] for q in pen["queue"] if q["status"] == "awaiting decision"}   # watch items do not use up room and are re-scored every scan
     macro = committee.macro(); bl = universe.blocked()
     room = max(0, cfg["ideas"]["max_live"] - len(live_syms) - len(queued))
     top = [s for s, r in sorted(ranks.items(), key=lambda x: x[1]) if r <= cfg["ideas"].get("entry_rank", 20)]
