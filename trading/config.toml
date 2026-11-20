@@ -47,7 +47,7 @@ min_price = 20
 min_avg_value_cr = 5           # 20-day average traded value, crore rupees
 
 [risk]
-max_loss_per_trade = 500       # rupees, charges included; 0 = off. Allocation is cut so the loss at the stop stays inside this
+max_loss_per_trade = 3000      # rupees = 3% of starting_capital, charges included; 0 = off. Quantity is cut so the loss at the stop stays inside this
 max_trades_per_day = 3         # 0 = off
 
 [timemachine]
