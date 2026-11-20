@@ -123,10 +123,23 @@ def replay_daily(d, stop_pct, target_pct, days, cfg, notional=50000.0):
     return {"sessions": n, "target": w, "stop": s, "neither": t, "net_pnl": round(net_pct, 2), "avg_net": round(net_pct / n, 3) if n else None, "unit": "sum of % returns after charges"}
 
 
+def verdict_daily(sim, real, r):
+    """Compares the decided runs in R-multiples (target pays r, stop costs 1), so a 2.5:1 idea is not judged on raw hit rates. Runs still open count as 0."""
+    if real["sessions"] < 20:
+        return "too few past sessions to judge (fewer than 20)"
+    edge = (sim["target"] * r - sim["stop"]) / 100
+    if real["net_pnl"] < 0 and edge <= 0.15:
+        return "past sessions lost money after charges: unfavourable"
+    if edge > 0.15 and real["net_pnl"] >= 0:
+        return "tilted toward the target"
+    return "tilted toward the stop" if edge < -0.15 else "close to a coin flip"
+
+
 def run_daily(d, entry, stop, target, days, cfg, n=None, seed=19):
     """Time Machine for an idea: simulation + same-levels replay on the stock's own daily history. A simulation, not a prediction; not back-tested as a filter."""
     n = n or int(cfg.get("timemachine", {}).get("replays", 2000))
     sim = simulate_daily(_daily_pool(d), entry, stop, target, days, n, seed)
     real = replay_daily(d, (1 - stop / entry) * 100, (target / entry - 1) * 100, days, cfg)
-    return {"replays": n, "sim": sim, "real": real, "verdict": verdict(sim, real) if sim["target"] is not None else "no history",
+    r = (target - entry) / (entry - stop) if entry > stop else 1.0
+    return {"replays": n, "sim": sim, "real": real, "verdict": verdict_daily(sim, real, r) if sim["target"] is not None else "no history",
             "note": "A simulation, not a prediction. Not back-tested as a filter."}

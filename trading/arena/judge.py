@@ -16,7 +16,7 @@ def judge(memo: dict, macro: dict, cfg: dict, live_ids: set[str] | None = None, 
     if blocked and sym in blocked: hard.append(f"{blocked[sym]} (NSE surveillance)")
     if live_ids and sym in live_ids: hard.append("already a live idea")
     if m["atr_pct"] > ic.get("max_atr_pct", 7): hard.append(f"too volatile (daily ATR {m['atr_pct']:.1f}%)")
-    if a["news"]["stance"] == "negative flags" and ic.get("news_hard_reject", True): hard.append("negative headline flags: " + ", ".join(a["news"].get("flags", [])))
+    if a["news"]["stance"] == "negative flags" and ic.get("news_hard_reject", True): hard.append("negative headline flags: " + ", ".join(a["news"].get("neg_flags", a["news"].get("flags", []))))
     # ---- technical ----
     er, rk = ic.get("entry_rank", 20), m.get("rank")
     if rk is not None:

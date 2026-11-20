@@ -118,7 +118,7 @@ class CommitteeTests(unittest.TestCase):
             b = c.fundamentals("LOSS", 50); self.assertEqual(b["stance"], "concerning"); self.assertEqual(c.fundamentals("NONE", 1)["stance"], "no data")
     def test_news_flags_and_failure(self):
         with tempfile.TemporaryDirectory() as d:
-            c = self.mk(d, {}); xml = b"<rss><channel><item><title>SEBI order against promoter, probe widens</title><pubDate>Thu, 19 Nov 2026</pubDate></item></channel></rss>"
+            c = self.mk(d, {}); xml = b"<rss><channel><item><title>AAA: SEBI order against promoter, probe widens</title><pubDate>Thu, 19 Nov 2026</pubDate></item></channel></rss>"
             class R:
                 content = xml
                 def raise_for_status(self): pass

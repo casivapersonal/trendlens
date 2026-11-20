@@ -20,8 +20,23 @@ from .safety import SafeHTTP
 
 log = logging.getLogger("arena")
 FUND_FILE = universe.REPO / "web" / "fundamentals.json"
-NEG = ("fraud", "probe", "sebi order", "raid", "downgrade", "resigns", "default", "penalty", "ban", "loss widens", "plunge", "cuts guidance", "insolvency", "ed ")
-POS = ("order win", "bags order", "upgrade", "record profit", "profit jumps", "acquisition", "buyback", "dividend", "beats estimates", "wins contract")
+import re
+
+# Headline flags. Whole-word patterns: a bare substring test made "ban" fire on "bank"/"urban" and "ed " on any word ending in -ed.
+NEG = (("fraud", r"\bfraud"), ("probe", r"\bprobe[sd]?\b"), ("sebi order", r"\bsebi order"), ("raid", r"\braids?\b"), ("downgrade", r"\bdowngrad"),
+       ("resigns", r"\bresign"), ("default", r"\bdefault"), ("penalty", r"\bpenalt"), ("ban", r"\b(?:ban|bans|banned)\b"), ("loss widens", r"\bloss widens"),
+       ("plunge", r"\bplunge"), ("cuts guidance", r"\bcuts? guidance"), ("insolvency", r"\binsolvenc"), ("ED probe", r"\bED\b|enforcement directorate"))
+POS = (("order win", r"\border wins?\b"), ("bags order", r"\bbags? order"), ("upgrade", r"\bupgrade[sd]?\b"), ("record profit", r"\brecord profit"), ("profit jumps", r"\bprofit jumps"),
+       ("acquisition", r"\bacquisition\b|\bacquires\b"), ("buyback", r"\bbuyback"), ("dividend", r"\bdividend"), ("beats estimates", r"\bbeats? estimates"), ("wins contract", r"\bwins? contract"))
+_LEGAL = {"limited", "ltd", "pvt", "private", "inc", "corp", "corporation"}
+_norm = lambda t: re.sub(r"[^a-z0-9]", "", t.lower())
+
+
+def _hit(label_pat, text):
+    label, pat = label_pat
+    return label if re.search(pat, text, 0 if label == "ED probe" else re.I) else None
+
+
 PROOF = {"technical": "partly back-tested (rank rule only)", "fundamentals": "not back-tested", "news": "not back-tested", "macro": "not back-tested"}
 
 
@@ -84,9 +99,17 @@ class Committee:
             self._news[sym] = (time.time(), items)
         if items is None:
             return {"stance": "no data", "headlines": [], "flags": []}
-        low = " | ".join(t.lower() for t, _ in items)
-        neg = [w for w in NEG if w in low]; pos = [w for w in POS if w in low]
-        return {"stance": "negative flags" if neg else "positive flags" if pos else "quiet", "flags": neg + pos, "headlines": [t for t, _ in items[:4]]}
+        return self.score_headlines(items, (self._funds().get("stocks", {}).get(sym) or {}).get("name") or sym, sym)
+
+    @staticmethod
+    def score_headlines(items, name: str, sym: str) -> dict:
+        """Keeps only headlines that mention the company (its first two name words, or the symbol) and flags them with whole-word patterns."""
+        words = [w for w in re.split(r"\s+", name) if w.lower().strip("&.,") not in _LEGAL and w.strip("&.,")][:2]
+        keys = {k for k in (_norm("".join(words)), _norm(sym)) if len(k) >= 3}
+        rel = [(t, d) for t, d in items if any(k in _norm(t) for k in keys)]
+        text = " | ".join(t for t, _ in rel)
+        neg = [x for x in (_hit(p, text) for p in NEG) if x]; pos = [x for x in (_hit(p, text) for p in POS) if x]
+        return {"stance": "negative flags" if neg else "positive flags" if pos else "quiet", "flags": neg + pos, "neg_flags": neg, "pos_flags": pos, "headlines": [t for t, _ in rel[:4]]}
 
     # ---- macro --------------------------------------------------------
     def macro(self) -> dict:
