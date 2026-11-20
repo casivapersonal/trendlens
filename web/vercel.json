@@ -1,5 +1,7 @@
 {
+  "functions": { "api/genie.js": { "maxDuration": 30 } },
   "headers": [
-    { "source": "/picks.json", "headers": [ { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" } ] }
+    { "source": "/picks.json", "headers": [ { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" } ] },
+    { "source": "/fundamentals.json", "headers": [ { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" } ] }
   ]
 }
