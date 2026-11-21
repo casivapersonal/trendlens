@@ -133,7 +133,8 @@ function build(sym, q, H, F, P) {
   d.support = lv.filter(x => x[1] < price).sort((a, b) => b[1] - a[1]).slice(0, 2); d.resist = lv.filter(x => x[1] > price).sort((a, b) => a[1] - b[1]).slice(0, 2);
   // momentum rank vs the rest of the NIFTY 500 (others at their last close)
   const k = hasToday ? 253 : 252, sc2 = {};
-  for (const s of H.universe) { const cs = ffill(H.closes[s] || []); const v = s === sym ? momScore(c, price, k) : momScore(cs, cs[cs.length - 1], k); if (v != null) sc2[s] = v; }
+  const RU = new Set(H.rank_universe || H.universe); if (!RU.has(sym)) RU.add(sym);   // ranked on the liquid universe, like the CEO
+  for (const s of RU) { const cs = ffill(H.closes[s] || []); const v = s === sym ? momScore(c, price, k) : momScore(cs, cs[cs.length - 1], k); if (v != null) sc2[s] = v; }
   const order = Object.keys(sc2).sort((a, b) => sc2[b] - sc2[a]); d.rank = sc2[sym] != null ? order.indexOf(sym) + 1 : null; d.rankOf = order.length;
   const L = P && (P.live || []).find(e => e.sym === sym), C = P && (P.closed || []).find(e => e.sym === sym);
   d.idea = L ? { status: 'live', since: L.entry_date, approvedBy: L.approved_by, entry: L.entry_price, entryRank: L.entry_rank, surveillance: L.surveillance, results: L.results_date } : C ? { status: 'closed', exitDate: C.exit_date, reason: C.reason, ret: C.ret_pct } : null;
@@ -316,7 +317,7 @@ function rows(H, F) {
       nm: f.net_margin_pct, beta: f.beta, loss: f.eps_ttm != null && f.eps_ttm <= 0 };
     let k = 0; for (const t of [r.sma50 && p > r.sma50, r.sma200 && p > r.sma200, r.sma50 && r.sma200 && r.sma50 > r.sma200, r.macdHist != null && r.macdHist > 0]) k += t ? 1 : -1;
     r.tscore = k; r.outlook = k >= 3 ? 'Bullish' : k <= -3 ? 'Bearish' : k > 0 ? 'Mildly bullish' : k < 0 ? 'Mildly bearish' : 'Neutral';
-    const v = momScore(c, p, 252); if (v != null) sc[s] = v;
+    const v = (!H.rank_universe || H.rank_universe.includes(s)) ? momScore(c, p, 252) : null; if (v != null) sc[s] = v;
     list.push(r);
   }
   const order = Object.keys(sc).sort((a, b) => sc[b] - sc[a]); const pos = {}; order.forEach((s, i) => pos[s] = i + 1);

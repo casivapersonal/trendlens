@@ -135,11 +135,31 @@ def verdict_daily(sim, real, r):
     return "tilted toward the stop" if edge < -0.15 else "close to a coin flip"
 
 
-def run_daily(d, entry, stop, target, days, cfg, n=None, seed=19):
-    """Time Machine for an idea: simulation + same-levels replay on the stock's own daily history. A simulation, not a prediction; not back-tested as a filter."""
+def _demean(pool):
+    """Removes the stock's average daily drift from its moves, keeping their size and shape. A momentum stock is chosen BECAUSE it
+    rose; replaying that rise back at it is circular. Drift-neutral moves ask only: given how this stock swings, how often does
+    price reach the target before the stop?"""
+    if not pool: return pool
+    mu = sum(x[0] for x in pool) / len(pool)
+    return [(c - mu, h - mu, l - mu) for c, h, l in pool]
+
+
+def run_daily(d, entry, stop, target, days, cfg, n=None, seed=19, lookback=252):
+    """Time Machine for an idea, without the circularity of the stock's own run-up:
+    1. simulation on DRIFT-NEUTRAL daily moves (the stock's volatility, not its recent trend);
+    2. replay of the same stop and target only on history BEFORE the last `lookback` sessions (the year the stock was selected for),
+       when at least 120 such sessions exist; otherwise the replay is marked unavailable and only the simulation is used.
+    A simulation, not a prediction; not back-tested as a filter."""
     n = n or int(cfg.get("timemachine", {}).get("replays", 2000))
-    sim = simulate_daily(_daily_pool(d), entry, stop, target, days, n, seed)
-    real = replay_daily(d, (1 - stop / entry) * 100, (target / entry - 1) * 100, days, cfg)
+    sim = simulate_daily(_demean(_daily_pool(d)), entry, stop, target, days, n, seed)
+    before = d.iloc[:-lookback] if len(d) > lookback + 120 else None
+    stop_pct, tgt_pct = (1 - stop / entry) * 100, (target / entry - 1) * 100
+    real = replay_daily(before, stop_pct, tgt_pct, days, cfg) if before is not None else {"sessions": 0, "target": 0, "stop": 0, "neither": 0, "net_pnl": 0.0, "avg_net": None, "unit": "no history before the selection year"}
     r = (target - entry) / (entry - stop) if entry > stop else 1.0
-    return {"replays": n, "sim": sim, "real": real, "verdict": verdict_daily(sim, real, r) if sim["target"] is not None else "no history",
+    if sim["target"] is None: verdict = "no history"
+    elif real["sessions"] >= 20: verdict = verdict_daily(sim, real, r)
+    else:                                     # simulation only
+        edge = (sim["target"] * r - sim["stop"]) / 100
+        verdict = "tilted toward the target" if edge > 0.15 else "tilted toward the stop" if edge < -0.15 else "close to a coin flip"
+    return {"replays": n, "sim": sim, "real": real, "verdict": verdict, "method": "drift-neutral simulation; replay on the period before the selection year",
             "note": "A simulation, not a prediction. Not back-tested as a filter."}

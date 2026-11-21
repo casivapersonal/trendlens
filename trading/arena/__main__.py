@@ -318,7 +318,7 @@ def cmd_ideas(a, cfg):
             print(f"No trading session today (latest bar {lastbar}): nothing to scan."); return
         ranks, moms = _momentum_ranks()
         extra = [x for x, r in ranks.items() if r <= cfg["ideas"].get("entry_rank", 20) and x not in sl.frames]
-        for x, d in _history(feed, extra, "1y").items():
+        for x, d in _history(feed, extra, "2y").items():
             if d is not None and not d.empty and len(d) > 30: sl.frames[x] = d; sl.setups[x] = daily_setups(d)
         pen = ideas.scan(cfg, sl, Committee(cfg), now, ranks=ranks, moms=moms)
         for q in pen["queue"]:
@@ -332,8 +332,9 @@ def cmd_ideas(a, cfg):
     elif a.action == "intraday":
         # every 5 minutes in market hours: live prices -> entries filled, stop / target exits closed, newly qualifying
         # top-20 momentum stocks (ranked on live prices) reviewed by the committee and the CEO
-        if not market_open_ist(now) and not a.force:
-            print("Market is closed: the intraday CEO runs 09:15-15:30 IST."); return
+        import datetime as _dt, time as _t
+        if not (market_open_ist(now) and now.time() >= _dt.time(9, 30)) and not a.force:
+            print("Market is closed: the intraday CEO runs 09:30-15:30 IST (opening-auction prices are skipped)."); return
         from . import universe as uni
         from .committee import Committee
         from .feeds import make_live_feed
@@ -341,10 +342,20 @@ def cmd_ideas(a, cfg):
         sys.path.insert(0, str(uni.REPO / "pipeline")); import core
         h = json.loads((uni.REPO / "web" / "history.json").read_text())
         pub = ideas.public(); live = [i["sym"] for i in pub["live"]]
+        fresh = lambda v: bool(v and v.get("t") and _t.time() - float(v["t"]) < 600)       # traded in the last 10 minutes
+        nifty = core.quote("NIFTY 50")[1]
+        if not a.force and not fresh(nifty):
+            print("No trading session right now (NIFTY has not traded in the last 10 minutes: holiday or feed delay). Nothing done."); return
         q = core.quotes(list(dict.fromkeys(h["universe"] + live)))
-        prices = {s: v["p"] for s, v in q.items() if v and v.get("p")}
-        print(f"live prices for {len(prices)} stocks")
-        for g in ideas.monitor_live(cfg, prices, now): print("EXIT SIGNAL", g)
+        prices = {s: v["p"] for s, v in q.items() if v and v.get("p") and (a.force or fresh(v))}
+        last = {s: c[-1] for s, c in h["closes"].items() if c and c[-1]}
+        jump = [s for s, p in prices.items() if s in last and abs(p / last[s] - 1) > cfg["ideas"].get("max_day_move", 0.35)]
+        for s in jump: prices.pop(s)                                       # possible split / bonus not yet adjusted: never act on it
+        if jump: print("held for review (one-day move above 35%, possible corporate action):", ", ".join(jump))
+        print(f"live prices for {len(prices)} stocks ({len(q) - len(prices)} stale or held)")
+        if market_open_ist(now):                   # a forced test outside market hours must not mark entries or exits on stale prices
+            for g in ideas.monitor_live(cfg, prices, now): print("EXIT SIGNAL", g)
+        else: print("market closed: entries and exits are not checked on a forced run")
         if cfg.get("ceo", {}).get("enabled", True):
             from . import ceo
             for d in ceo.decide_exits(cfg, now, ideas): print("CEO CLOSED", d)
@@ -355,7 +366,7 @@ def cmd_ideas(a, cfg):
         print("top", er, "on live prices, not yet live:", ", ".join(top) or "none")
         if not top: return
         feed = make_live_feed(cfg); frames = {}
-        for s, d in _history(feed, top, "1y").items():
+        for s, d in _history(feed, top, "2y").items():
             if d is not None and len(d) > 30:
                 if s in prices:                                            # today's bar at the live price
                     d = d.astype(float); px = float(prices[s])   # float columns: no dtype warning when the live bar is written
@@ -388,7 +399,7 @@ def cmd_ideas(a, cfg):
             for r in q["judge"]["rules"]: print(f"      {r['points']:+d} {r['rule']}")
             rv = q.get("review") or {}
             if rv: print(f"      BULL: {'; '.join(rv['bull']) or '-'}\n      BEAR: {'; '.join(rv['bear']) or '-'}  (lean: {rv['lean']}, economy: {rv['economic']['stance']})")
-            if q.get("size"): print(f"      size: {q['size']['qty']} sh = Rs {q['size'].get('value')}, loss at stop Rs {q['size'].get('loss_at_stop')} | risk check: {q['risk']['verdict']} {'; '.join(q['risk']['reasons'])} | entry: {q.get('entry_state')}")
+            print(f"      risk check: {q['risk']['verdict']} {'; '.join(q['risk']['reasons'])} | entry: {q.get('entry_state')}")
             if rv.get("time_machine"): print(f"      Time Machine: {rv['time_machine']['verdict']} (sim target {rv['time_machine']['sim']['target']}%, stop {rv['time_machine']['sim']['stop']}%; {rv['time_machine']['proof']})")
     elif a.action == "approve":
         frames = {}

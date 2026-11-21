@@ -29,28 +29,28 @@ class Review(unittest.TestCase):
         i = {"entry_price": 100, "stop": 95}
         self.assertIsNone(review.one_r_advice(i, 104.9)); self.assertEqual(review.one_r_advice(i, 105)["move_stop_to"], 100)
 
-    def test_sizing_respects_loss_limit_and_charges(self):
-        s = review.size_idea(self.cfg, 200.0, 190.0)
-        self.assertGreater(s["qty"], 0); from arena.riskplan import loss_limit; self.assertLessEqual(s["loss_at_stop"], loss_limit(self.cfg)); self.assertEqual(loss_limit(self.cfg), 3000.0)   # 3% of Rs 1 lakh
-        self.assertEqual(review.size_idea(self.cfg, 200.0, 250.0)["qty"], 0)
-
-    def test_risk_check_blocks_low_reward_and_full_book(self):
-        ok = {"r": 2.5, "size": {"qty": 10}}
+    def test_risk_check_on_the_idea_itself(self):
+        ok = {"r": 2.5, "term": "short", "entry_price": 100.0, "stop": 95.0, "ret1": 0.02}
         self.assertEqual(review.risk_check(ok, self.cfg, 0)["verdict"], "PASS")
         self.assertEqual(review.risk_check({**ok, "r": 1.2}, self.cfg, 0)["verdict"], "BLOCK")
+        self.assertEqual(review.risk_check({**ok, "term": "medium", "r": 1.2}, self.cfg, 0)["verdict"], "PASS")       # momentum: no reward-to-risk rule
         self.assertEqual(review.risk_check(ok, self.cfg, self.cfg["ideas"]["max_live"])["verdict"], "BLOCK")
-        self.assertEqual(review.risk_check({**ok, "size": {"qty": 0}}, self.cfg, 0)["verdict"], "BLOCK")
+        self.assertEqual(review.risk_check({**ok, "stop": 80.0}, self.cfg, 0)["verdict"], "BLOCK")                  # short-term stop 20% away
+        self.assertEqual(review.risk_check({**ok, "ret1": 0.6}, self.cfg, 0)["verdict"], "BLOCK")                    # possible unadjusted split
 
     def test_daily_time_machine_is_repeatable(self):
         d = frame(); e = float(d["close"].iloc[-1])
         a = timemachine.run_daily(d, e, e * 0.95, e * 1.10, 15, self.cfg, n=300); b = timemachine.run_daily(d, e, e * 0.95, e * 1.10, 15, self.cfg, n=300)
-        self.assertEqual(a, b); self.assertGreater(a["real"]["sessions"], 20); self.assertIn("simulation", a["note"].lower())
+        self.assertEqual(a, b); self.assertIn("simulation", a["note"].lower()); self.assertIn("drift-neutral", a["method"])
+        self.assertEqual(a["real"]["sessions"], 0)                       # 300 bars: not enough history before the selection year
+        long = frame(n=520); e2 = float(long["close"].iloc[-1]); c = timemachine.run_daily(long, e2, e2 * 0.95, e2 * 1.10, 15, self.cfg, n=200)
+        self.assertGreater(c["real"]["sessions"], 20)                    # replay uses only the bars before the last 252
 
     def test_judge_uses_time_machine_with_enough_samples(self):
         m = memo(self.cfg, setups=["breakout20"]); base = judge(m, {}, self.cfg)["score"]
-        bad = {**m, "timemachine": {"real": {"sessions": 40}, "verdict": "past sessions lost money after charges: unfavourable"}}
+        bad = {**m, "timemachine": {"sim": {"target": 10, "stop": 30}, "real": {"sessions": 40}, "verdict": "past sessions lost money after charges: unfavourable"}}
         self.assertEqual(judge(bad, {}, self.cfg)["score"], base - 1)
-        few = {**m, "timemachine": {"real": {"sessions": 5}, "verdict": "past sessions lost money after charges: unfavourable"}}
+        few = {**m, "timemachine": {"sim": {"target": None}, "real": {"sessions": 5}, "verdict": "no history"}}
         self.assertEqual(judge(few, {}, self.cfg)["score"], base)
         self.cfg["ideas"]["timemachine_gate"] = True
         try: self.assertEqual(judge(bad, {}, self.cfg)["verdict"], "REJECT")
@@ -61,7 +61,7 @@ class Review(unittest.TestCase):
             pp, pu = paths(t); d = frame()
             pen = ideas.scan(self.cfg, FakeShort({"AAA": d}, {"AAA": [{"setup": "breakout20", "why": "x"}]}, {"AAA": 0.97}), FakeCommittee(self.cfg), NOW, pp, pu, ranks={"AAA": 3}, moms={"AAA": 0.5})
             q = pen["queue"][0]
-            for k in ("review", "size", "risk", "entry_state"): self.assertIn(k, q)
+            for k in ("review", "risk", "entry_state"): self.assertIn(k, q)
             self.assertIn("bull", q["review"]); self.assertIn("proof", q["review"]["time_machine"])
             q["risk"] = {"verdict": "BLOCK", "reasons": ["test"]}; ideas._save(pp, pen)
             with self.assertRaises(ValueError): ideas.approve(q["id"], "me", NOW, pp, pu)
@@ -82,3 +82,17 @@ class Review(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AuditV2(unittest.TestCase):
+    cfg = load_config()
+    def test_momentum_idea_approved_on_rank_without_trend_points(self):
+        m = memo(self.cfg); m["analysts"]["technical"]["metrics"]["rank"] = 5
+        v = judge(m, {"stance": "cautious", "reasons": ["x"]}, self.cfg)
+        self.assertEqual(v["verdict"], "APPROVE"); self.assertFalse(any("50-day" in r["rule"] or "macro" in r["rule"] for r in v["rules"]))
+    def test_drift_neutral_time_machine_ignores_the_run_up(self):
+        import numpy as np
+        d = frame(); rng = np.random.default_rng(1); d = d.copy(); d["close"] = d["close"] * np.exp(np.cumsum(rng.normal(0, 0.02, len(d))))
+        d["high"] = d["close"] * 1.01; d["low"] = d["close"] * 0.99; e = float(d["close"].iloc[-1])
+        r = timemachine.run_daily(d, e, e * 0.9, e * 1.1, 20, self.cfg, n=1000)
+        self.assertLess(abs(r["sim"]["target"] - r["sim"]["stop"]), 12)   # symmetric levels, no drift: roughly even

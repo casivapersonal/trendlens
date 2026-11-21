@@ -5,7 +5,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 ENTRY_RANK, EXIT_RANK, UNIVERSE = 20, 50, 500
 UNIVERSE_LABEL = "NIFTY 500"
-STATS = {"rule": "NIFTY 500 stocks ranked by 12-month return divided by 12-month volatility. Back-test rule: enter at top 20, exit below #50", "periods": [
+MIN_TURNOVER_CR, MIN_PRICE = 10, 50     # ranked only if 20-day median traded value >= Rs 10 cr a day and price >= Rs 50 (Nov 2026 audit)
+STATS = {"rule": "NIFTY 500 stocks ranked by 12-month return divided by 12-month volatility. Back-test rule: enter at top 20, exit below #50. The back-test uses today's index members and includes thinly traded stocks; with a Rs 10 cr/day liquidity floor an independent audit found about 22% a year for 2011-19. Realistic expectation: about 18-25% a year, with drops of 35-45%", "realistic": "18-25% a year, with drops of 35-45%", "periods": [
     {"period": "2011–2019", "cagr": 34.9, "nifty": 8.1, "maxdd": -21.7, "trades": 980, "win": 43.0, "avg_win": 34.7, "avg_loss": -6.8, "med_days": 60},
     {"period": "2020–2026", "cagr": 50.7, "nifty": 11.4, "maxdd": -35.5, "trades": 673, "win": 42.5, "avg_win": 51.0, "avg_loss": -9.1, "med_days": 65}]}
 
@@ -65,7 +66,7 @@ def ranks_now(hist, prices, today):
     """Risk-adjusted momentum: (price now / close 252 sessions ago - 1) / annualised volatility of daily returns."""
     dates = hist["dates"]; k = 253 if dates[-1] == today else 252   # if today's bar is in history, skip it
     mom, score = {}, {}
-    for s in hist["universe"]:
+    for s in hist.get("rank_universe") or hist["universe"]:
         c = hist["closes"].get(s)
         p = prices.get(s)
         if not c or len(c) < k or p is None or not c[-k]:

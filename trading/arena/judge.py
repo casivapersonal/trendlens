@@ -4,7 +4,7 @@ Hard rejects are risk controls. The score weights are starting points and have N
 from __future__ import annotations
 
 
-SEVERE = {"fraud", "sebi order", "insolvency", "default", "ED probe", "raid"}   # hard rejects; other negative headlines only cost points
+SEVERE = {"fraud", "sebi order", "insolvency", "default", "ED probe", "raid", "CFO/auditor resigns", "pledge invoked"}   # hard rejects; other negative headlines only cost points
 
 
 def judge(memo: dict, macro: dict, cfg: dict, live_ids: set[str] | None = None, sym: str = "", blocked: dict | None = None) -> dict:
@@ -34,29 +34,31 @@ def judge(memo: dict, macro: dict, cfg: dict, live_ids: set[str] | None = None, 
         if rk <= er: add(2, f"momentum rank #{rk} in the NIFTY 500 (the original entry rule: top {er})")
     elif (m.get("mom_pct") or 0) >= 0.95: add(2, "top 5% risk-adjusted 12-month momentum")
     if m["setups"]: add(2, "daily setup: " + ", ".join(m["setups"]))
-    if m["sma50"] and m["close"] > m["sma50"]: add(1, "above 50-day average")
-    if m["sma200"] and m["close"] > m["sma200"]: add(1, "above 200-day average")
-    if m["sma50"] and m["sma200"] and m["sma50"] > m["sma200"]: add(1, "50-day above 200-day")
-    if m["macd_above_signal"]: add(1, "MACD above signal")
-    if 50 <= m["rsi"] <= 75: add(1, "RSI in the 50-75 trend zone")
-    if m["close"] >= 0.9 * m["hi52"]: add(1, "within 10% of the 52-week high")
-    if m["rsi"] > 85: add(-2, f"RSI {m['rsi']:.0f}: stretched")
-    if m["ext50"] > 0.40: add(-2, f"{m['ext50']*100:.0f}% above the 50-day average: extended")
-    elif m["ext50"] > 0.25: add(-1, f"{m['ext50']*100:.0f}% above the 50-day average")
-    if m["ret5"] > 0.20: add(-1, f"up {m['ret5']*100:.0f}% in 5 days: chasing risk")
+    if not top:      # trend points only for setup ideas: a top-20 momentum stock has all of them by definition (Nov 2026 audit)
+        if m["sma50"] and m["close"] > m["sma50"]: add(1, "above 50-day average")
+        if m["sma200"] and m["close"] > m["sma200"]: add(1, "above 200-day average")
+        if m["sma50"] and m["sma200"] and m["sma50"] > m["sma200"]: add(1, "50-day above 200-day")
+        if m["macd_above_signal"]: add(1, "MACD above signal")
+        if 50 <= m["rsi"] <= 75: add(1, "RSI in the 50-75 trend zone")
+        if m["close"] >= 0.9 * m["hi52"]: add(1, "within 10% of the 52-week high")
+        if m["rsi"] > 85: add(-2, f"RSI {m['rsi']:.0f}: stretched")
+        if m["ext50"] > 0.40: add(-2, f"{m['ext50']*100:.0f}% above the 50-day average: extended")
+        elif m["ext50"] > 0.25: add(-1, f"{m['ext50']*100:.0f}% above the 50-day average")
+        if m["ret5"] > 0.20: add(-1, f"up {m['ret5']*100:.0f}% in 5 days: chasing risk")
     # ---- Time Machine (evidence, small weight; not back-tested as a filter) ----
     tm = memo.get("timemachine")
-    if tm and tm.get("real", {}).get("sessions", 0) >= 20:
+    if tm and tm.get("sim", {}).get("target") is not None and tm["verdict"] not in ("no history",):
         pts = ic.get("timemachine_points", 1)
         if tm["verdict"].startswith("past sessions lost money"):
             add(-pts, "Time Machine: " + tm["verdict"])
             if ic.get("timemachine_gate", False): hard.append("Time Machine gate: " + tm["verdict"])
         elif tm["verdict"] == "tilted toward the target": add(pts, "Time Machine: tilted toward the target")
+        elif tm["verdict"] == "tilted toward the stop": add(-pts, "Time Machine: tilted toward the stop")
     # ---- other analysts (evidence, small weights) ----
     if a["fundamentals"]["stance"] == "supportive": add(1, "fundamentals supportive")
     elif a["fundamentals"]["stance"] == "concerning": add(-1, "fundamentals concerning")
-    if a["news"]["stance"] == "positive flags": add(1, "positive headline flags")
-    if (macro or {}).get("stance") == "cautious": add(-1, "macro cautious: " + "; ".join(macro.get("reasons", [])[:2]))
-    verdict = "REJECT" if hard else "APPROVE" if score >= ic.get("approve_score", 6) else "WATCH" if score >= ic.get("watch_score", 4) else "REJECT"
+    if (macro or {}).get("stance") == "cautious" and not top: add(-1, "macro cautious: " + "; ".join(macro.get("reasons", [])[:2]))   # untested: not applied to the momentum rule
+    if top: verdict = "REJECT" if hard else "APPROVE"      # the back-tested rule: only hard risks stop it; the score is information
+    else: verdict = "REJECT" if hard else "APPROVE" if score >= ic.get("approve_score", 6) else "WATCH" if score >= ic.get("watch_score", 4) else "REJECT"
     if not hard and verdict == "REJECT": hard = [f"score {score} is below the watch level"]
-    return {"verdict": verdict, "score": score, "rules": hits, "rejected_because": hard, "by": "coded judge v1 (no AI)"}
+    return {"verdict": verdict, "score": score, "rules": hits, "rejected_because": hard, "by": "coded judge v2 (no AI)"}

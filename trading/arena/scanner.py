@@ -31,10 +31,7 @@ def daily_setups(d: pd.DataFrame) -> list[dict]:
         run, rng = c.iloc[-6] / c.iloc[-16] - 1, (h.iloc[-5:].max() - l.iloc[-5:].min()) / c.iloc[-1]
         if run >= 0.15 and rng <= 0.06 and c.iloc[-1] > c.iloc[-20:].mean():
             out.append({"setup": "bull_flag", "why": f"{run*100:.0f}% run, then a {rng*100:.1f}% wide 5-day pause"})
-    if len(d) > 16:
-        r = rsi(c.iloc[:-1])
-        if r < 30 and c.iloc[-1] > h.iloc[-2]:
-            out.append({"setup": "oversold_bounce", "why": f"RSI was {r:.0f}, now closed above yesterday's high"})
+    # oversold bounce removed (Nov 2026 audit): it bets against the trend the rest of the system follows
     return out
 
 
@@ -71,7 +68,7 @@ class Shortlister:
         frames: dict[str, pd.DataFrame] = {}
         for i in range(0, len(syms), self.batch):
             try:
-                frames.update(hist(syms[i:i + self.batch], period="1y", interval="1d"))
+                frames.update(hist(syms[i:i + self.batch], period="2y", interval="1d"))
             except Exception as e:
                 log.warning("daily scan batch failed: %s", e)
         rows = []

@@ -20,7 +20,7 @@ header a{margin-left:auto;color:var(--brand);font-weight:600;text-decoration:non
 .seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px}
 .seg button{border:0;background:none;padding:7px 12px;border-radius:8px;font:600 13px inherit;font-family:inherit;color:var(--muted);cursor:pointer;min-height:34px}
 .seg button.on{background:var(--brand-soft);color:var(--brand)}
-.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
 .tile .k{font-size:12.5px;color:var(--muted);font-weight:600}
 .tile .v{font-size:28px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}
@@ -54,7 +54,7 @@ tr:hover td{background:#faf9f6}
 <body data-palette="#2a78d6,#e34948">
 <div class="wrap">
   <header><h1>Expectation vs actual</h1><span class="sub" id="asof">Loading…</span><a href="/">← TrendLens</a></header>
-  <p class="lead" id="lead">How each idea is doing against what the CEO expected when it was posted: the target (or first objective) above, the stop-loss below.</p>
+  <p class="lead" id="lead">How each idea is doing against what the CEO expected when it was posted: the target (the reference objective for momentum ideas) above, the stop-loss below.</p>
   <div class="filters">
     <div class="seg" id="fStatus"><button data-v="all" class="on">All ideas</button><button data-v="live">Live</button><button data-v="closed">Closed</button></div>
     <div class="seg" id="fTerm"><button data-v="all" class="on">All terms</button><button data-v="medium">Momentum (medium)</button><button data-v="short">Short term</button></div>
@@ -67,7 +67,7 @@ tr:hover td{background:#faf9f6}
   </div>
   <div class="card"><h2>Calibration</h2><p class="hint">Does higher conviction or a higher judge score actually do better? Ideas never entered are left out.</p><div class="tw" id="calib"></div></div>
   <div class="card"><h2>Every idea</h2><p class="hint">Click a column to sort. Deviation = actual return minus the expected move to target, in percentage points.</p><div class="tw" id="detail"></div>
-    <p class="note">Expected move = target ÷ entry − 1 (first objective for momentum ideas, which are not closed there). Entry = the first price inside the entry range when known, else the posted price. Best / worst = highest high and lowest low since entry, from daily bars. Figures update when the page loads; live prices refresh every minute in market hours.</p></div>
+    <p class="note">Expected move = target ÷ entry − 1 (reference objective for momentum ideas, which are not closed there). Entry = the first price inside the entry range when known, else the posted price. Best / worst = highest high and lowest low since entry, from daily bars. Figures update when the page loads; live prices refresh every minute in market hours.</p></div>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -113,13 +113,17 @@ const view=()=>ROWS.filter(r=>(F.status==='all'||r.st===F.status)&&(F.term==='al
 function tiles(V){
   const E=V.filter(r=>r.cls!=='ne'),inl=E.filter(r=>r.progress!=null&&r.progress>=0),C=E.filter(r=>r.st==='closed'),L=E.filter(r=>r.st==='live');
   const avg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
+  const XS=E.filter(r=>r.actual!=null&&r.nifty!=null),XN=XS.length,exc=XN?avg(XS.map(r=>r.actual-r.nifty)):null;
+  const tax=E.some(r=>r.actual!=null)?avg(E.filter(r=>r.actual!=null).map(r=>r.actual>0?r.actual*0.8:r.actual)):null;
   const devC=avg(C.map(r=>r.dev).filter(x=>x!=null)),prog=avg(E.map(r=>r.progress).filter(x=>x!=null)),win=C.length?C.filter(r=>r.actual>0).length/C.length*100:null;
   const t=(k,v,s)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
   $('#tiles').innerHTML=
     t('In line with expectation',E.length?Math.round(inl.length/E.length*100)+'%':'—',E.length?`${inl.length} of ${E.length} entered ideas are at or above entry, moving toward target`:'No entered ideas yet')+
     t('Average progress to target',prog==null?'—':Math.round(prog)+'%',`100% = target reached · ${L.length} live, ${C.length} closed`)+
     t('Closed ideas: average deviation',devC==null?'—':pp(devC),C.length?`actual result minus the expected move, over ${C.length} closed`:'No closed ideas yet')+
-    t('Closed ideas that made money',win==null?'—':Math.round(win)+'%',C.length?`${C.filter(r=>r.actual>0).length} of ${C.length}`:'Builds up as ideas close');
+    t('Closed ideas that made money',win==null?'—':Math.round(win)+'%',C.length?`${C.filter(r=>r.actual>0).length} of ${C.length}`:'Builds up as ideas close')+
+    t('Versus NIFTY (equal weight)',exc==null?'—':pp(exc),exc==null?'NIFTY over the same holding periods; builds up as ideas trade':`average idea minus NIFTY over the same days, ${XN} ideas`)+
+    t('After tax (20% short-term gains)',tax==null?'—':pc(tax),tax==null?'Builds up as ideas trade':`average result if gains are taxed at 20% (held under a year); before tax ${pc(avg(E.map(r=>r.actual).filter(x=>x!=null)))}`);
 }
 
 function mix(V){
@@ -168,10 +172,10 @@ function calib(V){
   const E=V.filter(r=>r.cls!=='ne');
   if(!E.length){$('#calib').innerHTML='<div class="empty">No entered ideas yet.</div>';return}
   const grp=(lab,keyf,order)=>{const g={};E.forEach(r=>{const k=keyf(r);(g[k]=g[k]||[]).push(r)});return (order||Object.keys(g)).filter(k=>g[k]).map(k=>{const a=g[k],avg=f=>{const v=a.map(f).filter(x=>x!=null);return v.length?v.reduce((s,x)=>s+x,0)/v.length:null};
-    return `<tr><td>${lab}</td><td>${esc(k)}</td><td class="num">${a.length}</td><td class="num">${Math.round(a.filter(r=>r.progress>=0).length/a.length*100)}%</td><td class="num">${a.filter(r=>r.cls==='met').length}</td><td class="num ${avg(r=>r.actual)>=0?'up':'dn'}">${pc(avg(r=>r.actual))}</td><td class="num">${pc(avg(r=>r.expT))}</td><td class="num">${avg(r=>r.progress)==null?'—':Math.round(avg(r=>r.progress))+'%'}</td><td class="num">${pp(avg(r=>r.dev))}</td></tr>`}).join('')};
+    return `<tr><td>${lab}</td><td>${esc(k)}</td><td class="num">${a.length}</td><td class="num">${Math.round(a.filter(r=>r.progress>=0).length/a.length*100)}%</td><td class="num">${a.filter(r=>r.cls==='met').length}</td><td class="num ${avg(r=>r.actual)>=0?'up':'dn'}">${pc(avg(r=>r.actual))}</td><td class="num">${pc(avg(r=>r.expT))}</td><td class="num">${avg(r=>r.progress)==null?'—':Math.round(avg(r=>r.progress))+'%'}</td><td class="num">${pp(avg(r=>r.dev))}</td><td class="num">${pp(avg(r=>r.nifty==null||r.actual==null?null:r.actual-r.nifty))}</td></tr>`}).join('')};
   const sb=r=>r.score==null?'—':r.score>=10?'10+':r.score>=8?'8–9':r.score>=6?'6–7':'below 6';
-  $('#calib').innerHTML=`<table><thead><tr><th>Group</th><th>Value</th><th class="num">Ideas</th><th class="num">In line</th><th class="num">Met target</th><th class="num">Avg actual</th><th class="num">Avg expected</th><th class="num">Avg progress</th><th class="num">Avg deviation</th></tr></thead><tbody>`+
-    grp('Conviction',r=>r.conv,['High','Medium','Low','—'])+grp('Term',r=>r.term==='medium'?'Momentum (medium)':r.term==='short'?'Short term':'Earlier auto entries')+grp('Judge score',sb,['10+','8–9','6–7','below 6','—'])+grp('Status',r=>r.st==='live'?'Live':'Closed',['Live','Closed'])+'</tbody></table>';
+  $('#calib').innerHTML=`<table><thead><tr><th>Group</th><th>Value</th><th class="num">Ideas</th><th class="num">In line</th><th class="num">Met target</th><th class="num">Avg actual</th><th class="num">Avg expected</th><th class="num">Avg progress</th><th class="num">Avg deviation</th><th class="num">vs NIFTY</th></tr></thead><tbody>`+
+    grp('Conviction',r=>r.conv,['High','Medium','Low','—'])+grp('Term',r=>r.term==='medium'?'Momentum (medium)':r.term==='short'?'Short term':'Earlier auto entries')+grp('Judge score',sb,['10+','8–9','6–7','below 6','—'])+grp('Status',r=>r.st==='live'?'Live':'Closed',['Live','Closed'])+'</tbody></table>'+(()=>{const S=ROWS.filter(r=>r.term==='short'&&r.st==='closed'&&r.actual!=null);if(!S.length&&!ROWS.some(r=>r.term==='short'))return'';const Rm=S.map(r=>r.expS?r.actual/Math.abs(r.expS):null).filter(x=>x!=null),er=Rm.length?Rm.reduce((a,b)=>a+b,0)/Rm.length:null;return `<p class="note"><b>Short-term track review:</b> ${S.length} of 50 closed trades so far${er==null?'':`; average ${er>0?'+':''}${er.toFixed(2)}R per trade`}. The audit's rule: keep it only if it earns at least +0.2R per trade after 50 trades.</p>`})();
 }
 
 const COLS=[['sym','Stock'],['st','Status'],['term','Term'],['conv','Conviction'],['posted','Posted'],['fill','Entry',1],['expT','Expected to target',1],['expS','Stop-loss at',1],['actual','Actual',1],['progress','Progress',1],['dev','Deviation',1],['best','Best',1],['worst','Worst',1],['held','Sessions held',1],['cls','Outcome']];

@@ -25,7 +25,7 @@ import re
 # Headline flags. Whole-word patterns: a bare substring test made "ban" fire on "bank"/"urban" and "ed " on any word ending in -ed.
 _QUOTE_PAGE = re.compile(r"share price|stock price|price today|\bquote\b|price & chart|stock \(\w+\)|returns chart|stock forecast", re.I)   # quote pages, not news
 NEG = (("fraud", r"\bfraud"), ("probe", r"\bprobe[sd]?\b"), ("sebi order", r"\bsebi order"), ("raid", r"\braids?\b"), ("downgrade", r"\bdowngrad"),
-       ("resigns", r"\bresign"), ("default", r"\bdefault"), ("penalty", r"\bpenalt"), ("ban", r"\b(?:ban|bans|banned)\b"), ("loss widens", r"\bloss widens"),
+       ("CFO/auditor resigns", r"\b(?:cfo|chief financial officer|auditors?|statutory auditor)\b[^|]{0,60}\bresign|\bresign[^|]{0,60}\b(?:cfo|auditors?)\b"), ("pledge invoked", r"\bpledged? shares? invoked|\binvocation of pledge|\bpledge[^|]{0,20}\binvok"), ("default", r"\bdefault"), ("penalty", r"\bpenalt"), ("ban", r"\b(?:ban|bans|banned)\b"), ("loss widens", r"\bloss widens"),
        ("plunge", r"\bplunge"), ("cuts guidance", r"\bcuts? guidance"), ("insolvency", r"\binsolvenc"), ("ED probe", r"\bED\b|enforcement directorate"))
 POS = (("order win", r"\border wins?\b"), ("bags order", r"\bbags? order"), ("upgrade", r"\bupgrade[sd]?\b"), ("record profit", r"\brecord profit"), ("profit jumps", r"\bprofit jumps"),
        ("acquisition", r"\bacquisition\b|\bacquires\b"), ("buyback", r"\bbuyback"), ("dividend", r"\bdividend"), ("beats estimates", r"\bbeats? estimates"), ("wins contract", r"\bwins? contract"))
@@ -69,9 +69,12 @@ class Committee:
             if eps <= 0: bear += 2; pts.append("loss-making over the last 12 months")
             else:
                 pe = ltp / eps; pts.append(f"P/E {pe:.1f}x on the live price")
-                if pe > 100: bear += 2; pts.append("very rich valuation (P/E above 100)")
-                elif pe > 60: bear += 1; pts.append("rich valuation (P/E above 60)")
-                elif pe < 25: bull += 1
+                peer, grp = self._peer_pe(sym, f)                      # judged against its own industry, not a fixed number
+                if peer:
+                    rel = pe / peer; pts.append(f"{rel:.1f}x the {grp} median P/E of {peer:.0f}x")
+                    if rel > 3: bear += 2
+                    elif rel > 2: bear += 1
+                    elif rel < 0.7: bull += 1
         for k, lab, good, bad in (("roe_pct", "ROE", 15, 8), ("earn_growth_pct", "earnings growth", 15, 0), ("rev_growth_pct", "revenue growth", 12, 0)):
             v = f.get(k)
             if v is not None:
@@ -84,6 +87,27 @@ class Committee:
             if de > 2: bear += 1; pts.append("high leverage")
         d = bull - bear
         return {"stance": "supportive" if d >= 2 else "concerning" if d <= -2 else "mixed", "points": pts[:6], "as_of": self._funds().get("asof")}
+
+    def _peer_pe(self, sym: str, f: dict):
+        """Median P/E of the stock's industry (at least 4 peers, else its sector) at the last close in web/history.json."""
+        if not hasattr(self, "_pe_tab"):
+            self._pe_tab = {}
+            try:
+                h = json.loads((universe.REPO / "web" / "history.json").read_text()); st = self._funds().get("stocks", {})
+                ind, sec = {}, {}
+                for s, x in st.items():
+                    c = (h.get("closes", {}).get(s) or [None])[-1]
+                    if c and (x.get("eps_ttm") or 0) > 0:
+                        pe = c / x["eps_ttm"]
+                        if 0 < pe < 1000: ind.setdefault(x.get("industry"), []).append(pe); sec.setdefault(x.get("sector"), []).append(pe)
+                med = lambda v: sorted(v)[len(v) // 2]
+                self._pe_tab = {"ind": {k: med(v) for k, v in ind.items() if k and len(v) >= 4}, "sec": {k: med(v) for k, v in sec.items() if k and len(v) >= 4}}
+            except Exception as e:
+                log.debug("peer P/E unavailable: %s", e)
+        t = self._pe_tab or {}
+        if f.get("industry") in t.get("ind", {}): return t["ind"][f["industry"]], "industry"
+        if f.get("sector") in t.get("sec", {}): return t["sec"][f["sector"]], "sector"
+        return None, None
 
     # ---- news ---------------------------------------------------------
     def news(self, sym: str) -> dict:

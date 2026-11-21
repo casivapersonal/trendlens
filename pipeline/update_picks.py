@@ -6,7 +6,7 @@ Usage: python pipeline/update_picks.py web/picks.json web/history.json
 """
 import json, os, sys, datetime as dt
 import pandas as pd, numpy as np, yfinance as yf
-from core import fill_last_close, UNIVERSE, STATS, ENTRY_RANK, EXIT_RANK, ist_now, market_open, ranks_now, refresh_live, rank_exit_flags, load_nse
+from core import fill_last_close, MIN_TURNOVER_CR, MIN_PRICE, UNIVERSE, STATS, ENTRY_RANK, EXIT_RANK, ist_now, market_open, ranks_now, refresh_live, rank_exit_flags, load_nse
 
 PICKS, HIST = sys.argv[1], sys.argv[2]
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -42,8 +42,12 @@ last = C.index[-1].date().isoformat()
 if last == today and market_open(now):          # drop today's partial session: history is closed days only
     C = C.iloc[:-1]; last = C.index[-1].date().isoformat()
 tail = C.iloc[-260:]
-keep = set(universe) | {e["sym"] for e in state["live"]}
-hist = {"dates": [d.date().isoformat() for d in tail.index], "universe": universe,
+liq20 = TV.rolling(20, min_periods=15).median().iloc[-1]; px_last = C.iloc[-1]
+live_syms = {e["sym"] for e in state["live"]}
+rank_universe = [s for s in universe if (liq20.get(s, 0) or 0) >= MIN_TURNOVER_CR * 1e7 and (px_last.get(s, 0) or 0) >= MIN_PRICE or s in live_syms]
+print("ranked universe after the liquidity floor:", len(rank_universe), "of", len(universe))
+keep = set(universe) | live_syms
+hist = {"dates": [d.date().isoformat() for d in tail.index], "universe": universe, "rank_universe": rank_universe,
         "closes": {s: [None if np.isnan(v) else round(float(v), 2) for v in tail[s].values] for s in keep if s in tail}}
 json.dump(hist, open(HIST, "w"), separators=(",", ":"))
 

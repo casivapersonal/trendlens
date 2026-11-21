@@ -2,6 +2,7 @@
 # Everything is simulated. There is no setting that enables real orders.
 
 [account]
+# Used ONLY by the old paper-trading arena (`python -m arena run`, switched off in TrendLens). Ideas use no capital or position size.
 starting_capital = 100000      # virtual rupees
 challenge_days = 15            # the run stops after this many trading days
 
@@ -47,6 +48,7 @@ min_price = 20
 min_avg_value_cr = 5           # 20-day average traded value, crore rupees
 
 [risk]
+# Used ONLY by the switched-off paper-trading arena. TrendLens ideas have no loss limit in rupees and no position sizing.
 max_loss_pct = 3               # max loss per trade as % of the account (3% of Rs 1,00,000 = Rs 3,000), charges included; 0 = use max_loss_per_trade
 max_loss_per_trade = 0         # optional fixed rupee limit, used only when max_loss_pct = 0
 max_trades_per_day = 3         # 0 = off
@@ -109,9 +111,11 @@ short_days = 15                # trading days
 short_stop_atr = 1.5
 short_r = 2.5                  # target = r x stop distance
 medium_days = 60
-medium_stop_atr = 2.5
-medium_r = 3.0
-min_rr = 2.0                   # risk check blocks approval below this reward-to-risk
+medium_stop_atr = 6            # wide safety stop only: the back-tested momentum rule had no stop (a 2.5 ATR stop cost about 5 points a year in the audit)
+medium_r = 2.0                 # reference objective only (12 ATR, about the back-test's average winner); momentum ideas are NOT closed there
+min_rr = 2.0                   # short-term ideas only
+max_stop_pct_short = 12        # risk check: a short-term stop further than this is too wide
+max_day_move = 0.35            # risk check: hold any signal after a one-day move above 35% (possible unadjusted split / bonus)
 timemachine_points = 1         # judge points for / against the Time Machine verdict (needs 20+ past samples); evidence, not back-tested
 timemachine_gate = false       # true = hard reject when past samples lost money after charges
 auto_close = false             # false = exit signals are flagged and the decision-maker closes; true = closes at the signal price
@@ -121,6 +125,7 @@ auto_close = false             # false = exit signals are flagged and the decisi
 # ideas with an exit signal. Every decision is written to trading/ideas/pending.json (ceo_log) and shown on the idea.
 enabled = true                 # false = back to manual approve / close
 max_per_sector = 3             # live ideas in one industry at once (e.g. Banks - Regional)
-max_live_short = 8             # short-term setup ideas (not back-tested) live at once
+max_live_short = 4             # short-term setup ideas (not back-tested) live at once; review the track after 50 closed trades
+max_per_broad_sector = 6       # live ideas in one broad sector (e.g. Financial Services)
 ai_review = false              # true + ANTHROPIC_API_KEY secret = Claude takes a second look and may DECLINE (never post) an idea
 model = ""                     # blank = claude-sonnet-5-5

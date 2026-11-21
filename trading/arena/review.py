@@ -1,9 +1,8 @@
-"""Idea review layer: the pieces of the Day Trader skill (entry timer, 1R exit, budget, risk check) and the committee's bull / bear debate,
+"""Idea review layer: the pieces of the Day Trader skill (entry timer, 1R exit, risk check) and the committee's bull / bear debate,
 packaged as plain functions on one idea. Everything here is deterministic and informational; the decision-maker still approves and closes.
 Only the risk check can stop an idea from being approved (unless forced); the debate and the Time Machine are evidence."""
 from __future__ import annotations
 
-from . import charges as ch
 
 
 # ---------------------------------------------------------------- committee debate (bull vs bear vs economic)
@@ -54,31 +53,14 @@ def one_r_advice(idea: dict, high_seen: float | None) -> dict | None:
 
 
 # ---------------------------------------------------------------- budget (trader-budget) and risk check (trader-risk)
-def size_idea(cfg: dict, entry: float, stop: float) -> dict:
-    """Quantity so the loss at the stop, charges included (delivery), stays within the loss limit ([risk].max_loss_pct of the account), and the position within
-    [strategy].max_position_pct of [account].starting_capital. A worked example on the configured paper account, not advice."""
-    from .riskplan import loss_limit
-    lim = loss_limit(cfg); cap = float(cfg.get("account", {}).get("starting_capital", 0) or 0)
-    pos_cap = cap * float(cfg.get("strategy", {}).get("max_position_pct", 100)) / 100 if cap else 0
-    rates, per = cfg.get("charges", {}), entry - stop
-    if per <= 0: return {"qty": 0, "note": "no valid stop distance"}
-    qty = int(lim // per) if lim > 0 else (int(pos_cap // entry) if pos_cap else 0)
-    over_cap = bool(pos_cap) and entry > pos_cap
-    if pos_cap: qty = min(qty, int(pos_cap // entry)) if not over_cap else min(qty, 1)   # one share above the example cap is still shown
-    while qty > 0 and lim > 0 and qty * per + ch.compute("BUY", qty, entry, "delivery", rates).total + ch.compute("SELL", qty, stop, "delivery", rates).total > lim: qty -= 1
-    loss = qty * per + (ch.compute("BUY", qty, entry, "delivery", rates).total + ch.compute("SELL", qty, stop, "delivery", rates).total if qty else 0)
-    return {"qty": qty, "value": round(qty * entry, 2), "loss_at_stop": round(loss, 2), "max_loss": lim, "capital": cap,
-            "note": ("one share costs more than the example position cap; shown as 1 share" if over_cap else "example sizing on the configured paper account") + "; loss at the stop price, a gap can be worse"}
-
-
 def risk_check(idea: dict, cfg: dict, live_count: int) -> dict:
-    """PASS/BLOCK with reasons, like trader-risk: reward-to-risk, room for another idea, and a position that fits the loss limit."""
+    """PASS/BLOCK with reasons, on the idea itself (no account, capital or position size is assumed):
+    reward-to-risk for short-term ideas, a stop that is not absurdly wide, and no signal on a one-day jump that may be a
+    split or bonus the data has not adjusted for yet."""
     ic, why = cfg.get("ideas", {}), []
-    if idea["r"] < ic.get("min_rr", 2.0): why.append(f"reward-to-risk {idea['r']} is below {ic.get('min_rr', 2.0)}")
-    if live_count >= ic.get("max_live", 10): why.append(f"already {live_count} live ideas (max {ic.get('max_live', 10)})")
-    sz = idea.get("size", {})
-    if sz.get("qty", 1) < 1:
-        cap = float(cfg.get("account", {}).get("starting_capital", 0) or 0) * float(cfg.get("strategy", {}).get("max_position_pct", 100)) / 100
-        why.append(f"one share costs more than the position cap (Rs {cap:,.0f})" if cap and idea.get("entry_price", 0) > cap
-                   else "stop is too wide for the max loss per trade")
+    term, e, st = idea.get("term"), idea.get("entry_price"), idea.get("stop")
+    if term != "medium" and idea.get("r") is not None and idea["r"] < ic.get("min_rr", 2.0): why.append(f"reward-to-risk {idea['r']} is below {ic.get('min_rr', 2.0)}")
+    if live_count >= ic.get("max_live", 20): why.append(f"already {live_count} live ideas (max {ic.get('max_live', 20)})")
+    if term == "short" and e and st and (1 - st / e) * 100 > ic.get("max_stop_pct_short", 12): why.append(f"stop-loss is {(1 - st / e) * 100:.1f}% away (max {ic.get('max_stop_pct_short', 12)}% for short-term ideas)")
+    if idea.get("ret1") is not None and abs(idea["ret1"]) > ic.get("max_day_move", 0.35): why.append(f"moved {idea['ret1'] * 100:.0f}% in one day: check for a split, bonus or other corporate action first")
     return {"verdict": "BLOCK" if why else "PASS", "reasons": why}

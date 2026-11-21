@@ -1,6 +1,6 @@
 """Ideas pipeline: coded judge, human approval, monitoring, closing. Run: python -m unittest discover tests"""
 from __future__ import annotations
-import sys, tempfile, unittest
+import json, sys, tempfile, unittest
 from datetime import datetime
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent; sys.path.insert(0, str(ROOT))
@@ -69,7 +69,7 @@ class Levels(unittest.TestCase):
     def test_levels(self):
         cfg = load_config(); lv = ideas.levels(100.0, 2.0, "short", cfg)
         self.assertEqual((lv["entry_lo"], lv["entry_hi"], lv["stop"], lv["target"]), (99.2, 100.8, 97.0, 107.5))
-        m = ideas.levels(100.0, 2.0, "medium", cfg); self.assertEqual((m["stop"], m["target"], m["days"]), (95.0, 115.0, 60))
+        m = ideas.levels(100.0, 2.0, "medium", cfg); self.assertEqual((m["stop"], m["target"], m["days"]), (88.0, 124.0, 60))   # 6 ATR safety stop, 12 ATR reference objective
 
 
 class Flow(unittest.TestCase):
@@ -209,9 +209,10 @@ class AuditFixes(Flow):
     def test_no_setup_and_no_rank_is_not_an_idea(self):
         self.assertIsNone(ideas.term_for([], 120)); self.assertEqual(ideas.term_for([], 7), "medium"); self.assertEqual(ideas.term_for(["breakout20"], 120), "short")
 
-    def test_expensive_share_is_sized_at_one_share_not_blocked(self):
-        s = review.size_idea(self.cfg, 30000.0, 29400.0)
-        self.assertEqual(s["qty"], 1); self.assertEqual(review.risk_check({"r": 2.5, "size": s, "entry_price": 30000.0}, self.cfg, 0)["verdict"], "PASS")
+    def test_no_capital_or_sizing_on_ideas(self):
+        with tempfile.TemporaryDirectory() as t:
+            idea, pp, pu = self._live(t)
+            self.assertNotIn("size", idea); self.assertNotIn("capital", json.dumps(idea))
 
 
 class Intraday(Flow):

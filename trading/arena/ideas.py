@@ -122,8 +122,9 @@ def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | 
         st = [x["stance"] for x in memo["analysts"].values()]
         agree = ("analysts agree (supportive)" if sum(x in ("bullish", "supportive", "positive flags") for x in st) >= 2
                  and not any(x in ("bearish", "concerning", "negative flags") for x in st) else "mixed views")
-        size = review.size_idea(cfg, m["close"], lv["stop"]); deb = review.debate(memo, macro)
-        risk = review.risk_check({"r": lv["r"], "size": size, "entry_price": m["close"]}, cfg, 0)   # book limits are the CEO's job
+        deb = review.debate(memo, macro)
+        ret1 = float(d["close"].iloc[-1] / d["close"].iloc[-2] - 1) if len(d) > 1 else None
+        risk = review.risk_check({"r": lv["r"], "term": term, "entry_price": m["close"], "stop": lv["stop"], "ret1": ret1}, cfg, 0)   # book limits are the CEO's job
         tm = memo.get("timemachine")
         out.append({"id": f"{s}-{pdate}-{term[0]}", "sym": s, "name": (committee._funds().get("stocks", {}).get(s) or {}).get("name") or s,
                     "view": "Bullish view", "term": term, "entry_date": pdate, "entry_time": entry_time, "entry_price": round(m["close"], 2),
@@ -131,7 +132,7 @@ def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | 
                     **{k: lv[k] for k in ("entry_lo", "entry_hi", "stop", "target", "days", "r")},
                     # the back-tested rank rule reaches the CEO even when the untested judge points only reach WATCH
                     "status": ("awaiting decision" if v["verdict"] == "APPROVE" or (term == "medium" and v["verdict"] == "WATCH") else "watch") if risk["verdict"] == "PASS" else "watch",
-                    "entry_state": review.entry_state({**lv, "entry_price": m["close"]}, m["close"]), "size": size, "risk": risk,
+                    "entry_state": review.entry_state({**lv, "entry_price": m["close"]}, m["close"]), "risk": risk,
                     "review": {"bull": deb["bull"], "bear": deb["bear"], "lean": deb["lean"], "economic": deb["economic"],
                                "time_machine": ({"sim": tm["sim"], "past": {k: tm["real"][k] for k in ("sessions", "target", "stop", "neither")}, "verdict": tm["verdict"], "proof": "simulation; not back-tested"} if tm else None),
                                "proof": {**committee_proof(), "judge": "weights not back-tested"}, "decision_needed": "approve, reject or leave on watch"},

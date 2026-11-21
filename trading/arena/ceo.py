@@ -40,6 +40,14 @@ def _conviction(q: dict) -> tuple[str, list[str]]:
     j, rv, cm = q["judge"], q.get("review") or {}, q.get("committee") or {}
     pts, why = 0, []
     rk = q.get("entry_rank")
+    tm = (rv.get("time_machine") or {}).get("verdict", "")
+    if q.get("term") == "medium" and rk is not None:
+        # momentum ideas: the back-tested rank, plus the (drift-neutral) Time Machine; untested trend points are not counted twice
+        pts = 3 if rk <= 5 else 2 if rk <= 12 else 1
+        why.append(f"momentum rank #{rk} (the back-tested rule)")
+        if tm == "tilted toward the target": pts += 1; why.append("Time Machine tilted toward the target")
+        elif tm.startswith(("tilted toward the stop", "past sessions lost money")): pts -= 1; why.append("Time Machine: " + tm)
+        return ("High" if pts >= 3 else "Medium" if pts == 2 else "Low"), why
     if rk is not None and rk <= 20: pts += 2; why.append(f"momentum rank #{rk} (the back-tested rule)")
     if j["score"] >= 10: pts += 2; why.append(f"judge score {j['score']} (strong)")
     elif j["score"] >= 8: pts += 1; why.append(f"judge score {j['score']}")
@@ -64,7 +72,9 @@ def review_entry(q: dict, ctx: dict, cfg: dict) -> dict:
     if ctx["posted_today"] >= ic.get("max_new_per_day", 10): no.append(f"already posted {ctx['posted_today']} ideas today (limit)")
     if q.get("term") == "short" and ctx.get("short_live", 0) >= c.get("max_live_short", 8):
         no.append(f"short-term setup ideas are capped at {c.get('max_live_short', 8)} live (not back-tested, kept from crowding out the momentum rule)")
-    sec = _sector(q["sym"], ctx["funds"])
+    sec = _sector(q["sym"], ctx["funds"]); broad = ((ctx["funds"].get("stocks", {}) or {}).get(q["sym"]) or {}).get("sector") or "Unknown"
+    if broad != "Unknown" and ctx.get("broad", {}).get(broad, 0) >= c.get("max_per_broad_sector", 6):
+        no.append(f"sector limit: already {ctx['broad'][broad]} live ideas in {broad}")
     if sec != "Unknown" and ctx["sectors"].get(sec, 0) >= c.get("max_per_sector", 3):
         no.append(f"industry limit: already {ctx['sectors'][sec]} live ideas in {sec}")
     if q["sym"] in ctx.get("closed_today", set()): no.append("an idea on this stock was closed today; no re-entry the same day")
@@ -114,10 +124,12 @@ def decide_entries(cfg: dict, now, ideas_mod, frames_for=None, pending_path=None
     from .committee import Committee
     pen, pub = ideas_mod.pending(pending_path), ideas_mod.public(public_path)
     funds = Committee(cfg)._funds(); today = now.date().isoformat()
-    sectors: dict[str, int] = {}
-    for i in pub["live"]: s = _sector(i["sym"], funds); sectors[s] = sectors.get(s, 0) + 1
+    sectors: dict[str, int] = {}; broad: dict[str, int] = {}
+    for i in pub["live"]:
+        s = _sector(i["sym"], funds); sectors[s] = sectors.get(s, 0) + 1
+        b = ((funds.get("stocks", {}) or {}).get(i["sym"]) or {}).get("sector") or "Unknown"; broad[b] = broad.get(b, 0) + 1
     ctx = {"live": len(pub["live"]), "posted_today": sum(1 for i in pub["live"] + pub["closed"] if i.get("posted") == today and i.get("approved_by") == NAME),
-           "short_live": sum(1 for i in pub["live"] if i.get("term") == "short"), "sectors": sectors, "funds": funds,
+           "short_live": sum(1 for i in pub["live"] if i.get("term") == "short"), "sectors": sectors, "broad": broad, "funds": funds,
            "closed_today": {c["sym"] for c in pub["closed"] if c.get("closed_at", "")[:10] == today}}
     er = cfg.get("ideas", {}).get("entry_rank", 20)
     out = []
@@ -138,6 +150,7 @@ def decide_entries(cfg: dict, now, ideas_mod, frames_for=None, pending_path=None
             ideas_mod._save(pending_path or ideas_mod.PENDING, p)
             ideas_mod.approve(q["id"], NAME, now, pending_path, public_path, frames=(frames_for([q["sym"]]) if frames_for else None))
             ctx["live"] += 1; ctx["posted_today"] += 1; ctx["sectors"][v["sector"]] = ctx["sectors"].get(v["sector"], 0) + 1
+            b = ((funds.get("stocks", {}) or {}).get(q["sym"]) or {}).get("sector") or "Unknown"; ctx["broad"][b] = ctx["broad"].get(b, 0) + 1
             ctx["short_live"] += q.get("term") == "short"
         else:
             p = ideas_mod.pending(pending_path)
