@@ -358,7 +358,7 @@ def cmd_ideas(a, cfg):
         for s, d in _history(feed, top, "1y").items():
             if d is not None and len(d) > 30:
                 if s in prices:                                            # today's bar at the live price
-                    d = d.copy(); px = float(prices[s])
+                    d = d.astype(float); px = float(prices[s])   # float columns: no dtype warning when the live bar is written
                     if d.index[-1].date() == now.date():
                         d.iloc[-1, d.columns.get_loc("close")] = px
                         d.iloc[-1, d.columns.get_loc("high")] = max(float(d["high"].iloc[-1]), px); d.iloc[-1, d.columns.get_loc("low")] = min(float(d["low"].iloc[-1]), px)
