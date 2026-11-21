@@ -1,0 +1,45 @@
+name: Intraday CEO
+on:
+  schedule:
+    - cron: "45,50,55 3 * * 1-5"   # 09:15-09:25 IST
+    - cron: "*/5 4-9 * * 1-5"      # 09:30-15:25 IST, every 5 minutes
+    - cron: "0 10 * * 1-5"         # 15:30 IST
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "true = run even when the market is closed (testing)"
+        required: false
+permissions:
+  contents: write
+concurrency:
+  group: repo-write
+  cancel-in-progress: false
+jobs:
+  intraday:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+      SITE_URL: ${{ secrets.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: "pip" }
+      - run: pip install -q -r trading/requirements.txt -r pipeline/requirements.txt pywebpush
+      - name: Live prices -> CEO entries and exits
+        working-directory: trading
+        run: |
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then python -m arena ideas intraday --force; else python -m arena ideas intraday; fi
+      - name: Notify subscribers
+        if: ${{ env.VAPID_PRIVATE_KEY != '' && env.UPSTASH_REDIS_REST_URL != '' }}
+        continue-on-error: true
+        working-directory: pipeline
+        run: python notify.py ../web/picks.json
+      - name: Commit
+        run: |
+          git config user.name "trendlens-bot"; git config user.email "trendlens-bot@users.noreply.github.com"
+          git add web/picks.json trading/ideas/pending.json 2>/dev/null || true
+          git diff --cached --quiet || (git commit -m "Intraday $(date -u +%H:%MZ)" && git pull --rebase && git push)
