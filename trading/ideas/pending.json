@@ -2,13 +2,365 @@
  "asof": "2026-11-21",
  "queue": [
   {
+   "id": "HFCL-2026-11-21-m",
+   "sym": "HFCL",
+   "name": "HFCL Limited",
+   "view": "Bullish view",
+   "term": "medium",
+   "entry_date": "2026-11-21",
+   "entry_time": "09:43",
+   "entry_price": 188.0,
+   "entry_rank": 11,
+   "mom_pct": 148.6,
+   "entry_lo": 183.85,
+   "entry_hi": 192.15,
+   "stop": 162.2,
+   "target": 265.45,
+   "days": 60,
+   "r": 3.0,
+   "status": "watch",
+   "entry_state": "triggered: price is inside the entry range",
+   "size": {
+    "qty": 106,
+    "value": 19928.0,
+    "loss_at_stop": 2792.19,
+    "max_loss": 3000.0,
+    "capital": 100000.0,
+    "note": "example sizing on the configured paper account; loss at the stop price, a gap can be worse"
+   },
+   "risk": {
+    "verdict": "PASS",
+    "reasons": []
+   },
+   "review": {
+    "bull": [
+     "momentum rank #11",
+     "fundamentals supportive"
+    ],
+    "bear": [
+     "below the 50-day average",
+     "volatile (daily ATR 5.5%)"
+    ],
+    "lean": "balanced",
+    "economic": {
+     "stance": "calm",
+     "reasons": [],
+     "data": {
+      "india_vix": {
+       "last": 17.32,
+       "chg_1m_pct": 10.5
+      },
+      "usd_inr": {
+       "last": 92.67,
+       "chg_1m_pct": -2.2
+      },
+      "brent": {
+       "last": 89.87,
+       "chg_1m_pct": -20.6
+      },
+      "sp500": {
+       "last": 6910.39,
+       "chg_1m_pct": -9.8
+      },
+      "us10y": {
+       "last": 4.91,
+       "chg_1m_pct": -0.8
+      },
+      "nifty": {
+       "last": 25800.6,
+       "chg_1m_pct": 13.1
+      }
+     }
+    },
+    "time_machine": {
+     "sim": {
+      "target": 44.4,
+      "stop": 30.8,
+      "open": 24.9
+     },
+     "past": {
+      "sessions": 189,
+      "target": 102,
+      "stop": 39,
+      "neither": 48
+     },
+     "verdict": "tilted toward the target",
+     "proof": "simulation; not back-tested"
+    },
+    "proof": {
+     "technical": "partly back-tested (rank rule only)",
+     "fundamentals": "not back-tested",
+     "news": "not back-tested",
+     "macro": "not back-tested",
+     "judge": "weights not back-tested"
+    },
+    "decision_needed": "approve, reject or leave on watch"
+   },
+   "judge": {
+    "verdict": "APPROVE",
+    "score": 6,
+    "rules": [
+     {
+      "points": 2,
+      "rule": "momentum rank #11 in the NIFTY 500 (the original entry rule: top 20)"
+     },
+     {
+      "points": 1,
+      "rule": "above 200-day average"
+     },
+     {
+      "points": 1,
+      "rule": "50-day above 200-day"
+     },
+     {
+      "points": 1,
+      "rule": "Time Machine: tilted toward the target"
+     },
+     {
+      "points": 1,
+      "rule": "fundamentals supportive"
+     }
+    ],
+    "rejected_because": [],
+    "by": "coded judge v1 (no AI)"
+   },
+   "committee": {
+    "agreement": "mixed views",
+    "macro": "calm",
+    "analysts": {
+     "technical": {
+      "stance": "neutral",
+      "points": [
+       "price below 50-day average",
+       "price above 200-day average",
+       "RSI 34"
+      ]
+     },
+     "fundamentals": {
+      "stance": "supportive",
+      "points": [
+       "P/E 32.8x on the live price",
+       "ROE 19%",
+       "earnings growth 402% (low-base effect, not scored)",
+       "revenue growth 144%",
+       "debt/equity 0.3"
+      ]
+     },
+     "news": {
+      "stance": "quiet",
+      "points": []
+     }
+    },
+    "news": []
+   },
+   "ceo": {
+    "decision": "DECLINE",
+    "conviction": "Medium",
+    "for": [
+     "momentum rank #11 (the back-tested rule)",
+     "Time Machine tilted toward the target"
+    ],
+    "against": [
+     "already posted 10 ideas today (limit)"
+    ],
+    "noted": [],
+    "sector": "Communication Equipment",
+    "memo": "DECLINE HFCL (medium term, conviction Medium). Reasons against: already posted 10 ideas today (limit).",
+    "by": "CEO (coded rules)"
+   }
+  },
+  {
+   "id": "ACUTAAS-2026-11-21-m",
+   "sym": "ACUTAAS",
+   "name": "Acutaas Chemicals Limited",
+   "view": "Bullish view",
+   "term": "medium",
+   "entry_date": "2026-11-21",
+   "entry_time": "09:43",
+   "entry_price": 3833.5,
+   "entry_rank": 12,
+   "mom_pct": 128.1,
+   "entry_lo": 3778.55,
+   "entry_hi": 3888.45,
+   "stop": 3489.9,
+   "target": 4864.25,
+   "days": 60,
+   "r": 3.0,
+   "status": "watch",
+   "entry_state": "triggered: price is inside the entry range",
+   "size": {
+    "qty": 5,
+    "value": 19167.5,
+    "loss_at_stop": 1774.75,
+    "max_loss": 3000.0,
+    "capital": 100000.0,
+    "note": "example sizing on the configured paper account; loss at the stop price, a gap can be worse"
+   },
+   "risk": {
+    "verdict": "PASS",
+    "reasons": []
+   },
+   "review": {
+    "bull": [
+     "momentum rank #12",
+     "price above a rising 50/200-day structure",
+     "within 10% of the 52-week high",
+     "fundamentals supportive"
+    ],
+    "bear": [],
+    "lean": "bull",
+    "economic": {
+     "stance": "calm",
+     "reasons": [],
+     "data": {
+      "india_vix": {
+       "last": 17.32,
+       "chg_1m_pct": 10.5
+      },
+      "usd_inr": {
+       "last": 92.67,
+       "chg_1m_pct": -2.2
+      },
+      "brent": {
+       "last": 89.87,
+       "chg_1m_pct": -20.6
+      },
+      "sp500": {
+       "last": 6910.39,
+       "chg_1m_pct": -9.8
+      },
+      "us10y": {
+       "last": 4.91,
+       "chg_1m_pct": -0.8
+      },
+      "nifty": {
+       "last": 25800.6,
+       "chg_1m_pct": 13.1
+      }
+     }
+    },
+    "time_machine": {
+     "sim": {
+      "target": 48.5,
+      "stop": 41.4,
+      "open": 10.1
+     },
+     "past": {
+      "sessions": 189,
+      "target": 110,
+      "stop": 45,
+      "neither": 34
+     },
+     "verdict": "tilted toward the target",
+     "proof": "simulation; not back-tested"
+    },
+    "proof": {
+     "technical": "partly back-tested (rank rule only)",
+     "fundamentals": "not back-tested",
+     "news": "not back-tested",
+     "macro": "not back-tested",
+     "judge": "weights not back-tested"
+    },
+    "decision_needed": "approve, reject or leave on watch"
+   },
+   "judge": {
+    "verdict": "APPROVE",
+    "score": 9,
+    "rules": [
+     {
+      "points": 2,
+      "rule": "momentum rank #12 in the NIFTY 500 (the original entry rule: top 20)"
+     },
+     {
+      "points": 1,
+      "rule": "above 50-day average"
+     },
+     {
+      "points": 1,
+      "rule": "above 200-day average"
+     },
+     {
+      "points": 1,
+      "rule": "50-day above 200-day"
+     },
+     {
+      "points": 1,
+      "rule": "RSI in the 50-75 trend zone"
+     },
+     {
+      "points": 1,
+      "rule": "within 10% of the 52-week high"
+     },
+     {
+      "points": 1,
+      "rule": "Time Machine: tilted toward the target"
+     },
+     {
+      "points": 1,
+      "rule": "fundamentals supportive"
+     }
+    ],
+    "rejected_because": [],
+    "by": "coded judge v1 (no AI)"
+   },
+   "committee": {
+    "agreement": "mixed views",
+    "macro": "calm",
+    "analysts": {
+     "technical": {
+      "stance": "neutral",
+      "points": [
+       "price above 50-day average",
+       "price above 200-day average",
+       "RSI 55"
+      ]
+     },
+     "fundamentals": {
+      "stance": "supportive",
+      "points": [
+       "P/E 71.8x on the live price",
+       "rich valuation (P/E above 60)",
+       "ROE 26%",
+       "earnings growth 73%",
+       "revenue growth 43%",
+       "debt/equity 0.0"
+      ]
+     },
+     "news": {
+      "stance": "quiet",
+      "points": []
+     }
+    },
+    "news": [
+     "Acutaas Chemicals to attend Kotak Midcap Conference on Nov 26 - scanx.trade"
+    ]
+   },
+   "ceo": {
+    "decision": "DECLINE",
+    "conviction": "High",
+    "for": [
+     "momentum rank #12 (the back-tested rule)",
+     "judge score 9",
+     "bull case outweighs the bear case",
+     "Time Machine tilted toward the target"
+    ],
+    "against": [
+     "already posted 10 ideas today (limit)"
+    ],
+    "noted": [],
+    "sector": "Specialty Chemicals",
+    "memo": "DECLINE ACUTAAS (medium term, conviction High). Reasons against: already posted 10 ideas today (limit).",
+    "by": "CEO (coded rules)"
+   }
+  },
+  {
    "id": "DIVISLAB-2026-11-21-m",
    "sym": "DIVISLAB",
    "name": "Divi's Laboratories Limited",
    "view": "Bullish view",
    "term": "medium",
    "entry_date": "2026-11-21",
-   "entry_time": "09:18",
+   "entry_time": "09:43",
    "entry_price": 11180.5,
    "entry_rank": 13,
    "mom_pct": 70.3,
@@ -190,13 +542,365 @@
    }
   },
   {
+   "id": "SONACOMS-2026-11-21-m",
+   "sym": "SONACOMS",
+   "name": "Sona BLW Precision Forgings Limited",
+   "view": "Bullish view",
+   "term": "medium",
+   "entry_date": "2026-11-21",
+   "entry_time": "09:43",
+   "entry_price": 892.5,
+   "entry_rank": 14,
+   "mom_pct": 83.6,
+   "entry_lo": 883.85,
+   "entry_hi": 901.15,
+   "stop": 838.3,
+   "target": 1055.05,
+   "days": 60,
+   "r": 3.0,
+   "status": "watch",
+   "entry_state": "triggered: price is inside the entry range",
+   "size": {
+    "qty": 22,
+    "value": 19635.0,
+    "loss_at_stop": 1250.73,
+    "max_loss": 3000.0,
+    "capital": 100000.0,
+    "note": "example sizing on the configured paper account; loss at the stop price, a gap can be worse"
+   },
+   "risk": {
+    "verdict": "PASS",
+    "reasons": []
+   },
+   "review": {
+    "bull": [
+     "momentum rank #14",
+     "price above a rising 50/200-day structure",
+     "within 10% of the 52-week high"
+    ],
+    "bear": [],
+    "lean": "bull",
+    "economic": {
+     "stance": "calm",
+     "reasons": [],
+     "data": {
+      "india_vix": {
+       "last": 17.32,
+       "chg_1m_pct": 10.5
+      },
+      "usd_inr": {
+       "last": 92.67,
+       "chg_1m_pct": -2.2
+      },
+      "brent": {
+       "last": 89.87,
+       "chg_1m_pct": -20.6
+      },
+      "sp500": {
+       "last": 6910.39,
+       "chg_1m_pct": -9.8
+      },
+      "us10y": {
+       "last": 4.91,
+       "chg_1m_pct": -0.8
+      },
+      "nifty": {
+       "last": 25800.6,
+       "chg_1m_pct": 13.1
+      }
+     }
+    },
+    "time_machine": {
+     "sim": {
+      "target": 49.5,
+      "stop": 41.2,
+      "open": 9.3
+     },
+     "past": {
+      "sessions": 189,
+      "target": 94,
+      "stop": 82,
+      "neither": 13
+     },
+     "verdict": "tilted toward the target",
+     "proof": "simulation; not back-tested"
+    },
+    "proof": {
+     "technical": "partly back-tested (rank rule only)",
+     "fundamentals": "not back-tested",
+     "news": "not back-tested",
+     "macro": "not back-tested",
+     "judge": "weights not back-tested"
+    },
+    "decision_needed": "approve, reject or leave on watch"
+   },
+   "judge": {
+    "verdict": "APPROVE",
+    "score": 8,
+    "rules": [
+     {
+      "points": 2,
+      "rule": "momentum rank #14 in the NIFTY 500 (the original entry rule: top 20)"
+     },
+     {
+      "points": 1,
+      "rule": "above 50-day average"
+     },
+     {
+      "points": 1,
+      "rule": "above 200-day average"
+     },
+     {
+      "points": 1,
+      "rule": "50-day above 200-day"
+     },
+     {
+      "points": 1,
+      "rule": "RSI in the 50-75 trend zone"
+     },
+     {
+      "points": 1,
+      "rule": "within 10% of the 52-week high"
+     },
+     {
+      "points": 1,
+      "rule": "Time Machine: tilted toward the target"
+     }
+    ],
+    "rejected_because": [],
+    "by": "coded judge v1 (no AI)"
+   },
+   "committee": {
+    "agreement": "mixed views",
+    "macro": "calm",
+    "analysts": {
+     "technical": {
+      "stance": "neutral",
+      "points": [
+       "price above 50-day average",
+       "price above 200-day average",
+       "RSI 56"
+      ]
+     },
+     "fundamentals": {
+      "stance": "mixed",
+      "points": [
+       "P/E 74.4x on the live price",
+       "rich valuation (P/E above 60)",
+       "ROE 12%",
+       "earnings growth 29%",
+       "revenue growth 35%",
+       "debt/equity 0.1"
+      ]
+     },
+     "news": {
+      "stance": "quiet",
+      "points": []
+     }
+    },
+    "news": []
+   },
+   "ceo": {
+    "decision": "DECLINE",
+    "conviction": "High",
+    "for": [
+     "momentum rank #14 (the back-tested rule)",
+     "judge score 8",
+     "bull case outweighs the bear case",
+     "Time Machine tilted toward the target"
+    ],
+    "against": [
+     "already posted 10 ideas today (limit)"
+    ],
+    "noted": [],
+    "sector": "Auto Parts",
+    "memo": "DECLINE SONACOMS (medium term, conviction High). Reasons against: already posted 10 ideas today (limit).",
+    "by": "CEO (coded rules)"
+   }
+  },
+  {
+   "id": "AETHER-2026-11-21-m",
+   "sym": "AETHER",
+   "name": "Aether Industries Limited",
+   "view": "Bullish view",
+   "term": "medium",
+   "entry_date": "2026-11-21",
+   "entry_time": "09:43",
+   "entry_price": 1620.3,
+   "entry_rank": 15,
+   "mom_pct": 109.5,
+   "entry_lo": 1597.3,
+   "entry_hi": 1643.3,
+   "stop": 1476.6,
+   "target": 2051.4,
+   "days": 60,
+   "r": 3.0,
+   "status": "watch",
+   "entry_state": "triggered: price is inside the entry range",
+   "size": {
+    "qty": 12,
+    "value": 19443.6,
+    "loss_at_stop": 1781.75,
+    "max_loss": 3000.0,
+    "capital": 100000.0,
+    "note": "example sizing on the configured paper account; loss at the stop price, a gap can be worse"
+   },
+   "risk": {
+    "verdict": "PASS",
+    "reasons": []
+   },
+   "review": {
+    "bull": [
+     "momentum rank #15",
+     "MACD above signal"
+    ],
+    "bear": [
+     "below the 50-day average"
+    ],
+    "lean": "balanced",
+    "economic": {
+     "stance": "calm",
+     "reasons": [],
+     "data": {
+      "india_vix": {
+       "last": 17.32,
+       "chg_1m_pct": 10.5
+      },
+      "usd_inr": {
+       "last": 92.67,
+       "chg_1m_pct": -2.2
+      },
+      "brent": {
+       "last": 89.87,
+       "chg_1m_pct": -20.6
+      },
+      "sp500": {
+       "last": 6910.39,
+       "chg_1m_pct": -9.8
+      },
+      "us10y": {
+       "last": 4.91,
+       "chg_1m_pct": -0.8
+      },
+      "nifty": {
+       "last": 25800.6,
+       "chg_1m_pct": 13.1
+      }
+     }
+    },
+    "time_machine": {
+     "sim": {
+      "target": 40.4,
+      "stop": 45.6,
+      "open": 14.1
+     },
+     "past": {
+      "sessions": 189,
+      "target": 77,
+      "stop": 74,
+      "neither": 38
+     },
+     "verdict": "tilted toward the target",
+     "proof": "simulation; not back-tested"
+    },
+    "proof": {
+     "technical": "partly back-tested (rank rule only)",
+     "fundamentals": "not back-tested",
+     "news": "not back-tested",
+     "macro": "not back-tested",
+     "judge": "weights not back-tested"
+    },
+    "decision_needed": "approve, reject or leave on watch"
+   },
+   "judge": {
+    "verdict": "APPROVE",
+    "score": 7,
+    "rules": [
+     {
+      "points": 2,
+      "rule": "momentum rank #15 in the NIFTY 500 (the original entry rule: top 20)"
+     },
+     {
+      "points": 1,
+      "rule": "above 200-day average"
+     },
+     {
+      "points": 1,
+      "rule": "50-day above 200-day"
+     },
+     {
+      "points": 1,
+      "rule": "MACD above signal"
+     },
+     {
+      "points": 1,
+      "rule": "RSI in the 50-75 trend zone"
+     },
+     {
+      "points": 1,
+      "rule": "Time Machine: tilted toward the target"
+     }
+    ],
+    "rejected_because": [],
+    "by": "coded judge v1 (no AI)"
+   },
+   "committee": {
+    "agreement": "mixed views",
+    "macro": "calm",
+    "analysts": {
+     "technical": {
+      "stance": "neutral",
+      "points": [
+       "price below 50-day average",
+       "price above 200-day average",
+       "RSI 50"
+      ]
+     },
+     "fundamentals": {
+      "stance": "mixed",
+      "points": [
+       "P/E 86.4x on the live price",
+       "rich valuation (P/E above 60)",
+       "ROE 10%",
+       "earnings growth 26%",
+       "revenue growth 26%",
+       "debt/equity 0.3"
+      ]
+     },
+     "news": {
+      "stance": "quiet",
+      "points": []
+     }
+    },
+    "news": [
+     "Aether Industries ESOP Allotment 25381 Shares November 2026 - Kalkine India",
+     "Aether Industries enters exclusive DRA supply pact with Baker Hughes - scanx.trade"
+    ]
+   },
+   "ceo": {
+    "decision": "DECLINE",
+    "conviction": "Medium",
+    "for": [
+     "momentum rank #15 (the back-tested rule)",
+     "Time Machine tilted toward the target"
+    ],
+    "against": [
+     "already posted 10 ideas today (limit)"
+    ],
+    "noted": [],
+    "sector": "Specialty Chemicals",
+    "memo": "DECLINE AETHER (medium term, conviction Medium). Reasons against: already posted 10 ideas today (limit).",
+    "by": "CEO (coded rules)"
+   }
+  },
+  {
    "id": "GLAND-2026-11-21-m",
    "sym": "GLAND",
    "name": "Gland Pharma Limited",
    "view": "Bullish view",
    "term": "medium",
    "entry_date": "2026-11-21",
-   "entry_time": "09:18",
+   "entry_time": "09:43",
    "entry_price": 3331.9,
    "entry_rank": 17,
    "mom_pct": 83.5,
@@ -379,905 +1083,13 @@
    }
   },
   {
-   "id": "HFCL-2026-11-21-m",
-   "sym": "HFCL",
-   "name": "HFCL Limited",
-   "view": "Bullish view",
-   "term": "medium",
-   "entry_date": "2026-11-21",
-   "entry_time": "09:18",
-   "entry_price": 188.0,
-   "entry_rank": 11,
-   "mom_pct": 148.6,
-   "entry_lo": 183.85,
-   "entry_hi": 192.15,
-   "stop": 162.2,
-   "target": 265.45,
-   "days": 60,
-   "r": 3.0,
-   "status": "watch",
-   "entry_state": "triggered: price is inside the entry range",
-   "size": {
-    "qty": 106,
-    "value": 19928.0,
-    "loss_at_stop": 2792.19,
-    "max_loss": 3000.0,
-    "capital": 100000.0,
-    "note": "example sizing on the configured paper account; loss at the stop price, a gap can be worse"
-   },
-   "risk": {
-    "verdict": "PASS",
-    "reasons": []
-   },
-   "review": {
-    "bull": [
-     "momentum rank #11",
-     "fundamentals supportive"
-    ],
-    "bear": [
-     "below the 50-day average",
-     "volatile (daily ATR 5.5%)"
-    ],
-    "lean": "balanced",
-    "economic": {
-     "stance": "calm",
-     "reasons": [],
-     "data": {
-      "india_vix": {
-       "last": 17.32,
-       "chg_1m_pct": 10.5
-      },
-      "usd_inr": {
-       "last": 92.67,
-       "chg_1m_pct": -2.2
-      },
-      "brent": {
-       "last": 89.87,
-       "chg_1m_pct": -20.6
-      },
-      "sp500": {
-       "last": 6910.39,
-       "chg_1m_pct": -9.8
-      },
-      "us10y": {
-       "last": 4.91,
-       "chg_1m_pct": -0.8
-      },
-      "nifty": {
-       "last": 25800.6,
-       "chg_1m_pct": 13.1
-      }
-     }
-    },
-    "time_machine": {
-     "sim": {
-      "target": 44.4,
-      "stop": 30.8,
-      "open": 24.9
-     },
-     "past": {
-      "sessions": 189,
-      "target": 102,
-      "stop": 39,
-      "neither": 48
-     },
-     "verdict": "tilted toward the target",
-     "proof": "simulation; not back-tested"
-    },
-    "proof": {
-     "technical": "partly back-tested (rank rule only)",
-     "fundamentals": "not back-tested",
-     "news": "not back-tested",
-     "macro": "not back-tested",
-     "judge": "weights not back-tested"
-    },
-    "decision_needed": "approve, reject or leave on watch"
-   },
-   "judge": {
-    "verdict": "APPROVE",
-    "score": 6,
-    "rules": [
-     {
-      "points": 2,
-      "rule": "momentum rank #11 in the NIFTY 500 (the original entry rule: top 20)"
-     },
-     {
-      "points": 1,
-      "rule": "above 200-day average"
-     },
-     {
-      "points": 1,
-      "rule": "50-day above 200-day"
-     },
-     {
-      "points": 1,
-      "rule": "Time Machine: tilted toward the target"
-     },
-     {
-      "points": 1,
-      "rule": "fundamentals supportive"
-     }
-    ],
-    "rejected_because": [],
-    "by": "coded judge v1 (no AI)"
-   },
-   "committee": {
-    "agreement": "mixed views",
-    "macro": "calm",
-    "analysts": {
-     "technical": {
-      "stance": "neutral",
-      "points": [
-       "price below 50-day average",
-       "price above 200-day average",
-       "RSI 34"
-      ]
-     },
-     "fundamentals": {
-      "stance": "supportive",
-      "points": [
-       "P/E 32.8x on the live price",
-       "ROE 19%",
-       "earnings growth 402% (low-base effect, not scored)",
-       "revenue growth 144%",
-       "debt/equity 0.3"
-      ]
-     },
-     "news": {
-      "stance": "quiet",
-      "points": []
-     }
-    },
-    "news": []
-   },
-   "ceo": {
-    "decision": "DECLINE",
-    "conviction": "Medium",
-    "for": [
-     "momentum rank #11 (the back-tested rule)",
-     "Time Machine tilted toward the target"
-    ],
-    "against": [
-     "already posted 10 ideas today (limit)"
-    ],
-    "noted": [],
-    "sector": "Communication Equipment",
-    "memo": "DECLINE HFCL (medium term, conviction Medium). Reasons against: already posted 10 ideas today (limit).",
-    "by": "CEO (coded rules)"
-   }
-  },
-  {
-   "id": "ACUTAAS-2026-11-21-m",
-   "sym": "ACUTAAS",
-   "name": "Acutaas Chemicals Limited",
-   "view": "Bullish view",
-   "term": "medium",
-   "entry_date": "2026-11-21",
-   "entry_time": "09:18",
-   "entry_price": 3833.5,
-   "entry_rank": 12,
-   "mom_pct": 128.1,
-   "entry_lo": 3778.55,
-   "entry_hi": 3888.45,
-   "stop": 3489.9,
-   "target": 4864.25,
-   "days": 60,
-   "r": 3.0,
-   "status": "watch",
-   "entry_state": "triggered: price is inside the entry range",
-   "size": {
-    "qty": 5,
-    "value": 19167.5,
-    "loss_at_stop": 1774.75,
-    "max_loss": 3000.0,
-    "capital": 100000.0,
-    "note": "example sizing on the configured paper account; loss at the stop price, a gap can be worse"
-   },
-   "risk": {
-    "verdict": "PASS",
-    "reasons": []
-   },
-   "review": {
-    "bull": [
-     "momentum rank #12",
-     "price above a rising 50/200-day structure",
-     "within 10% of the 52-week high",
-     "fundamentals supportive"
-    ],
-    "bear": [],
-    "lean": "bull",
-    "economic": {
-     "stance": "calm",
-     "reasons": [],
-     "data": {
-      "india_vix": {
-       "last": 17.32,
-       "chg_1m_pct": 10.5
-      },
-      "usd_inr": {
-       "last": 92.67,
-       "chg_1m_pct": -2.2
-      },
-      "brent": {
-       "last": 89.87,
-       "chg_1m_pct": -20.6
-      },
-      "sp500": {
-       "last": 6910.39,
-       "chg_1m_pct": -9.8
-      },
-      "us10y": {
-       "last": 4.91,
-       "chg_1m_pct": -0.8
-      },
-      "nifty": {
-       "last": 25800.6,
-       "chg_1m_pct": 13.1
-      }
-     }
-    },
-    "time_machine": {
-     "sim": {
-      "target": 48.5,
-      "stop": 41.4,
-      "open": 10.1
-     },
-     "past": {
-      "sessions": 189,
-      "target": 110,
-      "stop": 45,
-      "neither": 34
-     },
-     "verdict": "tilted toward the target",
-     "proof": "simulation; not back-tested"
-    },
-    "proof": {
-     "technical": "partly back-tested (rank rule only)",
-     "fundamentals": "not back-tested",
-     "news": "not back-tested",
-     "macro": "not back-tested",
-     "judge": "weights not back-tested"
-    },
-    "decision_needed": "approve, reject or leave on watch"
-   },
-   "judge": {
-    "verdict": "APPROVE",
-    "score": 9,
-    "rules": [
-     {
-      "points": 2,
-      "rule": "momentum rank #12 in the NIFTY 500 (the original entry rule: top 20)"
-     },
-     {
-      "points": 1,
-      "rule": "above 50-day average"
-     },
-     {
-      "points": 1,
-      "rule": "above 200-day average"
-     },
-     {
-      "points": 1,
-      "rule": "50-day above 200-day"
-     },
-     {
-      "points": 1,
-      "rule": "RSI in the 50-75 trend zone"
-     },
-     {
-      "points": 1,
-      "rule": "within 10% of the 52-week high"
-     },
-     {
-      "points": 1,
-      "rule": "Time Machine: tilted toward the target"
-     },
-     {
-      "points": 1,
-      "rule": "fundamentals supportive"
-     }
-    ],
-    "rejected_because": [],
-    "by": "coded judge v1 (no AI)"
-   },
-   "committee": {
-    "agreement": "mixed views",
-    "macro": "calm",
-    "analysts": {
-     "technical": {
-      "stance": "neutral",
-      "points": [
-       "price above 50-day average",
-       "price above 200-day average",
-       "RSI 55"
-      ]
-     },
-     "fundamentals": {
-      "stance": "supportive",
-      "points": [
-       "P/E 71.8x on the live price",
-       "rich valuation (P/E above 60)",
-       "ROE 26%",
-       "earnings growth 73%",
-       "revenue growth 43%",
-       "debt/equity 0.0"
-      ]
-     },
-     "news": {
-      "stance": "quiet",
-      "points": []
-     }
-    },
-    "news": [
-     "Acutaas Chemicals to attend Kotak Midcap Conference on Nov 26 - scanx.trade"
-    ]
-   },
-   "ceo": {
-    "decision": "DECLINE",
-    "conviction": "High",
-    "for": [
-     "momentum rank #12 (the back-tested rule)",
-     "judge score 9",
-     "bull case outweighs the bear case",
-     "Time Machine tilted toward the target"
-    ],
-    "against": [
-     "already posted 10 ideas today (limit)"
-    ],
-    "noted": [],
-    "sector": "Specialty Chemicals",
-    "memo": "DECLINE ACUTAAS (medium term, conviction High). Reasons against: already posted 10 ideas today (limit).",
-    "by": "CEO (coded rules)"
-   }
-  },
-  {
-   "id": "SONACOMS-2026-11-21-m",
-   "sym": "SONACOMS",
-   "name": "Sona BLW Precision Forgings Limited",
-   "view": "Bullish view",
-   "term": "medium",
-   "entry_date": "2026-11-21",
-   "entry_time": "09:18",
-   "entry_price": 892.5,
-   "entry_rank": 14,
-   "mom_pct": 83.6,
-   "entry_lo": 883.85,
-   "entry_hi": 901.15,
-   "stop": 838.3,
-   "target": 1055.05,
-   "days": 60,
-   "r": 3.0,
-   "status": "watch",
-   "entry_state": "triggered: price is inside the entry range",
-   "size": {
-    "qty": 22,
-    "value": 19635.0,
-    "loss_at_stop": 1250.73,
-    "max_loss": 3000.0,
-    "capital": 100000.0,
-    "note": "example sizing on the configured paper account; loss at the stop price, a gap can be worse"
-   },
-   "risk": {
-    "verdict": "PASS",
-    "reasons": []
-   },
-   "review": {
-    "bull": [
-     "momentum rank #14",
-     "price above a rising 50/200-day structure",
-     "within 10% of the 52-week high"
-    ],
-    "bear": [],
-    "lean": "bull",
-    "economic": {
-     "stance": "calm",
-     "reasons": [],
-     "data": {
-      "india_vix": {
-       "last": 17.32,
-       "chg_1m_pct": 10.5
-      },
-      "usd_inr": {
-       "last": 92.67,
-       "chg_1m_pct": -2.2
-      },
-      "brent": {
-       "last": 89.87,
-       "chg_1m_pct": -20.6
-      },
-      "sp500": {
-       "last": 6910.39,
-       "chg_1m_pct": -9.8
-      },
-      "us10y": {
-       "last": 4.91,
-       "chg_1m_pct": -0.8
-      },
-      "nifty": {
-       "last": 25800.6,
-       "chg_1m_pct": 13.1
-      }
-     }
-    },
-    "time_machine": {
-     "sim": {
-      "target": 49.5,
-      "stop": 41.2,
-      "open": 9.3
-     },
-     "past": {
-      "sessions": 189,
-      "target": 94,
-      "stop": 82,
-      "neither": 13
-     },
-     "verdict": "tilted toward the target",
-     "proof": "simulation; not back-tested"
-    },
-    "proof": {
-     "technical": "partly back-tested (rank rule only)",
-     "fundamentals": "not back-tested",
-     "news": "not back-tested",
-     "macro": "not back-tested",
-     "judge": "weights not back-tested"
-    },
-    "decision_needed": "approve, reject or leave on watch"
-   },
-   "judge": {
-    "verdict": "APPROVE",
-    "score": 8,
-    "rules": [
-     {
-      "points": 2,
-      "rule": "momentum rank #14 in the NIFTY 500 (the original entry rule: top 20)"
-     },
-     {
-      "points": 1,
-      "rule": "above 50-day average"
-     },
-     {
-      "points": 1,
-      "rule": "above 200-day average"
-     },
-     {
-      "points": 1,
-      "rule": "50-day above 200-day"
-     },
-     {
-      "points": 1,
-      "rule": "RSI in the 50-75 trend zone"
-     },
-     {
-      "points": 1,
-      "rule": "within 10% of the 52-week high"
-     },
-     {
-      "points": 1,
-      "rule": "Time Machine: tilted toward the target"
-     }
-    ],
-    "rejected_because": [],
-    "by": "coded judge v1 (no AI)"
-   },
-   "committee": {
-    "agreement": "mixed views",
-    "macro": "calm",
-    "analysts": {
-     "technical": {
-      "stance": "neutral",
-      "points": [
-       "price above 50-day average",
-       "price above 200-day average",
-       "RSI 56"
-      ]
-     },
-     "fundamentals": {
-      "stance": "mixed",
-      "points": [
-       "P/E 74.4x on the live price",
-       "rich valuation (P/E above 60)",
-       "ROE 12%",
-       "earnings growth 29%",
-       "revenue growth 35%",
-       "debt/equity 0.1"
-      ]
-     },
-     "news": {
-      "stance": "quiet",
-      "points": []
-     }
-    },
-    "news": []
-   },
-   "ceo": {
-    "decision": "DECLINE",
-    "conviction": "High",
-    "for": [
-     "momentum rank #14 (the back-tested rule)",
-     "judge score 8",
-     "bull case outweighs the bear case",
-     "Time Machine tilted toward the target"
-    ],
-    "against": [
-     "already posted 10 ideas today (limit)"
-    ],
-    "noted": [],
-    "sector": "Auto Parts",
-    "memo": "DECLINE SONACOMS (medium term, conviction High). Reasons against: already posted 10 ideas today (limit).",
-    "by": "CEO (coded rules)"
-   }
-  },
-  {
-   "id": "AETHER-2026-11-21-m",
-   "sym": "AETHER",
-   "name": "Aether Industries Limited",
-   "view": "Bullish view",
-   "term": "medium",
-   "entry_date": "2026-11-21",
-   "entry_time": "09:18",
-   "entry_price": 1620.3,
-   "entry_rank": 15,
-   "mom_pct": 109.5,
-   "entry_lo": 1597.3,
-   "entry_hi": 1643.3,
-   "stop": 1476.6,
-   "target": 2051.4,
-   "days": 60,
-   "r": 3.0,
-   "status": "watch",
-   "entry_state": "triggered: price is inside the entry range",
-   "size": {
-    "qty": 12,
-    "value": 19443.6,
-    "loss_at_stop": 1781.75,
-    "max_loss": 3000.0,
-    "capital": 100000.0,
-    "note": "example sizing on the configured paper account; loss at the stop price, a gap can be worse"
-   },
-   "risk": {
-    "verdict": "PASS",
-    "reasons": []
-   },
-   "review": {
-    "bull": [
-     "momentum rank #15",
-     "MACD above signal"
-    ],
-    "bear": [
-     "below the 50-day average"
-    ],
-    "lean": "balanced",
-    "economic": {
-     "stance": "calm",
-     "reasons": [],
-     "data": {
-      "india_vix": {
-       "last": 17.32,
-       "chg_1m_pct": 10.5
-      },
-      "usd_inr": {
-       "last": 92.67,
-       "chg_1m_pct": -2.2
-      },
-      "brent": {
-       "last": 89.87,
-       "chg_1m_pct": -20.6
-      },
-      "sp500": {
-       "last": 6910.39,
-       "chg_1m_pct": -9.8
-      },
-      "us10y": {
-       "last": 4.91,
-       "chg_1m_pct": -0.8
-      },
-      "nifty": {
-       "last": 25800.6,
-       "chg_1m_pct": 13.1
-      }
-     }
-    },
-    "time_machine": {
-     "sim": {
-      "target": 40.4,
-      "stop": 45.6,
-      "open": 14.1
-     },
-     "past": {
-      "sessions": 189,
-      "target": 77,
-      "stop": 74,
-      "neither": 38
-     },
-     "verdict": "tilted toward the target",
-     "proof": "simulation; not back-tested"
-    },
-    "proof": {
-     "technical": "partly back-tested (rank rule only)",
-     "fundamentals": "not back-tested",
-     "news": "not back-tested",
-     "macro": "not back-tested",
-     "judge": "weights not back-tested"
-    },
-    "decision_needed": "approve, reject or leave on watch"
-   },
-   "judge": {
-    "verdict": "APPROVE",
-    "score": 7,
-    "rules": [
-     {
-      "points": 2,
-      "rule": "momentum rank #15 in the NIFTY 500 (the original entry rule: top 20)"
-     },
-     {
-      "points": 1,
-      "rule": "above 200-day average"
-     },
-     {
-      "points": 1,
-      "rule": "50-day above 200-day"
-     },
-     {
-      "points": 1,
-      "rule": "MACD above signal"
-     },
-     {
-      "points": 1,
-      "rule": "RSI in the 50-75 trend zone"
-     },
-     {
-      "points": 1,
-      "rule": "Time Machine: tilted toward the target"
-     }
-    ],
-    "rejected_because": [],
-    "by": "coded judge v1 (no AI)"
-   },
-   "committee": {
-    "agreement": "mixed views",
-    "macro": "calm",
-    "analysts": {
-     "technical": {
-      "stance": "neutral",
-      "points": [
-       "price below 50-day average",
-       "price above 200-day average",
-       "RSI 50"
-      ]
-     },
-     "fundamentals": {
-      "stance": "mixed",
-      "points": [
-       "P/E 86.4x on the live price",
-       "rich valuation (P/E above 60)",
-       "ROE 10%",
-       "earnings growth 26%",
-       "revenue growth 26%",
-       "debt/equity 0.3"
-      ]
-     },
-     "news": {
-      "stance": "quiet",
-      "points": []
-     }
-    },
-    "news": [
-     "Aether Industries ESOP Allotment 25381 Shares November 2026 - Kalkine India",
-     "Aether Industries enters exclusive DRA supply pact with Baker Hughes - scanx.trade"
-    ]
-   },
-   "ceo": {
-    "decision": "DECLINE",
-    "conviction": "Medium",
-    "for": [
-     "momentum rank #15 (the back-tested rule)",
-     "Time Machine tilted toward the target"
-    ],
-    "against": [
-     "already posted 10 ideas today (limit)"
-    ],
-    "noted": [],
-    "sector": "Specialty Chemicals",
-    "memo": "DECLINE AETHER (medium term, conviction Medium). Reasons against: already posted 10 ideas today (limit).",
-    "by": "CEO (coded rules)"
-   }
-  },
-  {
-   "id": "HONASA-2026-11-21-m",
-   "sym": "HONASA",
-   "name": "Honasa Consumer Limited",
-   "view": "Bullish view",
-   "term": "medium",
-   "entry_date": "2026-11-21",
-   "entry_time": "09:18",
-   "entry_price": 525.4,
-   "entry_rank": 16,
-   "mom_pct": 82.7,
-   "entry_lo": 518.2,
-   "entry_hi": 532.6,
-   "stop": 480.35,
-   "target": 660.55,
-   "days": 60,
-   "r": 3.0,
-   "status": "watch",
-   "entry_state": "triggered: price is inside the entry range",
-   "size": {
-    "qty": 38,
-    "value": 19965.2,
-    "loss_at_stop": 1770.42,
-    "max_loss": 3000.0,
-    "capital": 100000.0,
-    "note": "example sizing on the configured paper account; loss at the stop price, a gap can be worse"
-   },
-   "risk": {
-    "verdict": "PASS",
-    "reasons": []
-   },
-   "review": {
-    "bull": [
-     "momentum rank #16",
-     "price above a rising 50/200-day structure",
-     "MACD above signal",
-     "within 10% of the 52-week high",
-     "fundamentals supportive"
-    ],
-    "bear": [],
-    "lean": "bull",
-    "economic": {
-     "stance": "calm",
-     "reasons": [],
-     "data": {
-      "india_vix": {
-       "last": 17.32,
-       "chg_1m_pct": 10.5
-      },
-      "usd_inr": {
-       "last": 92.67,
-       "chg_1m_pct": -2.2
-      },
-      "brent": {
-       "last": 89.87,
-       "chg_1m_pct": -20.6
-      },
-      "sp500": {
-       "last": 6910.39,
-       "chg_1m_pct": -9.8
-      },
-      "us10y": {
-       "last": 4.91,
-       "chg_1m_pct": -0.8
-      },
-      "nifty": {
-       "last": 25800.6,
-       "chg_1m_pct": 13.1
-      }
-     }
-    },
-    "time_machine": {
-     "sim": {
-      "target": 40.5,
-      "stop": 32.0,
-      "open": 27.5
-     },
-     "past": {
-      "sessions": 188,
-      "target": 66,
-      "stop": 74,
-      "neither": 48
-     },
-     "verdict": "tilted toward the target",
-     "proof": "simulation; not back-tested"
-    },
-    "proof": {
-     "technical": "partly back-tested (rank rule only)",
-     "fundamentals": "not back-tested",
-     "news": "not back-tested",
-     "macro": "not back-tested",
-     "judge": "weights not back-tested"
-    },
-    "decision_needed": "approve, reject or leave on watch"
-   },
-   "judge": {
-    "verdict": "APPROVE",
-    "score": 10,
-    "rules": [
-     {
-      "points": 2,
-      "rule": "momentum rank #16 in the NIFTY 500 (the original entry rule: top 20)"
-     },
-     {
-      "points": 1,
-      "rule": "above 50-day average"
-     },
-     {
-      "points": 1,
-      "rule": "above 200-day average"
-     },
-     {
-      "points": 1,
-      "rule": "50-day above 200-day"
-     },
-     {
-      "points": 1,
-      "rule": "MACD above signal"
-     },
-     {
-      "points": 1,
-      "rule": "RSI in the 50-75 trend zone"
-     },
-     {
-      "points": 1,
-      "rule": "within 10% of the 52-week high"
-     },
-     {
-      "points": 1,
-      "rule": "Time Machine: tilted toward the target"
-     },
-     {
-      "points": 1,
-      "rule": "fundamentals supportive"
-     }
-    ],
-    "rejected_because": [],
-    "by": "coded judge v1 (no AI)"
-   },
-   "committee": {
-    "agreement": "analysts agree (supportive)",
-    "macro": "calm",
-    "analysts": {
-     "technical": {
-      "stance": "bullish",
-      "points": [
-       "price above 50-day average",
-       "price above 200-day average",
-       "RSI 71"
-      ]
-     },
-     "fundamentals": {
-      "stance": "supportive",
-      "points": [
-       "P/E 60.7x on the live price",
-       "rich valuation (P/E above 60)",
-       "ROE 21%",
-       "earnings growth 86%",
-       "revenue growth 36%",
-       "debt/equity 0.1"
-      ]
-     },
-     "news": {
-      "stance": "quiet",
-      "points": []
-     }
-    },
-    "news": []
-   },
-   "ceo": {
-    "decision": "DECLINE",
-    "conviction": "High",
-    "for": [
-     "momentum rank #16 (the back-tested rule)",
-     "judge score 10 (strong)",
-     "analysts agree",
-     "bull case outweighs the bear case",
-     "Time Machine tilted toward the target"
-    ],
-    "against": [
-     "already posted 10 ideas today (limit)"
-    ],
-    "noted": [],
-    "sector": "Household & Personal Products",
-    "memo": "DECLINE HONASA (medium term, conviction High). Reasons against: already posted 10 ideas today (limit).",
-    "by": "CEO (coded rules)"
-   }
-  },
-  {
    "id": "FEDERALBNK-2026-11-21-m",
    "sym": "FEDERALBNK",
    "name": "The Federal Bank Limited",
    "view": "Bullish view",
    "term": "medium",
    "entry_date": "2026-11-21",
-   "entry_time": "09:18",
+   "entry_time": "09:43",
    "entry_price": 373.5,
    "entry_rank": 18,
    "mom_pct": 58.9,
@@ -1466,7 +1278,7 @@
    "view": "Bullish view",
    "term": "medium",
    "entry_date": "2026-11-21",
-   "entry_time": "09:18",
+   "entry_time": "09:43",
    "entry_price": 99.45,
    "entry_rank": 19,
    "mom_pct": 80.0,
@@ -1655,7 +1467,7 @@
    "view": "Bullish view",
    "term": "medium",
    "entry_date": "2026-11-21",
-   "entry_time": "09:18",
+   "entry_time": "09:43",
    "entry_price": 3535.0,
    "entry_rank": 20,
    "mom_pct": 84.6,
@@ -2193,66 +2005,6 @@
    "date": "2026-11-21",
    "results": [
     {
-     "sym": "CUPID",
-     "verdict": "APPROVE",
-     "score": 9,
-     "why": []
-    },
-    {
-     "sym": "STLTECH",
-     "verdict": "APPROVE",
-     "score": 6,
-     "why": []
-    },
-    {
-     "sym": "SANSERA",
-     "verdict": "APPROVE",
-     "score": 9,
-     "why": []
-    },
-    {
-     "sym": "ATHERENERG",
-     "verdict": "APPROVE",
-     "score": 8,
-     "why": []
-    },
-    {
-     "sym": "LAURUSLABS",
-     "verdict": "APPROVE",
-     "score": 9,
-     "why": []
-    },
-    {
-     "sym": "RUBICON",
-     "verdict": "APPROVE",
-     "score": 10,
-     "why": []
-    },
-    {
-     "sym": "CPPLUS",
-     "verdict": "APPROVE",
-     "score": 8,
-     "why": []
-    },
-    {
-     "sym": "WELCORP",
-     "verdict": "APPROVE",
-     "score": 6,
-     "why": []
-    },
-    {
-     "sym": "SAILIFE",
-     "verdict": "APPROVE",
-     "score": 9,
-     "why": []
-    },
-    {
-     "sym": "ANANDRATHI",
-     "verdict": "APPROVE",
-     "score": 9,
-     "why": []
-    },
-    {
      "sym": "HFCL",
      "verdict": "APPROVE",
      "score": 6,
@@ -2280,12 +2032,6 @@
      "sym": "AETHER",
      "verdict": "APPROVE",
      "score": 7,
-     "why": []
-    },
-    {
-     "sym": "HONASA",
-     "verdict": "APPROVE",
-     "score": 10,
      "why": []
     },
     {
@@ -2490,6 +2236,87 @@
   {
    "date": "2026-11-21",
    "time": "09:18 AM",
+   "sym": "MCX",
+   "id": "MCX-2026-11-21-m",
+   "decision": "DECLINE",
+   "conviction": "High",
+   "memo": "DECLINE MCX (medium term, conviction High). Reasons against: already posted 10 ideas today (limit)."
+  },
+  {
+   "date": "2026-11-21",
+   "time": "09:43 AM",
+   "sym": "HFCL",
+   "id": "HFCL-2026-11-21-m",
+   "decision": "DECLINE",
+   "conviction": "Medium",
+   "memo": "DECLINE HFCL (medium term, conviction Medium). Reasons against: already posted 10 ideas today (limit)."
+  },
+  {
+   "date": "2026-11-21",
+   "time": "09:43 AM",
+   "sym": "ACUTAAS",
+   "id": "ACUTAAS-2026-11-21-m",
+   "decision": "DECLINE",
+   "conviction": "High",
+   "memo": "DECLINE ACUTAAS (medium term, conviction High). Reasons against: already posted 10 ideas today (limit)."
+  },
+  {
+   "date": "2026-11-21",
+   "time": "09:43 AM",
+   "sym": "DIVISLAB",
+   "id": "DIVISLAB-2026-11-21-m",
+   "decision": "DECLINE",
+   "conviction": "High",
+   "memo": "DECLINE DIVISLAB (medium term, conviction High). Reasons against: already posted 10 ideas today (limit)."
+  },
+  {
+   "date": "2026-11-21",
+   "time": "09:43 AM",
+   "sym": "SONACOMS",
+   "id": "SONACOMS-2026-11-21-m",
+   "decision": "DECLINE",
+   "conviction": "High",
+   "memo": "DECLINE SONACOMS (medium term, conviction High). Reasons against: already posted 10 ideas today (limit)."
+  },
+  {
+   "date": "2026-11-21",
+   "time": "09:43 AM",
+   "sym": "AETHER",
+   "id": "AETHER-2026-11-21-m",
+   "decision": "DECLINE",
+   "conviction": "Medium",
+   "memo": "DECLINE AETHER (medium term, conviction Medium). Reasons against: already posted 10 ideas today (limit)."
+  },
+  {
+   "date": "2026-11-21",
+   "time": "09:43 AM",
+   "sym": "GLAND",
+   "id": "GLAND-2026-11-21-m",
+   "decision": "DECLINE",
+   "conviction": "High",
+   "memo": "DECLINE GLAND (medium term, conviction High). Reasons against: already posted 10 ideas today (limit)."
+  },
+  {
+   "date": "2026-11-21",
+   "time": "09:43 AM",
+   "sym": "FEDERALBNK",
+   "id": "FEDERALBNK-2026-11-21-m",
+   "decision": "DECLINE",
+   "conviction": "High",
+   "memo": "DECLINE FEDERALBNK (medium term, conviction High). Reasons against: already posted 10 ideas today (limit)."
+  },
+  {
+   "date": "2026-11-21",
+   "time": "09:43 AM",
+   "sym": "MAHABANK",
+   "id": "MAHABANK-2026-11-21-m",
+   "decision": "DECLINE",
+   "conviction": "High",
+   "memo": "DECLINE MAHABANK (medium term, conviction High). Reasons against: already posted 10 ideas today (limit)."
+  },
+  {
+   "date": "2026-11-21",
+   "time": "09:43 AM",
    "sym": "MCX",
    "id": "MCX-2026-11-21-m",
    "decision": "DECLINE",
