@@ -23,6 +23,7 @@ FUND_FILE = universe.REPO / "web" / "fundamentals.json"
 import re
 
 # Headline flags. Whole-word patterns: a bare substring test made "ban" fire on "bank"/"urban" and "ed " on any word ending in -ed.
+_QUOTE_PAGE = re.compile(r"share price|stock price|price today|\bquote\b|price & chart|stock \(\w+\)|returns chart|stock forecast", re.I)   # quote pages, not news
 NEG = (("fraud", r"\bfraud"), ("probe", r"\bprobe[sd]?\b"), ("sebi order", r"\bsebi order"), ("raid", r"\braids?\b"), ("downgrade", r"\bdowngrad"),
        ("resigns", r"\bresign"), ("default", r"\bdefault"), ("penalty", r"\bpenalt"), ("ban", r"\b(?:ban|bans|banned)\b"), ("loss widens", r"\bloss widens"),
        ("plunge", r"\bplunge"), ("cuts guidance", r"\bcuts? guidance"), ("insolvency", r"\binsolvenc"), ("ED probe", r"\bED\b|enforcement directorate"))
@@ -68,11 +69,14 @@ class Committee:
             if eps <= 0: bear += 2; pts.append("loss-making over the last 12 months")
             else:
                 pe = ltp / eps; pts.append(f"P/E {pe:.1f}x on the live price")
-                if pe > 60: bear += 1; pts.append("rich valuation (P/E above 60)")
+                if pe > 100: bear += 2; pts.append("very rich valuation (P/E above 100)")
+                elif pe > 60: bear += 1; pts.append("rich valuation (P/E above 60)")
                 elif pe < 25: bull += 1
         for k, lab, good, bad in (("roe_pct", "ROE", 15, 8), ("earn_growth_pct", "earnings growth", 15, 0), ("rev_growth_pct", "revenue growth", 12, 0)):
             v = f.get(k)
             if v is not None:
+                if k != "roe_pct" and v > 300:          # e.g. 1285%: a low-base effect, not a growth signal
+                    pts.append(f"{lab} {v:.0f}% (low-base effect, not scored)"); continue
                 pts.append(f"{lab} {v:.0f}%"); bull += v >= good; bear += v < bad
         de = f.get("de_ratio")
         if de is not None:
@@ -108,7 +112,7 @@ class Committee:
         ws2 = [w for w in ws if w.lower() not in ("of", "the", "and", "&")]
         keys = {k for k in (_norm("".join(ws)), _norm("".join(ws[:2])), _norm("".join(ws2[:2]))) if len(k) >= 8}   # too-short keys ("bankof") match other companies
         if len(_norm(sym)) >= 3: keys.add(_norm(sym))
-        rel = [(t, d) for t, d in items if any(k in _norm(t) for k in keys)]
+        rel = [(t, d) for t, d in items if any(k in _norm(t) for k in keys) and not _QUOTE_PAGE.search(t)]
         text = " | ".join(t for t, _ in rel)
         neg = [x for x in (_hit(p, text) for p in NEG) if x]; pos = [x for x in (_hit(p, text) for p in POS) if x]
         return {"stance": "negative flags" if neg else "positive flags" if pos else "quiet", "flags": neg + pos, "neg_flags": neg, "pos_flags": pos, "headlines": [t for t, _ in rel[:4]]}

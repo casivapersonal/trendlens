@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent; sys.path.insert(0, str(ROOT))
 import numpy as np, pandas as pd
-from arena import ideas, safety
+from arena import ideas, safety, review
 from arena.clock import IST
 from arena.committee import Committee
 from arena.config import load_config
@@ -39,7 +39,7 @@ class FakeCommittee(Committee):
 def memo(cfg, news="quiet", fund="no data", setups=(), mom=0.97, d=None):
     d = d if d is not None else frame()
     t = Committee.technical_daily(d, [{"setup": s, "why": s} for s in setups], mom)
-    return {"analysts": {"technical": t, "fundamentals": {"stance": fund, "points": []}, "news": {"stance": news, "flags": ["probe"] if news == "negative flags" else [], "headlines": []}}}
+    return {"analysts": {"technical": t, "fundamentals": {"stance": fund, "points": []}, "news": {"stance": news, "flags": ["fraud"] if news == "negative flags" else [], "headlines": []}}}
 
 
 class Judge(unittest.TestCase):
@@ -55,6 +55,8 @@ class Judge(unittest.TestCase):
         self.cfg["ideas"]["news_hard_reject"] = False
         try: self.assertNotEqual(judge(n, {}, self.cfg)["verdict"], "REJECT")
         finally: self.cfg["ideas"]["news_hard_reject"] = True
+        p = memo(self.cfg, setups=["breakout20"]); p["analysts"]["news"].update(stance="negative flags", flags=["penalty"])   # a penalty headline costs a point, it does not block
+        v = judge(p, {}, self.cfg); self.assertNotEqual(v["verdict"], "REJECT"); self.assertTrue(any(r["points"] < 0 and "penalty" in r["rule"] for r in v["rules"]))
     def test_macro_and_fundamentals_move_score_but_do_not_block(self):
         base = judge(memo(self.cfg, setups=["breakout20"]), {"stance": "calm"}, self.cfg)["score"]
         self.assertEqual(judge(memo(self.cfg, setups=["breakout20"]), {"stance": "cautious", "reasons": ["x"]}, self.cfg)["score"], base - 1)
@@ -112,7 +114,8 @@ class Flow(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             idea, pp, pu = self._live(t)
             g = ideas.monitor(self.cfg, {"AAA": self._after([(idea["stop"] * 0.95, idea["stop"], idea["stop"] * 0.9, idea["stop"] * 0.92)])}, NOW, pu)
-            self.assertEqual(g[0]["reason"], "Stop-loss hit"); self.assertEqual(g[0]["price"], round(idea["stop"] * 0.95, 2))
+            self.assertTrue(g[0]["reason"].startswith("Not entered")); self.assertTrue(g[0]["not_entered"])     # gapped below the stop before entry: never entered, no result
+            done = ideas.close("AAA", "S", NOW, public_path=pu); self.assertIsNone(done["ret_pct"]); self.assertEqual(done["close_kind"], "not_entered")
         with tempfile.TemporaryDirectory() as t:
             idea, pp, pu = self._live(t); p = idea["entry_price"]
             g = ideas.monitor(self.cfg, {"AAA": self._after([(p, idea["target"] * 1.1, idea["stop"] * 0.99, p)])}, NOW, pu)
@@ -171,3 +174,41 @@ class Flow(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class AuditFixes(Flow):
+    """Fixes from the independent logic audit (Nov 2026)."""
+    def test_gap_up_through_target_is_a_target_not_a_stop(self):
+        with tempfile.TemporaryDirectory() as t:
+            idea, pp, pu = self._live(t); p = idea["entry_price"]
+            g = ideas.monitor(self.cfg, {"AAA": self._after([(p, p * 1.005, p * 0.995, p), (idea["target"] * 1.02, idea["target"] * 1.03, idea["stop"] * 0.99, p)])}, NOW, pu)
+            self.assertEqual(g[0]["reason"], "Target hit"); self.assertEqual(g[0]["price"], round(idea["target"] * 1.02, 2))
+
+    def test_gap_above_range_is_not_chased(self):
+        with tempfile.TemporaryDirectory() as t:
+            idea, pp, pu = self._live(t); hi = idea["entry_hi"] * 1.05
+            g = ideas.monitor(self.cfg, {"AAA": self._after([(hi, hi * 1.01, hi * 0.995, hi)] * 3)}, NOW, pu)
+            self.assertTrue(g[0]["reason"].startswith("Not entered"))
+
+    def test_time_up_uses_the_last_day_of_the_horizon(self):
+        with tempfile.TemporaryDirectory() as t:
+            idea, pp, pu = self._live(t); p = idea["entry_price"]; n = idea["days"]
+            rows = [(p, p * 1.002, p * 0.998, p)] * n + [(p * 0.97, p * 0.97, p * 0.96, p * 0.965)] * 3
+            g = ideas.monitor(self.cfg, {"AAA": self._after(rows)}, NOW, pu)
+            self.assertEqual(g[0]["reason"], "Time up"); self.assertEqual(g[0]["price"], round(p, 2))
+
+    def test_momentum_idea_is_not_closed_at_the_target(self):
+        with tempfile.TemporaryDirectory() as t:
+            pp, pu = paths(t)
+            q = ideas.scan(self.cfg, FakeShort({"AAA": frame()}, {"AAA": [{"setup": "breakout20", "why": "b"}]}, {"AAA": 0.97}), FakeCommittee(self.cfg), NOW, pp, pu, ranks={"AAA": 4})["queue"][0]
+            self.assertEqual(q["term"], "medium")                    # top-20 rank wins over the setup: the back-tested rule
+            idea = ideas.approve(q["id"], "S", NOW, pp, pu); p = idea["entry_price"]
+            g = ideas.monitor(self.cfg, {"AAA": self._after([(p, idea["target"] * 1.05, p * 0.99, idea["target"])])}, NOW, pu)
+            self.assertEqual(g, []); self.assertIn("target_reached", ideas.public(pu)["live"][0])
+
+    def test_no_setup_and_no_rank_is_not_an_idea(self):
+        self.assertIsNone(ideas.term_for([], 120)); self.assertEqual(ideas.term_for([], 7), "medium"); self.assertEqual(ideas.term_for(["breakout20"], 120), "short")
+
+    def test_expensive_share_is_sized_at_one_share_not_blocked(self):
+        s = review.size_idea(self.cfg, 30000.0, 29400.0)
+        self.assertEqual(s["qty"], 1); self.assertEqual(review.risk_check({"r": 2.5, "size": s, "entry_price": 30000.0}, self.cfg, 0)["verdict"], "PASS")

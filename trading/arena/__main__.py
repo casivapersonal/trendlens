@@ -297,15 +297,25 @@ def _history(feed, syms, period="2y"):
     return out
 
 
+def market_open_ist(now) -> bool:
+    import datetime as _dt
+    return now.weekday() < 5 and _dt.time(9, 15) <= now.time() <= _dt.time(15, 30)
+
+
 def cmd_ideas(a, cfg):
     """Ideas pipeline on web/picks.json. scan -> pending (judge) -> approve -> live -> monitor -> close.  No trading, no real-time loop."""
     from . import ideas
     now, who = now_ist(), a.by or os.environ.get("DECISION_MAKER", "decision-maker")
     if a.action == "scan":
+        if market_open_ist(now) and not a.force:
+            print("Market is open: today's daily bar is not final. Scan after 15:30 IST (or pass --force)."); return
         from .committee import Committee
         from .feeds import make_live_feed
         from .scanner import Shortlister, daily_setups
         feed = make_live_feed(cfg); sl = Shortlister(cfg, feed); sl.open_day(now, [])
+        lastbar = max((d.index[-1].date() for d in sl.frames.values() if d is not None and len(d)), default=None)
+        if lastbar != now.date() and not a.force:
+            print(f"No trading session today (latest bar {lastbar}): nothing to scan."); return
         ranks, moms = _momentum_ranks()
         extra = [x for x, r in ranks.items() if r <= cfg["ideas"].get("entry_rank", 20) and x not in sl.frames]
         for x, d in _history(feed, extra, "1y").items():
@@ -313,12 +323,20 @@ def cmd_ideas(a, cfg):
         pen = ideas.scan(cfg, sl, Committee(cfg), now, ranks=ranks, moms=moms)
         for q in pen["queue"]:
             print(f"{q['status']:<18} {q['id']:<26} score {q['judge']['score']:>2}  entry {q['entry_lo']}-{q['entry_hi']}  stop {q['stop']}  target {q['target']}  {q['term']}")
-        print(len(pen["queue"]), "in the queue. Approve with: python -m arena ideas approve <id> --by \"Name\"")
+        print(len(pen["queue"]), "in the queue.")
+        if cfg.get("ceo", {}).get("enabled", True):
+            from . import ceo
+            fe = make_live_feed(cfg)
+            for d in ceo.decide_entries(cfg, now, ideas, frames_for=lambda syms: _history(fe, syms)):
+                print(f"CEO {d['decision']:<8} {d['sym']:<12} {d['conviction']:<7} {d['memo']}")
     elif a.action == "monitor":
         from .feeds import make_live_feed
         pub = ideas.public(); live = [i["sym"] for i in pub["live"]]
         frames = _history(make_live_feed(cfg), live) if live else {}
         for g in ideas.monitor(cfg, frames, now): print("EXIT SIGNAL", g)
+        if cfg.get("ceo", {}).get("enabled", True):
+            from . import ceo
+            for d in ceo.decide_exits(cfg, now, ideas): print("CEO CLOSED", d)
         print("monitored", len(live), "live ideas. Close one with: python -m arena ideas close <SYM> --by \"Name\"")
     elif a.action == "pending":
         for q in ideas.pending()["queue"]:

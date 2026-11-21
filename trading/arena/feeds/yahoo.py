@@ -27,6 +27,7 @@ class YahooFeed(PriceFeed):
         self._cache_at = 0.0
         self._cache_syms: frozenset = frozenset()
 
+    # (see _fill_last below)
     def _download(self, symbols: list[str], period: str = "5d", interval: str = "1m") -> dict[str, pd.DataFrame]:
         import yfinance as yf
 
@@ -39,7 +40,10 @@ class YahooFeed(PriceFeed):
                 df = raw[t] if len(tickers) > 1 else raw
                 if isinstance(df.columns, pd.MultiIndex):
                     df = df.droplevel(0, axis=1) if t in df.columns.get_level_values(0) else df.droplevel(1, axis=1)
-                df = df.rename(columns=str.lower)[CANDLE_COLS].dropna(subset=["close"])
+                df = df.rename(columns=str.lower)[CANDLE_COLS].dropna(how="all")
+                if interval == "1d" and len(df) and pd.isna(df["close"].iloc[-1]) and (df["volume"].iloc[-1] or 0) > 0:
+                    df = df.copy(); _fill_last(df, t)       # Yahoo sometimes leaves the last daily close empty
+                df = df.dropna(subset=["close"])
                 out[s] = to_ist_index(df)
             except KeyError:
                 continue
@@ -82,3 +86,15 @@ class YahooFeed(PriceFeed):
     def history(self, symbols: list[str], period: str = "60d", interval: str = "5m") -> dict[str, pd.DataFrame]:
         """Bulk download for replay. Yahoo keeps ~7 days of 1m and ~60 days of 5m bars."""
         return self._download(symbols, period=period, interval=interval)
+
+
+def _fill_last(df: pd.DataFrame, ysym: str) -> None:
+    """Fills an empty close on the last daily bar from Yahoo's chart meta, only if the meta is for the same date."""
+    try:
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "pipeline"))
+        from core import fill_last_close
+        fill_last_close({ysym: df}, cols=("open", "high", "low", "close", "volume"))
+    except Exception:
+        pass

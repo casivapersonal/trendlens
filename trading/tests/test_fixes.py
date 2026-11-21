@@ -21,7 +21,8 @@ class News(unittest.TestCase):
         r = S([("Atlantic Acquisition Corp I: Performance & Quotes", ""), ("Brompton Energy Split Corp seasonal returns", "")], "Bajaj Holdings & Investment Limited", "BAJAJHLDNG")
         self.assertEqual(r["stance"], "quiet"); self.assertEqual(r["headlines"], [])
     def test_symbol_or_spaced_name_matches(self):
-        self.assertEqual(S([("Welspun India Share Price - Live NSE: WELSPUNLIV", "")], "Welspun Living Limited", "WELSPUNLIV")["headlines"][0][:7], "Welspun")
+        self.assertEqual(S([("WELSPUNLIV shares rise on export orders", "")], "Welspun Living Limited", "WELSPUNLIV")["headlines"][0][:7], "WELSPUN")
+        self.assertEqual(S([("Welspun India Share Price - Live NSE: WELSPUNLIV", "")], "Welspun Living Limited", "WELSPUNLIV")["headlines"], [])   # quote pages are not news
         self.assertTrue(S([("JK Cement Ltd. acquires stake in solar firm", "")], "JKCEMENT", "JKCEMENT")["stance"] == "positive flags")
     def test_positive_flags_not_reported_as_negative(self):
         r = S([("Acme dividend declared; profit jumps", "")], "Acme Limited", "ACME"); self.assertEqual(r["neg_flags"], []); self.assertEqual(r["stance"], "positive flags")
@@ -63,3 +64,52 @@ class Verdict(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CEOAndQueue(unittest.TestCase):
+    """CEO posts / declines / closes; scan queue is re-scored and the log keeps one entry per day."""
+    def setUp(self):
+        import tempfile, json
+        from pathlib import Path
+        self.d = Path(tempfile.mkdtemp()); self.pen = self.d / "pending.json"; self.pub = self.d / "picks.json"
+        self.pub.write_text(json.dumps({"live": [], "closed": [], "recent_alerts": [], "bars": {}}))
+        self.cfg = {"ideas": {"max_live": 10, "max_new_per_day": 3, "entry_rank": 20}, "ceo": {"max_per_sector": 3}}
+
+    def idea(self, sym, score=9, rank=None, lean="bull", tm="tilted toward the target", risk="PASS", verdict="APPROVE", tech="bullish"):
+        return {"id": f"{sym}-2026-11-20-s", "sym": sym, "term": "short", "entry_price": 100.0, "entry_lo": 99, "entry_hi": 101, "stop": 95, "target": 112.5,
+                "days": 15, "r": 2.5, "entry_rank": rank, "status": "awaiting decision", "entry_state": "triggered: price is inside the entry range",
+                "risk": {"verdict": risk, "reasons": [] if risk == "PASS" else ["x"]}, "judge": {"verdict": verdict, "score": score, "rules": []},
+                "review": {"lean": lean, "time_machine": {"verdict": tm}}, "committee": {"agreement": "analysts agree (supportive)", "macro": "calm",
+                "analysts": {"technical": {"stance": tech}, "fundamentals": {"stance": "supportive"}, "news": {"stance": "quiet"}}}}
+
+    def run_ceo(self, queue):
+        import json
+        from datetime import datetime
+        from unittest import mock
+        from arena import ceo, ideas
+        self.pen.write_text(json.dumps({"asof": None, "queue": queue, "log": []}))
+        with mock.patch("arena.committee.Committee._funds", return_value={"stocks": {}}):
+            out = ceo.decide_entries(self.cfg, datetime(2026, 11, 23, 16, 20), ideas, pending_path=self.pen, public_path=self.pub)
+        return {d["sym"]: d["decision"] for d in out}, json.loads(self.pub.read_text()), json.loads(self.pen.read_text())
+
+    def test_posts_good_declines_blocked_and_doubtful(self):
+        dec, pub, pen = self.run_ceo([self.idea("GOOD", 11, rank=5), self.idea("BLOCKED", 12, risk="BLOCK"),
+                                      self.idea("DOUBT", 9, tm="tilted toward the stop"), self.idea("MOMO", 8, rank=10, tm="tilted toward the stop")])
+        self.assertEqual(dec, {"BLOCKED": "DECLINE", "GOOD": "POST", "DOUBT": "DECLINE", "MOMO": "POST"})
+        self.assertEqual({i["sym"] for i in pub["live"]}, {"GOOD", "MOMO"}); self.assertEqual(pub["live"][0]["approved_by"], "CEO")
+        self.assertEqual({q["sym"]: q["status"] for q in pen["queue"]}, {"BLOCKED": "watch", "DOUBT": "watch"}); self.assertEqual(len(pen["ceo_log"]), 4)
+
+    def test_daily_limit(self):
+        dec, pub, _ = self.run_ceo([self.idea(s, 10, rank=3) for s in ("A", "B", "C", "D")])
+        self.assertEqual(sum(v == "POST" for v in dec.values()), 3)
+
+    def test_exit_closes_flagged_idea(self):
+        import json
+        from datetime import datetime
+        from arena import ceo, ideas
+        live = {**self.idea("X"), "status": "live", "posted": "2026-11-10", "nifty_entry": None, "exit_signal": {"reason": "Target hit", "price": 112.5, "date": "2026-11-21"}}
+        self.pub.write_text(json.dumps({"live": [live], "closed": [], "recent_alerts": [], "bars": {}}))
+        out = ceo.decide_exits(self.cfg, datetime(2026, 11, 23, 16, 20), ideas, public_path=self.pub)
+        pub = json.loads(self.pub.read_text())
+        self.assertEqual(out[0]["reason"], "Target hit"); self.assertEqual(pub["live"], []); self.assertEqual(pub["closed"][0]["closed_by"], "CEO")
+        self.assertIn("CLOSE X", pub["closed"][0]["ceo_exit"])

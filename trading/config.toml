@@ -95,8 +95,8 @@ paper_only = true              # cannot be changed; the program refuses to start
 [ideas]
 # Ideas are NOT trades. The coded judge scores a candidate, a human decision-maker approves it, and only then it is posted.
 # It stays live until the decision-maker closes it (or you switch auto_close on). No real-time trading anywhere in this system.
-max_live = 10                  # live ideas at once
-max_new_per_day = 3            # proposals sent to the decision-maker per scan
+max_live = 20                  # live ideas at once (the back-test held about 20: enter at top 20, exit below #50)
+max_new_per_day = 10           # ideas the CEO may post per day
 entry_rank = 20                # momentum rank that earns judge points (the original TrendLens entry rule)
 exit_rank = 50                 # momentum ideas are FLAGGED when their rank falls below this; the decision-maker closes
 approve_score = 6              # judge score for APPROVE (decision-maker still has the final say); starting point, not back-tested
@@ -114,3 +114,12 @@ min_rr = 2.0                   # risk check blocks approval below this reward-to
 timemachine_points = 1         # judge points for / against the Time Machine verdict (needs 20+ past samples); evidence, not back-tested
 timemachine_gate = false       # true = hard reject when past samples lost money after charges
 auto_close = false             # false = exit signals are flagged and the decision-maker closes; true = closes at the signal price
+
+[ceo]
+# The CEO is the final decision-maker: after every scan it posts or declines each proposal, after every monitor it closes
+# ideas with an exit signal. Every decision is written to trading/ideas/pending.json (ceo_log) and shown on the idea.
+enabled = true                 # false = back to manual approve / close
+max_per_sector = 3             # live ideas in one industry at once (e.g. Banks - Regional)
+max_live_short = 8             # short-term setup ideas (not back-tested) live at once
+ai_review = false              # true + ANTHROPIC_API_KEY secret = Claude takes a second look and may DECLINE (never post) an idea
+model = ""                     # blank = claude-sonnet-5-5

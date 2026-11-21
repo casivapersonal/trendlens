@@ -4,6 +4,9 @@ Hard rejects are risk controls. The score weights are starting points and have N
 from __future__ import annotations
 
 
+SEVERE = {"fraud", "sebi order", "insolvency", "default", "ED probe", "raid"}   # hard rejects; other negative headlines only cost points
+
+
 def judge(memo: dict, macro: dict, cfg: dict, live_ids: set[str] | None = None, sym: str = "", blocked: dict | None = None) -> dict:
     ic = cfg.get("ideas", {}); a = memo["analysts"]; m = a["technical"]["metrics"]
     score, hits, hard = 0, [], []
@@ -15,12 +18,20 @@ def judge(memo: dict, macro: dict, cfg: dict, live_ids: set[str] | None = None, 
     # ---- hard rejects (risk controls) ----
     if blocked and sym in blocked: hard.append(f"{blocked[sym]} (NSE surveillance)")
     if live_ids and sym in live_ids: hard.append("already a live idea")
-    if m["atr_pct"] > ic.get("max_atr_pct", 7): hard.append(f"too volatile (daily ATR {m['atr_pct']:.1f}%)")
-    if a["news"]["stance"] == "negative flags" and ic.get("news_hard_reject", True): hard.append("negative headline flags: " + ", ".join(a["news"].get("neg_flags", a["news"].get("flags", []))))
+    er0, rk0 = ic.get("entry_rank", 20), m.get("rank")
+    top = rk0 is not None and rk0 <= er0
+    if m["atr_pct"] > ic.get("max_atr_pct", 7):
+        if top: add(-1, f"volatile (daily ATR {m['atr_pct']:.1f}%); kept because the back-tested momentum rule selected it")
+        else: hard.append(f"too volatile (daily ATR {m['atr_pct']:.1f}%)")
+    negs = a["news"].get("neg_flags", a["news"].get("flags", [])) if a["news"]["stance"] == "negative flags" else []
+    severe = [f for f in negs if f in SEVERE]
+    if severe and ic.get("news_hard_reject", True): hard.append("serious headline flags: " + ", ".join(severe))
+    soft = [f for f in negs if f not in SEVERE]
+    if soft: add(-min(2, len(soft)), "negative headline flags (read the source): " + ", ".join(soft))
     # ---- technical ----
     er, rk = ic.get("entry_rank", 20), m.get("rank")
     if rk is not None:
-        if rk <= er: add(2, f"momentum rank #{rk} of the 300 most-traded stocks (the original entry rule: top {er})")
+        if rk <= er: add(2, f"momentum rank #{rk} in the NIFTY 500 (the original entry rule: top {er})")
     elif (m.get("mom_pct") or 0) >= 0.95: add(2, "top 5% risk-adjusted 12-month momentum")
     if m["setups"]: add(2, "daily setup: " + ", ".join(m["setups"]))
     if m["sma50"] and m["close"] > m["sma50"]: add(1, "above 50-day average")

@@ -62,11 +62,12 @@ def size_idea(cfg: dict, entry: float, stop: float) -> dict:
     rates, per = cfg.get("charges", {}), entry - stop
     if per <= 0: return {"qty": 0, "note": "no valid stop distance"}
     qty = int(lim // per) if lim > 0 else (int(pos_cap // entry) if pos_cap else 0)
-    if pos_cap: qty = min(qty, int(pos_cap // entry))
+    over_cap = bool(pos_cap) and entry > pos_cap
+    if pos_cap: qty = min(qty, int(pos_cap // entry)) if not over_cap else min(qty, 1)   # one share above the example cap is still shown
     while qty > 0 and lim > 0 and qty * per + ch.compute("BUY", qty, entry, "delivery", rates).total + ch.compute("SELL", qty, stop, "delivery", rates).total > lim: qty -= 1
     loss = qty * per + (ch.compute("BUY", qty, entry, "delivery", rates).total + ch.compute("SELL", qty, stop, "delivery", rates).total if qty else 0)
     return {"qty": qty, "value": round(qty * entry, 2), "loss_at_stop": round(loss, 2), "max_loss": lim, "capital": cap,
-            "note": "example sizing on the configured paper account; loss at the stop price, a gap can be worse"}
+            "note": ("one share costs more than the example position cap; shown as 1 share" if over_cap else "example sizing on the configured paper account") + "; loss at the stop price, a gap can be worse"}
 
 
 def risk_check(idea: dict, cfg: dict, live_count: int) -> dict:
@@ -74,5 +75,9 @@ def risk_check(idea: dict, cfg: dict, live_count: int) -> dict:
     ic, why = cfg.get("ideas", {}), []
     if idea["r"] < ic.get("min_rr", 2.0): why.append(f"reward-to-risk {idea['r']} is below {ic.get('min_rr', 2.0)}")
     if live_count >= ic.get("max_live", 10): why.append(f"already {live_count} live ideas (max {ic.get('max_live', 10)})")
-    if idea.get("size", {}).get("qty", 1) < 1: why.append("stop is too wide for the max loss per trade")
+    sz = idea.get("size", {})
+    if sz.get("qty", 1) < 1:
+        cap = float(cfg.get("account", {}).get("starting_capital", 0) or 0) * float(cfg.get("strategy", {}).get("max_position_pct", 100)) / 100
+        why.append(f"one share costs more than the position cap (Rs {cap:,.0f})" if cap and idea.get("entry_price", 0) > cap
+                   else "stop is too wide for the max loss per trade")
     return {"verdict": "BLOCK" if why else "PASS", "reasons": why}

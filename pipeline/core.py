@@ -3,10 +3,11 @@ The rank is evidence for the ideas pipeline (trading/arena). Nothing here opens 
 import json, datetime as dt, requests
 from concurrent.futures import ThreadPoolExecutor
 
-ENTRY_RANK, EXIT_RANK, UNIVERSE = 20, 50, 300
-STATS = {"rule": "12-month return up to the latest price, divided by 12-month volatility. Back-test rule: enter at top 20, exit below #50", "periods": [
-    {"period": "2011–2019", "cagr": 34.2, "nifty": 8.1, "maxdd": -21.7, "trades": 948, "win": 43.7, "avg_win": 34.5, "avg_loss": -7.2, "med_days": 65},
-    {"period": "2020–2026", "cagr": 40.4, "nifty": 11.4, "maxdd": -35.3, "trades": 649, "win": 41.9, "avg_win": 47.9, "avg_loss": -9.5, "med_days": 67}]}
+ENTRY_RANK, EXIT_RANK, UNIVERSE = 20, 50, 500
+UNIVERSE_LABEL = "NIFTY 500"
+STATS = {"rule": "NIFTY 500 stocks ranked by 12-month return divided by 12-month volatility. Back-test rule: enter at top 20, exit below #50", "periods": [
+    {"period": "2011–2019", "cagr": 34.9, "nifty": 8.1, "maxdd": -21.7, "trades": 980, "win": 43.0, "avg_win": 34.7, "avg_loss": -6.8, "med_days": 60},
+    {"period": "2020–2026", "cagr": 50.7, "nifty": 11.4, "maxdd": -35.5, "trades": 673, "win": 42.5, "avg_win": 51.0, "avg_loss": -9.1, "med_days": 65}]}
 
 def ist_now():
     return dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)
@@ -24,6 +25,37 @@ def quote(sym):
         return sym, {"p": m["regularMarketPrice"], "pc": m.get("chartPreviousClose") or m.get("previousClose"), "t": m.get("regularMarketTime")}
     except Exception:
         return sym, None
+
+def day_meta(ysym):
+    """Today's/last session close, high and low from Yahoo's chart meta. Yahoo sometimes leaves the last daily bar's close
+    empty for a day or more (seen 20 Nov 2026: volume present, close NaN); the meta still has the final price."""
+    try:
+        r = requests.get(f"https://query2.finance.yahoo.com/v8/finance/chart/{requests.utils.quote(ysym)}?interval=1d&range=5d",
+                         headers={"User-Agent": "Mozilla/5.0 TrendLens"}, timeout=15)
+        m = r.json()["chart"]["result"][0]["meta"]
+        return ysym, {"close": m["regularMarketPrice"], "high": m.get("regularMarketDayHigh"), "low": m.get("regularMarketDayLow"), "t": m.get("regularMarketTime")}
+    except Exception:
+        return ysym, None
+
+def fill_last_close(frames, cols=("Open", "High", "Low", "Close", "Volume")):
+    """frames: {yahoo_symbol: DataFrame}. Fills an empty close on the LAST bar (only when that bar traded) from the chart meta.
+    The meta's date must match the bar's date, so a stale price is never written into a new day."""
+    O, H, L, C, V = cols
+    need = [t for t, x in frames.items() if len(x) and x[C].isna().iloc[-1] and (x[V].iloc[-1] or 0) > 0]
+    if not need: return 0
+    with ThreadPoolExecutor(16) as ex: metas = dict(ex.map(day_meta, need))
+    n = 0
+    for t in need:
+        m = metas.get(t); x = frames[t]
+        if not m or not m["close"] or not m["t"]: continue
+        if (dt.datetime.utcfromtimestamp(m["t"]) + dt.timedelta(hours=5, minutes=30)).date() != x.index[-1].date(): continue
+        i = x.index[-1]
+        x.loc[i, C] = m["close"]
+        if x[H].isna().iloc[-1] and m["high"]: x.loc[i, H] = m["high"]
+        if x[L].isna().iloc[-1] and m["low"]: x.loc[i, L] = m["low"]
+        if x[O].isna().iloc[-1]: x.loc[i, O] = m["close"]
+        n += 1
+    return n
 
 def quotes(syms):
     with ThreadPoolExecutor(16) as ex:
@@ -62,7 +94,7 @@ def rank_exit_flags(state, rk, now):
         r = rk.get(e["sym"])
         if r is None or r > EXIT_RANK:
             if not e.get("rank_exit"): flagged.append(e["sym"])
-            e["rank_exit"] = dict(date=date, rank=r, reason=("Left the 300 most-traded stocks" if r is None
+            e["rank_exit"] = dict(date=date, rank=r, reason=("Left the NIFTY 500 ranking" if r is None
                                   else f"Momentum rank fell to #{r} (flag level: below #{EXIT_RANK})"))
         else:
             e.pop("rank_exit", None)

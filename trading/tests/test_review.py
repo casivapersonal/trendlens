@@ -38,7 +38,7 @@ class Review(unittest.TestCase):
         ok = {"r": 2.5, "size": {"qty": 10}}
         self.assertEqual(review.risk_check(ok, self.cfg, 0)["verdict"], "PASS")
         self.assertEqual(review.risk_check({**ok, "r": 1.2}, self.cfg, 0)["verdict"], "BLOCK")
-        self.assertEqual(review.risk_check(ok, self.cfg, 10)["verdict"], "BLOCK")
+        self.assertEqual(review.risk_check(ok, self.cfg, self.cfg["ideas"]["max_live"])["verdict"], "BLOCK")
         self.assertEqual(review.risk_check({**ok, "size": {"qty": 0}}, self.cfg, 0)["verdict"], "BLOCK")
 
     def test_daily_time_machine_is_repeatable(self):

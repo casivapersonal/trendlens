@@ -1,4 +1,4 @@
-"""Download company fundamentals for the 300-stock universe and write web/fundamentals.json.
+"""Download company fundamentals for the NIFTY 500 universe and write web/fundamentals.json.
 
 Source: Yahoo Finance via yfinance (free, no key, same provider as the price feed; research use only).
 Usage:  python fundamentals.py ../web/history.json ../web/fundamentals.json
@@ -34,7 +34,7 @@ def fetch(sym):
                 "name": i.get("longName") or i.get("shortName"),
                 "sector": i.get("sector"), "industry": i.get("industry"),
                 "eps_ttm": num(i.get("trailingEps")), "eps_fwd": num(i.get("forwardEps")),
-                "book_value": num(i.get("bookValue")), "shares": num(i.get("sharesOutstanding")),
+                "book_value": num(i.get("bookValue")), "shares": num(i.get("sharesOutstanding") or i.get("impliedSharesOutstanding") or ((i.get("marketCap") or 0) / i["currentPrice"] if i.get("marketCap") and i.get("currentPrice") else None)),
                 "div_rate": num(i.get("dividendRate")),
                 "roe_pct": pct(i.get("returnOnEquity")), "roa_pct": pct(i.get("returnOnAssets")),
                 "de_ratio": None if de is None else round(de / 100, 2),   # Yahoo gives this in percent
