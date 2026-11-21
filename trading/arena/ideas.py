@@ -91,7 +91,7 @@ def verdict_status(v: str) -> str:
 
 # ---------------------------------------------------------------- scan -> pending
 def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | None = None, public_path: Path | None = None,
-         ranks: dict | None = None, moms: dict | None = None) -> dict:
+         ranks: dict | None = None, moms: dict | None = None, entry_time: str = "after close") -> dict:
     """Candidates = the scanner's pool (daily setups + momentum) plus the stocks in the top `entry_rank` of the TrendLens momentum
     ranking (the original entry rule). `shortlister.frames` must hold daily bars for all of them."""
     ranks, moms = ranks or {}, moms or {}
@@ -126,7 +126,7 @@ def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | 
         risk = review.risk_check({"r": lv["r"], "size": size, "entry_price": m["close"]}, cfg, 0)   # book limits are the CEO's job
         tm = memo.get("timemachine")
         out.append({"id": f"{s}-{pdate}-{term[0]}", "sym": s, "name": (committee._funds().get("stocks", {}).get(s) or {}).get("name") or s,
-                    "view": "Bullish view", "term": term, "entry_date": pdate, "entry_time": "after close", "entry_price": round(m["close"], 2),
+                    "view": "Bullish view", "term": term, "entry_date": pdate, "entry_time": entry_time, "entry_price": round(m["close"], 2),
                     "entry_rank": ranks.get(s), "mom_pct": round(moms[s] * 100, 1) if s in moms else None,
                     **{k: lv[k] for k in ("entry_lo", "entry_hi", "stop", "target", "days", "r")},
                     # the back-tested rank rule reaches the CEO even when the untested judge points only reach WATCH
@@ -254,4 +254,31 @@ def monitor(cfg: dict, frames: dict, now: datetime, public_path: Path | None = N
     _publish(pub, now, public_path)
     for sym in to_close:                      # only if auto_close is on; otherwise the decision-maker closes
         close(sym, "auto (rule)", now, public_path=public_path)
+    return signals
+
+
+# ---------------------------------------------------------------- intraday: live prices every 5 minutes in market hours
+def monitor_live(cfg: dict, prices: dict, now: datetime, public_path: Path | None = None) -> list[dict]:
+    """Marks entries and flags stop / target hits on live prices during market hours (the 16:15 run still checks daily bars,
+    time limits and momentum rank). A price checked every few minutes can be past the level: the exit uses the worse of the two."""
+    pub = public(public_path); signals = []; hm = now.strftime("%H:%M")
+    for i in pub["live"]:
+        p = prices.get(i["sym"])
+        if not p or i.get("exit_signal"): continue
+        i["price_now"] = round(float(p), 2)
+        stop, tgt = i.get("stop"), i.get("target")
+        if i.get("filled") is None and i.get("fill_rule"):
+            lo, hi = i.get("entry_lo") or i["entry_price"], i.get("entry_hi") or i["entry_price"]
+            if lo <= p <= hi or (stop and stop < p < lo):
+                i["filled"] = {"price": round(float(p), 2), "date": now.date().isoformat(), "time": hm}
+            continue
+        if i.get("filled") is None: continue
+        sig = None
+        if stop and p <= stop: sig = ("Stop-loss hit", min(float(p), stop))
+        elif i.get("term") != "medium" and tgt and p >= tgt: sig = ("Target hit", float(tgt))
+        if sig:
+            i["exit_signal"] = {"reason": sig[0], "price": round(sig[1], 2), "date": now.date().isoformat(), "time": hm}
+            signals.append({"id": i.get("id", i["sym"]), **i["exit_signal"]})
+        i["entry_state"] = review.entry_state(i, float(p))
+    _publish(pub, now, public_path)
     return signals

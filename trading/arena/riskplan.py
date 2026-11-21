@@ -5,9 +5,19 @@ from __future__ import annotations
 from . import charges as ch
 
 
+def loss_limit(cfg: dict, equity: float | None = None) -> float:
+    """Max loss per trade in rupees: [risk].max_loss_pct of the account (equity, else starting capital) when set,
+    else the fixed [risk].max_loss_per_trade. 0 = off."""
+    r = cfg.get("risk", {}); pct = float(r.get("max_loss_pct", 0) or 0)
+    if pct > 0:
+        base = float(equity if equity else cfg.get("account", {}).get("starting_capital", 0) or 0)
+        return round(base * pct / 100, 2)
+    return float(r.get("max_loss_per_trade", 0) or 0)
+
+
 def cap_alloc(cfg: dict, equity: float, entry: float, stop_pct: float, alloc_pct: float) -> float:
-    """Lower allocation_pct (never raise it) so qty * stop distance + round-trip charges <= max_loss_per_trade."""
-    lim = float(cfg.get("risk", {}).get("max_loss_per_trade", 0) or 0)
+    """Lower allocation_pct (never raise it) so qty * stop distance + round-trip charges <= the loss limit."""
+    lim = loss_limit(cfg, equity)
     if lim <= 0 or stop_pct <= 0 or entry <= 0 or equity <= 0:
         return alloc_pct
     prod, rates = cfg["strategy"]["product"], cfg.get("charges", {})

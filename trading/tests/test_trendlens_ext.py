@@ -77,7 +77,7 @@ class Scanner(unittest.TestCase):
 
 class Risk(unittest.TestCase):
     def test_sizing_respects_loss_limit_including_charges(self):
-        cfg = load_config(); cfg["risk"]["max_loss_per_trade"] = 500   # pins the Rs 500 limit this test was written for
+        cfg = load_config(); cfg["risk"]["max_loss_pct"] = 0; cfg["risk"]["max_loss_per_trade"] = 500   # pins the Rs 500 limit this test was written for
         a = riskplan.cap_alloc(cfg, 100000, 1000, 1.5, 20)               # Rs 500 / Rs 15 per share = 33 shares = 33% -> capped by 20% asked
         self.assertLessEqual(a, 20)
         a2 = riskplan.cap_alloc(cfg, 100000, 1000, 5.0, 20)              # Rs 50 per share -> at most 9 shares (<=Rs 450 + charges)
@@ -154,7 +154,7 @@ class RunnerIntegration(unittest.TestCase):
             per_day = j.q("SELECT substr(ts,1,10) d, COUNT(*) n FROM orders WHERE run_id=? AND side='BUY' AND status='filled' GROUP BY d", (rid,))
             self.assertTrue(all(r["n"] <= cfg["risk"]["max_trades_per_day"] for r in per_day))
             for r in j.q("SELECT net_pnl, entry_price, qty FROM trades WHERE run_id=?", (rid,)):   # no stopped trade loses far more than the Rs 500 limit
-                self.assertGreater(r["net_pnl"], -cfg["risk"]["max_loss_per_trade"] * 2.2)
+                self.assertGreater(r["net_pnl"], -riskplan.loss_limit(cfg) * 2.2)
 
 
 if __name__ == "__main__":

@@ -55,9 +55,10 @@ def one_r_advice(idea: dict, high_seen: float | None) -> dict | None:
 
 # ---------------------------------------------------------------- budget (trader-budget) and risk check (trader-risk)
 def size_idea(cfg: dict, entry: float, stop: float) -> dict:
-    """Quantity so the loss at the stop, charges included (delivery), stays within [risk].max_loss_per_trade, and the position within
+    """Quantity so the loss at the stop, charges included (delivery), stays within the loss limit ([risk].max_loss_pct of the account), and the position within
     [strategy].max_position_pct of [account].starting_capital. A worked example on the configured paper account, not advice."""
-    lim = float(cfg.get("risk", {}).get("max_loss_per_trade", 0) or 0); cap = float(cfg.get("account", {}).get("starting_capital", 0) or 0)
+    from .riskplan import loss_limit
+    lim = loss_limit(cfg); cap = float(cfg.get("account", {}).get("starting_capital", 0) or 0)
     pos_cap = cap * float(cfg.get("strategy", {}).get("max_position_pct", 100)) / 100 if cap else 0
     rates, per = cfg.get("charges", {}), entry - stop
     if per <= 0: return {"qty": 0, "note": "no valid stop distance"}

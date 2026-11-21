@@ -481,7 +481,7 @@ function ideasAnswer(q, P, sym) {
     return [`**Track record: ${closed.length} closed ideas**`, `Profitable ${w.length} (${Math.round(w.length / closed.length * 100)}%) · average result ${pc(avg)}.`,
       ...closed.slice(0, 10).map(c => `- **${c.sym}** ${pc(c.ret_pct)} · ${c.reason} · ${c.entry_date} → ${c.exit_date}`)].join('\n');
   }
-  if (!live.length) return 'No live ideas right now. The CEO reviews new candidates after every market close.';
+  if (!live.length) return 'No live ideas right now. The CEO reviews candidates every 5 minutes in market hours and after the close.';
   return [`**${live.length} live idea${live.length === 1 ? '' : 's'}**`, ...live.map(e => {
     const chg = e.price_now && e.entry_price ? (e.price_now / e.entry_price - 1) * 100 : null;
     return `- **${e.sym}** posted ${e.posted || e.entry_date} at ${inr(e.entry_price)}${chg != null ? ` (${pc(chg)} since)` : ''} · stop ${inr(e.stop, 0)} · target ${inr(e.target, 0)}${e.ceo ? ` · ${e.ceo.conviction} conviction` : ''}${e.exit_signal ? ' · ⚠ exit signal: ' + e.exit_signal.reason : ''}`;

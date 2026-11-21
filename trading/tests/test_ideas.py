@@ -212,3 +212,17 @@ class AuditFixes(Flow):
     def test_expensive_share_is_sized_at_one_share_not_blocked(self):
         s = review.size_idea(self.cfg, 30000.0, 29400.0)
         self.assertEqual(s["qty"], 1); self.assertEqual(review.risk_check({"r": 2.5, "size": s, "entry_price": 30000.0}, self.cfg, 0)["verdict"], "PASS")
+
+
+class Intraday(Flow):
+    def test_live_fill_then_stop_closes_by_ceo(self):
+        from arena import ceo
+        with tempfile.TemporaryDirectory() as t:
+            idea, pp, pu = self._live(t); mid = (idea["entry_lo"] + idea["entry_hi"]) / 2
+            self.assertEqual(ideas.monitor_live(self.cfg, {"AAA": idea["entry_hi"] * 1.05}, NOW, pu), [])   # above the range: not entered
+            self.assertIsNone(ideas.public(pu)["live"][0]["filled"])
+            ideas.monitor_live(self.cfg, {"AAA": mid}, NOW, pu); self.assertEqual(ideas.public(pu)["live"][0]["filled"]["price"], round(mid, 2))
+            g = ideas.monitor_live(self.cfg, {"AAA": idea["stop"] * 0.98}, NOW, pu)
+            self.assertEqual(g[0]["reason"], "Stop-loss hit"); self.assertEqual(g[0]["price"], round(idea["stop"] * 0.98, 2))
+            done = ceo.decide_exits(self.cfg, NOW, ideas, pu); self.assertEqual(done[0]["reason"], "Stop-loss hit")
+            self.assertLess(ideas.public(pu)["closed"][0]["ret_pct"], 0)

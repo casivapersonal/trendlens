@@ -67,6 +67,7 @@ def review_entry(q: dict, ctx: dict, cfg: dict) -> dict:
     sec = _sector(q["sym"], ctx["funds"])
     if sec != "Unknown" and ctx["sectors"].get(sec, 0) >= c.get("max_per_sector", 3):
         no.append(f"industry limit: already {ctx['sectors'][sec]} live ideas in {sec}")
+    if q["sym"] in ctx.get("closed_today", set()): no.append("an idea on this stock was closed today; no re-entry the same day")
     # ---- soft doubts: the back-tested momentum rank can outweigh them, untested evidence cannot ----
     level, why = _conviction(q)
     momentum = q.get("entry_rank") is not None and q["entry_rank"] <= ic.get("entry_rank", 20)
@@ -116,7 +117,8 @@ def decide_entries(cfg: dict, now, ideas_mod, frames_for=None, pending_path=None
     sectors: dict[str, int] = {}
     for i in pub["live"]: s = _sector(i["sym"], funds); sectors[s] = sectors.get(s, 0) + 1
     ctx = {"live": len(pub["live"]), "posted_today": sum(1 for i in pub["live"] + pub["closed"] if i.get("posted") == today and i.get("approved_by") == NAME),
-           "short_live": sum(1 for i in pub["live"] if i.get("term") == "short"), "sectors": sectors, "funds": funds}
+           "short_live": sum(1 for i in pub["live"] if i.get("term") == "short"), "sectors": sectors, "funds": funds,
+           "closed_today": {c["sym"] for c in pub["closed"] if c.get("closed_at", "")[:10] == today}}
     er = cfg.get("ideas", {}).get("entry_rank", 20)
     out = []
     waiting = [q for q in pen["queue"] if q["status"] == "awaiting decision"]

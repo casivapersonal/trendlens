@@ -169,11 +169,13 @@ body.v-screener #ideas{display:none}
 .cstats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 .cstats .stat{background:#fff;border:1px solid var(--line)}
 .igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(600px,1fr));gap:22px 18px}
-.idea{position:relative;background:#f3efe7;border-radius:18px;padding:30px 14px 14px;display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px}
+.idea{position:relative;background:#f3efe7;border-radius:18px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:12px}
 .idea>div{min-width:0}.itab{overflow-x:auto}.itab td:last-child{white-space:nowrap}.perf{font-size:13px}
 .idea.closed{background:#f1f3f2}
-.idea .tag{position:absolute;top:-10px;right:26px;background:#fff;border:1.5px solid #1F5F5B;color:#1F5F5B;border-radius:5px;padding:4px 10px;font-weight:700;font-size:12.5px;display:flex;gap:6px;align-items:center}
-.idea .posted{position:absolute;top:10px;left:16px;font-size:13px;color:#3d4a49}
+.idea .ihd{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap;min-width:0}
+.idea .tag{position:static;flex:none;white-space:nowrap;background:#fff;border:1.5px solid #1F5F5B;color:#1F5F5B;border-radius:5px;padding:4px 10px;font-weight:700;font-size:12.5px;display:flex;gap:6px;align-items:center}
+.idea .posted{position:static;flex:1 1 260px;min-width:0;font-size:13px;color:#3d4a49;line-height:1.6}
+.idea .posted .real-tag,.idea .posted .demo-tag{white-space:nowrap;display:inline-block}
 .perf{display:flex;align-items:center;justify-content:space-around;background:#fff;border:1px solid #1f7a3f;border-radius:12px;padding:9px 10px;margin-bottom:10px;font-size:13.5px;color:#3d4a49;gap:8px;flex-wrap:wrap}
 .perf.bad{border-color:#b42318}
 .perf .box{border:1px solid currentColor;border-radius:6px;padding:2px 8px;font-weight:700;margin-left:4px}
@@ -245,6 +247,7 @@ body.v-screener #ideas{display:none}
   .topnav{order:2}
   .perf{flex-direction:column;gap:4px}.perf .sep{display:none}
   .itab table td{white-space:nowrap}
+  .itab table{font-size:12px}.itab th,.itab td{padding:8px 6px!important}
 }
 *:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
 .chip.new{background:var(--brand);color:#fff}
@@ -289,6 +292,7 @@ body.v-screener #ideas{display:none}
 .apop .row{display:flex;gap:8px}.apop .row button{flex:1}
 
 /* ---- audit fixes ---- */
+@media(max-width:520px){.itab th:nth-child(3),.itab td:nth-child(3){display:none}.itab table{font-size:13px}}
 .memo{font-size:13px;background:var(--brand-soft,#e3f1ef);color:var(--brand);border-radius:8px;padding:8px 10px;margin-top:10px;line-height:1.45}
 .cstats .stat .s{font-size:11.5px;color:var(--muted);margin-top:2px}
 .cstats .stat.hero .v{font-size:26px}
@@ -341,7 +345,7 @@ body:has(.ov[style*="flex"]) #gfab,body:has(.ov.show) #gfab{display:none}
   <section class="detail" id="detail"></section>
 </main>
 <section id="ideas">
-  <div class="notice"><span style="font-size:15px">ⓘ</span><div><b>Analysis, not investment advice.</b> Ideas are posted only after the CEO agent approves them. <details style="display:inline"><summary style="display:inline;cursor:pointer;font-weight:600;color:var(--brand)">How it works</summary> After each market close TrendLens scans NSE stocks for three daily setups (a 20-day breakout on volume, a bull flag, an oversold bounce) and for the top 20 on risk-adjusted 12-month momentum (12-month return divided by volatility, ranked within the NIFTY 500). A committee reports on each candidate: technical, fundamentals, news, macro and NSE surveillance. A <b>coded judge</b>, plain fixed rules with no AI, scores it. A bull researcher and a bear researcher argue the case, a risk officer checks size and limits, and the <b>CEO agent</b> takes the final call from all of it: post or decline, with a written memo and a conviction level. An approved idea is posted with an entry range, stop-loss, target and time frame, and stays in <b>Live ideas</b> until the CEO closes it, when it moves to <b>Closed ideas</b> with its result. The page flags an <b>exit signal</b> when price reaches the stop-loss or target, the time frame ends, or, for momentum-based ideas, the momentum rank falls below #50. The CEO closes an idea after the close on the day its exit signal appears. Approved ideas are new and have no track record yet. For the momentum rule alone on NIFTY 500 stocks (enter at the top 20, exit below #50, applied mechanically): 34.9% a year in 2011–19 and 50.7% in 2020–26, against 8.1% and 11.4% for NIFTY; about 43% of ideas were profitable, with average wins of +35–51% and average losses of −7 to −9%. Past results do not guarantee future ones. Consult a SEBI-registered adviser before investing.</details></div></div>
+  <div class="notice"><span style="font-size:15px">ⓘ</span><div><b>Analysis, not investment advice.</b> Ideas are posted only after the CEO agent approves them. <details style="display:inline"><summary style="display:inline;cursor:pointer;font-weight:600;color:var(--brand)">How it works</summary> Every 5 minutes during market hours TrendLens ranks the NIFTY 500 on live prices, and after each close it also scans for three daily setups (a 20-day breakout on volume, a bull flag, an oversold bounce) and for the top 20 on risk-adjusted 12-month momentum (12-month return divided by volatility, ranked within the NIFTY 500). A committee reports on each candidate: technical, fundamentals, news, macro and NSE surveillance. A <b>coded judge</b>, plain fixed rules with no AI, scores it. A bull researcher and a bear researcher argue the case, a risk officer checks size and limits, and the <b>CEO agent</b> takes the final call from all of it: post or decline, with a written memo and a conviction level. An approved idea is posted with an entry range, stop-loss, target and time frame, and stays in <b>Live ideas</b> until the CEO closes it, when it moves to <b>Closed ideas</b> with its result. The page flags an <b>exit signal</b> when price reaches the stop-loss or target, the time frame ends, or, for momentum-based ideas, the momentum rank falls below #50. The CEO closes an idea within minutes when its stop-loss or target is hit during market hours, and after the close for time limits and faded momentum. Approved ideas are new and have no track record yet. For the momentum rule alone on NIFTY 500 stocks (enter at the top 20, exit below #50, applied mechanically): 34.9% a year in 2011–19 and 50.7% in 2020–26, against 8.1% and 11.4% for NIFTY; about 43% of ideas were profitable, with average wins of +35–51% and average losses of −7 to −9%. Past results do not guarantee future ones. Consult a SEBI-registered adviser before investing.</details></div></div>
   <div class="ibar" id="ibar"></div>
   <div class="segs" id="segs"></div>
   <div class="irow">
@@ -785,7 +789,7 @@ const IS={tab:'live',seg:'MOM',term:'all',sort:'date',q:'',saved:new Set(store.g
 const SEGS=[['MOM','Momentum Ideas']];
 const EXITS={short:[3,1.5],medium:[3,3]}; // stop ATR, target ATR: chosen from the 2010-2026 real-data backtest
 const BT={IN:{short:[71.2,3.9,-7.8,1820],medium:[51.7,7.7,-6.5,757],long:[78.2,18.0,-6.4,1283]}}; BT.US=BT.IN; // [win%, avg win, avg loss, trades] real NSE+US large caps 2010-2026, net of costs
-const TERMS={momentum:['Momentum','Until exit alert',9999],short:['Short term','2–6 weeks',30],medium:['Medium term','3–6 months',120],long:['Long term','1–3 years',750]};
+const TERMS={momentum:['Momentum','Until exit alert',9999],short:['Short term','2–6 weeks',30],medium:['Medium term','until momentum fades',120],long:['Long term','1–3 years',750]};
 const EH=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PAL=['#0b6e6e','#0E7C7B','#1F5F5B','#2a8a7e','#145c5c','#3d7f78'];
 const STATUS={target:['Target hit','bull'],stop:['Stop-loss hit','bear'],reversed:['Closed: view reversed','neu'],timeout:['Time frame ended','neu'],expiry:['Expired','neu'],superseded:['Replaced by newer idea','neu'],rebalanced:['Monthly review','neu'],momexit:['Exit alert','neu'],rank:['Closed: momentum rank fell','neu'],manual:['Closed by the CEO','neu'],not_entered:['Not entered','neu']};
@@ -878,7 +882,7 @@ const money=(o,v)=>fmt(v,o.m);
 const mono=o=>{const t=o.label.replace(/[^A-Z]/g,'').slice(0,2)||'TL';return`<div class="mono" style="background:${PAL[hashStr(o.x.sym)%PAL.length]}">${t}</div>`};
 function perfHTML(o){
   if(o.status==='live'&&o.term==='momentum')return`<div class="perf ${o.chgSoFar<0?'bad':''}"><span>Change so far: <span class="box ${o.chgSoFar>=0?'up':'dn'}">${pct(o.chgSoFar)}</span></span><span class="sep"></span><span>NIFTY same period: <b class="${o.nifty>=0?'up':'dn'}">${pct(o.nifty)}</b></span></div>`;
-  if(o.status==='live')return`<div class="perf ${o.chgSoFar<0?'bad':''}"><span>Change so far: <span class="box ${o.chgSoFar>0?'up':o.chgSoFar<0?'dn':''}">${pct(o.chgSoFar)}</span></span><span class="sep"></span><span>Potential left: <b class="${o.potLeft>=0?'up':'dn'}">${pct(o.potLeft)}</b></span></div>`;
+  if(o.status==='live')return`<div class="perf ${o.chgSoFar<0?'bad':''}"><span>Change so far: <span class="box ${o.chgSoFar>0?'up':o.chgSoFar<0?'dn':''}">${pct(o.chgSoFar)}</span></span><span class="sep"></span><span>${o.term==='medium'?'To first objective':'Potential left'}: <b class="${o.potLeft>=0?'up':'dn'}">${pct(o.potLeft)}</b></span></div>`;
   const[sl,sc]=STATUS[o.status];
   if(o.term==='momentum')return`<div class="perf ${o.ret<0?'bad':''}"><span>Result: <span class="box ${o.ret>=0?'up':'dn'}">${pct(o.ret)}</span></span><span class="sep"></span><span>NIFTY same period: <b class="${o.nifty>=0?'up':'dn'}">${pct(o.nifty)}</b></span></div><div class="wstrip exit">▼ Exit alert ${fD(o.x.bars[o.exitI].t)}: ${o.reason}</div>`;
   return`<div class="perf ${o.ret<0?'bad':''}"><span>Result: <span class="box ${o.ret>=0?'up':'dn'}">${pct(o.ret)}</span></span><span class="sep"></span><span><span class="chip ${sc}">${sl}</span> ${fD(o.x.bars[o.exitI].t)}</span></div>`;
@@ -901,8 +905,7 @@ function btBox(o){if(o.judge)return`<span style="font-size:12px">Judge score</sp
   return`<span style="font-size:12px">Back-test 2010–26</span><b style="font-size:20px;color:var(--ink);margin:2px 0">${bt[0]}% win</b><span>Avg win <b class="up">+${bt[1]}%</b></span><span>Avg loss <b class="dn">${bt[2]}%</b></span>`}
 function cardHTML(o){
   return`<div class="idea ${o.status==='live'?'':'closed'}" data-id="${o.id}">
-    <div class="tag">${ICON.clock} ${TERMS[o.term][0]}</div>
-    <div class="posted"><b>${o.term==='momentum'?'Entry alert':'Posted'}:</b> ${fD(o.posted)} | ${o.time}${o.approvedBy?` <span class="real-tag" title="Posted only after the CEO agent approved it">Approved by ${o.approvedBy}${o.ceo?' · '+o.ceo.conviction+' conviction':''}</span>`:o.term==='momentum'?' <span class="demo-tag" title="Entered by the automatic rank rule, before CEO approval was introduced">Auto entry</span>':''}${o.backfilled?' <span class="demo-tag" title="Generated by replaying the same rules on past prices">Back-filled</span>':''}${o.resultsDate?` <span class="demo-tag" title="Quarterly results date from NSE">Results ${fD(new Date(o.resultsDate+'T00:00:00'))}</span>`:''}${o.surv?` <span class="demo-tag" style="color:var(--red);background:var(--red-soft)" title="${o.surv}">NSE ASM/GSM</span>`:''}</div>
+    <div class="ihd"><div class="posted"><b>${o.term==='momentum'?'Entry alert':'Posted'}:</b> ${fD(o.posted)} | ${o.time}${o.approvedBy?` <span class="real-tag" title="Posted only after the CEO agent approved it">Approved by ${o.approvedBy}${o.ceo?' · '+o.ceo.conviction+' conviction':''}</span>`:o.term==='momentum'?' <span class="demo-tag" title="Entered by the automatic rank rule, before CEO approval was introduced">Auto entry</span>':''}${o.backfilled?' <span class="demo-tag" title="Generated by replaying the same rules on past prices">Back-filled</span>':''}${o.resultsDate?` <span class="demo-tag" title="Quarterly results date from NSE">Results ${fD(new Date(o.resultsDate+'T00:00:00'))}</span>`:''}${o.surv?` <span class="demo-tag" style="color:var(--red);background:var(--red-soft)" title="${o.surv}">NSE ASM/GSM</span>`:''}</div><div class="tag">${ICON.clock} ${TERMS[o.term][0]}</div></div>
     <div style="margin-top:6px">${perfHTML(o)}${warnStrip(o)}<div class="inst">${instHTML(o)}</div></div>
     <div class="iside">
       <div class="icons"><button data-act="save" title="Bookmark" aria-label="Bookmark idea" class="${IS.saved.has(o.id)?'on':''}">${IS.saved.has(o.id)?ICON.bookOn:ICON.book}</button><button data-act="chart" title="Open chart" aria-label="Open chart">${ICON.chart}</button><button data-act="copy" title="Copy summary" aria-label="Copy idea summary">${ICON.link}</button></div>
@@ -942,14 +945,14 @@ function judgePoints(o,cx){
   P.push(`Posted after ${o.approvedBy||'the CEO'} approved it${o.approvedAt?' on '+o.approvedAt.slice(0,10):''}. The score is ${j.score}, from fixed rules written as code (${j.by}). Nothing here is an AI opinion.`);
   for(const r of j.rules||[])P.push(`${r.points>0?'+':''}${r.points}: ${r.rule}.`);
   const an=Object.entries(c.analysts||{}).map(([k,v])=>`${k} ${v.stance}`).join(', ');
-  if(an)P.push(`Committee: ${an}. ${c.agreement||''}${c.macro?' Macro backdrop: '+c.macro+'.':''}`);
+  if(an)P.push(`Committee: ${an}.${c.agreement?' '+c.agreement.charAt(0).toUpperCase()+c.agreement.slice(1)+'.':''}${c.macro?' Economy: '+c.macro+'.':''}`);
   const E=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),rv=o.review;
   if(rv){
     P.push(`<b>Bull case</b> (${E(rv.lean==='bull'?'the bull case is stronger':rv.lean==='bear'?'the bear case is stronger':'balanced')}): ${rv.bull&&rv.bull.length?rv.bull.map(E).join('; '):'none found'}.`);
     P.push(`<b>Bear case</b>: ${rv.bear&&rv.bear.length?rv.bear.map(E).join('; '):'none found'}.`);
     if(rv.economic&&rv.economic.stance&&rv.economic.stance!=='no data')P.push(`Economic backdrop: ${E(rv.economic.stance)}${(rv.economic.reasons||[]).length?' ('+rv.economic.reasons.map(E).join('; ')+')':''}.`);
     const tm=rv.time_machine;
-    if(tm)P.push(`Time Machine (a simulation, not a prediction; ${E(tm.proof||'not back-tested')}): replaying the idea's ${o.maxDays||''} sessions from this stock's own daily moves, the target came first in ${tm.sim.target}% of runs, the stop in ${tm.sim.stop}% and neither in ${tm.sim.open}%. The same levels on its past daily bars hit the target ${tm.past.target} times and the stop ${tm.past.stop} times in ${tm.past.sessions} starts. Verdict: ${E(tm.verdict)}${o.rmult&&tm.sim.stop>tm.sim.target?`. Stops come up more often, but each target is worth ${o.rmult}× a stop, so on average the simulation finishes ${tm.sim.target*o.rmult-tm.sim.stop>=0?'ahead':'behind'} (${((tm.sim.target*o.rmult-tm.sim.stop)/100).toFixed(2)}R per idea)`:''}.`);
+    if(tm)P.push(`Time Machine (a simulation, not a prediction; not back-tested): replaying the idea's ${o.maxDays||''} sessions from this stock's own daily moves, the target came first in ${tm.sim.target}% of runs, the stop in ${tm.sim.stop}% and neither in ${tm.sim.open}%. The same levels on its past daily bars hit the target ${tm.past.target} times and the stop ${tm.past.stop} times in ${tm.past.sessions} starts. Verdict: ${E(tm.verdict)}${o.rmult&&tm.sim.stop>tm.sim.target?`. Stops come up more often, but each target is worth ${o.rmult}× a stop, so on average the simulation finishes ${tm.sim.target*o.rmult-tm.sim.stop>=0?'ahead':'behind'} (${((tm.sim.target*o.rmult-tm.sim.stop)/100).toFixed(2)}R per idea)`:''}.`);
   }
   if(o.entryState)P.push(`Entry status: ${E(o.entryState)}.`);
   const z=o.sizing;
@@ -958,9 +961,9 @@ function judgePoints(o,cx){
   if(o.riskChk)P.push(`Risk check: ${E(o.riskChk.verdict)}${(o.riskChk.reasons||[]).length?' ('+o.riskChk.reasons.map(E).join('; ')+')':''}.`);
   if(o.stopAdvice)P.push(`Exit rule (1R): ${E(o.stopAdvice.reason)}. Consider moving the stop-loss to ${cx(o.stopAdvice.move_stop_to)}. This is a flag only; the original stop-loss level is unchanged.`);
   P.push(`Entry range: the close of ${dstr(o.x.bars[o.i].t)} ± 0.4 × ATR(14); ATR was ${cx(o.atr)}.`);
-  P.push(`Stop-loss ${cx(o.stop)} and target ${cx(o.tgt)} come from that volatility when the idea is proposed: the target is ${o.rmult||'a multiple of'} × the distance to the stop-loss. Time frame: ${o.maxDays} sessions.`);
-  P.push(`Exit: the CEO agent closes the idea. The page flags an exit signal when price reaches the stop-loss or target, the time frame ends${o.term==='medium'?', or the momentum rank falls below #'+(MOM.rules.exit_rank||50):''}. A gap through the stop-loss is counted at the open price.`);
-  P.push(`The scoring weights are starting points and have not been back-tested. Results are measured from the close on the posting date, not from a price anyone could necessarily get.`);
+  P.push(o.term==='medium'?`Stop-loss ${cx(o.stop)} comes from that volatility when the idea is posted. The first objective ${cx(o.tgt)} is ${o.rmult||3} × the distance to the stop-loss; reaching it does not close the idea.`:`Stop-loss ${cx(o.stop)} and target ${cx(o.tgt)} come from that volatility when the idea is posted: the target is ${o.rmult||'a multiple of'} × the distance to the stop-loss. Time frame: ${o.maxDays} sessions.`);
+  P.push(o.term==='medium'?`Exit: the CEO agent closes the idea after the close when price reaches the stop-loss, or the momentum rank falls below #${MOM.rules.exit_rank||50} or the stock leaves the NIFTY 500 (the back-tested exit). A gap through the stop-loss is counted at the open price.`:`Exit: the CEO agent closes the idea after the close when price reaches the stop-loss or target, or after ${o.maxDays||15} sessions. A gap through either level is counted at the open price.`);
+  P.push(`The scoring weights are starting points and have not been back-tested. Results are measured from the first price inside the entry range; an idea that never trades in the range is closed as not entered, with no result.`);
   return P;
 }
 function whyPoints(o,rs){
@@ -996,7 +999,7 @@ function warnings(o){
   if(o.status!=='live')return[];
   const W=[],x=o.x,a=x.a,b=x.bars,n=b.length-1,vd=o.view;
   const sg=o.exitSig||(o.rankExit?{reason:o.rankExit.reason,date:o.rankExit.date}:null);
-  if(sg)W.push({lvl:'red',t:`Exit signal: ${sg.reason}${sg.price?' at '+fmt(sg.price,'IN'):''}${sg.date?' on '+sg.date:''}. The CEO closes it at today's close.`});
+  if(sg)W.push({lvl:'red',t:`Exit signal: ${sg.reason}${sg.price?' at '+fmt(sg.price,'IN'):''}${sg.date?' on '+sg.date:''}. The CEO closes it on its next check.`});
   if(o.stopAdvice&&!sg)W.push({lvl:'amber',t:`1R reached: consider moving the stop-loss to ${fmt(o.stopAdvice.move_stop_to,'IN')}.`});
   const lastOpp=a.ev.filter(z=>z.i>o.i&&(z.type==='bull'||z.type==='bear')).pop();
   if(a.state===(vd>0?'bear':'bull'))W.push({lvl:'red',t:`Indicators turned ${vd>0?'bearish':'bullish'} on ${dstr(b[lastOpp?.i??n].t)} (score ${x.score>0?'+':''}${x.score}). The original view no longer has technical support.`});
@@ -1052,33 +1055,34 @@ function drawMini(g,W,H,o){
 let jsPdfP=null;
 function loadJsPDF(){return jsPdfP??=new Promise((res,rej)=>{if(window.jspdf)return res(window.jspdf);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';s.onload=()=>res(window.jspdf);s.onerror=()=>{jsPdfP=null;rej(new Error('load'))};document.head.appendChild(s)})}
 async function buildPdf(o){
-  const{jsPDF}=await loadJsPDF();const doc=new jsPDF({unit:'pt',format:'a4'});const W=595,M=40;let y=0;
+  const{jsPDF}=await loadJsPDF();const doc=new jsPDF({unit:'pt',format:'a4'});const W=595,M=40,BOT=790;let y=0;
+  const need=h=>{if(y+h>BOT){doc.addPage();y=56}};   // page break instead of running off the page
   const rs=v=>(o.m==='US'?'$':'Rs. ')+fmtN(v);
   doc.setFillColor(11,110,110);doc.rect(0,0,W,64,'F');doc.setTextColor(255);doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('TrendLens',M,30);
   doc.setFont('helvetica','normal');doc.setFontSize(10);doc.text('Technical Analysis Note',M,47);doc.text(`Generated ${dstr(TODAY)}`,W-M,47,{align:'right'});
   y=96;doc.setTextColor(16,32,31);doc.setFont('helvetica','bold');doc.setFontSize(17);doc.text(`${o.label}  |  ${o.term==='momentum'?'Momentum pick':(o.view>0?'Bullish':'Bearish')+' view'}`,M,y);
   y+=16;doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(95,107,106);
-  doc.text(`${o.sub}   |   Posted ${fD(o.posted)}, ${o.time} IST   |   ${TERMS[o.term][0]} (${TERMS[o.term][1]})`,M,y);
-  y+=18;const cells=[['Entry price',rs(o.entry)],['Entry range',`${fmtN(o.lo)}-${fmtN(o.hi)}`],['Stop-loss',o.stop==null?'--':rs(o.stop)],o.term==='momentum'?['Exit rule','Rank > #'+MOM.rules.exit_rank]:['Target',rs(o.tgt)],o.term==='momentum'?['Entry rank','#'+o.rank+' of '+o.uni]:['Back-test win rate',BT[o.m]?.[o.term]?BT[o.m][o.term][0]+'%':'not validated']];
+  doc.text(`${o.sub}   |   Posted ${fD(o.posted)}, ${String(o.time).replace(/ IST$/,'')} IST   |   ${TERMS[o.term][0]} (${TERMS[o.term][1]})`,M,y);
+  y+=18;const cells=[['Entry price',rs(o.entry)],['Entry range',`${fmtN(o.lo)}-${fmtN(o.hi)}`],['Stop-loss',o.stop==null?'--':rs(o.stop)],o.term==='momentum'?['Exit rule','Rank > #'+MOM.rules.exit_rank]:[o.term==='medium'?'First objective':'Target',rs(o.tgt)],o.term==='momentum'?['Entry rank','#'+o.rank+' of '+o.uni]:o.term==='medium'?['Exit rule','Rank > #'+(MOM.rules.exit_rank||50)+' or stop']:['Back-test win rate',BT[o.m]?.[o.term]?BT[o.m][o.term][0]+'%':'not validated']];
   const cw=(W-2*M)/cells.length;doc.setDrawColor(216,230,227);doc.setFillColor(243,239,231);doc.roundedRect(M,y,W-2*M,50,6,6,'FD');
   cells.forEach(([k,v],i)=>{doc.setFontSize(8.5);doc.setTextColor(95,107,106);doc.text(k,M+10+i*cw,y+18);doc.setFontSize(10.5);doc.setFont('helvetica','bold');doc.setTextColor(16,32,31);doc.text(v,M+10+i*cw,y+36);doc.setFont('helvetica','normal')});
   y+=66;const cv=document.createElement('canvas');cv.width=1030;cv.height=400;const g=cv.getContext('2d');g.scale(2,2);drawMini(g,515,200,o);
   doc.addImage(cv.toDataURL('image/png'),'PNG',M,y,W-2*M,(W-2*M)*200/515);y+=(W-2*M)*200/515+8;
   doc.setFontSize(8);doc.setTextColor(95,107,106);doc.text(`Daily candles. Dashed lines: target (green) and stop-loss (red); shaded band: entry range${o.opt?'; levels shown on the underlying':''}.`,M,y);
-  y+=24;doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.setTextColor(16,32,31);doc.text('Technical rationale',M,y);y+=8;
+  y+=24;need(40);doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.setTextColor(16,32,31);doc.text('Rationale',M,y);y+=8;
   doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(36,48,47);
-  for(const p of whyPoints(o,true)){const lines=doc.splitTextToSize(p.replace(/×/g,'x').replace(/±/g,'+/-').replace(/−/g,'-'),W-2*M-14);y+=14;doc.text('•',M,y);doc.text(lines,M+12,y);y+=(lines.length-1)*12.5}
-  y+=24;doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.setTextColor(16,32,31);doc.text('Indicator snapshot at posting',M,y);y+=16;
+  for(const p of whyPoints(o,true)){const lines=doc.splitTextToSize(String(p).replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/₹/g,'Rs. ').replace(/×/g,'x').replace(/±/g,'+/-').replace(/[−–—]/g,'-').replace(/[^\x00-\xFF]/g,''),W-2*M-14);need(14+lines.length*12.5);doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(36,48,47);y+=14;doc.text('•',M,y);doc.text(lines,M+12,y);y+=(lines.length-1)*12.5}
+  y+=24;need(60);doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.setTextColor(16,32,31);doc.text('Indicator snapshot at posting',M,y);y+=16;
   doc.setFontSize(8.5);doc.setTextColor(95,107,106);['Indicator','Reading','Score impact'].forEach((h,k)=>doc.text(h,M+[0,250,420][k],y));y+=6;doc.setDrawColor(231,232,240);doc.line(M,y,W-M,y);
   doc.setFont('helvetica','normal');doc.setFontSize(9.5);
-  for(const k of Object.keys(W_)){const v=o.comp.p[k];y+=15;doc.setTextColor(16,32,31);doc.text(LABELS[k][0],M,y);
+  for(const k of Object.keys(W_)){const v=o.comp.p[k];need(15);y+=15;doc.setTextColor(16,32,31);doc.text(LABELS[k][0],M,y);
     const rd=readTxt(v);doc.setTextColor(...(v>0.15?[31,122,63]:v<-0.15?[180,35,24]:[95,107,106]));doc.text(rd,M+250,y);
     const imp=Math.round(W_[k]*v);doc.text((imp>0?'+':'')+imp,M+420,y)}
-  y+=15;doc.setDrawColor(231,232,240);doc.line(M,y-9,W-M,y-9);doc.setFont('helvetica','bold');doc.setTextColor(16,32,31);doc.text('Composite score',M,y+3);doc.text((o.score>0?'+':'')+o.score+' / 100',M+420,y+3);
-  y+=26;doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.text('Current status',M,y);y+=15;doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(36,48,47);
-  doc.text(doc.splitTextToSize(o.status==='live'?(o.term==='momentum'?`Live. Last price ${rs(o.cur)}; change so far ${pct(o.chgSoFar)}; NIFTY over the same period ${pct(o.nifty)}. Rank today #${o.rank_now}; exit alert below #${MOM.rules.exit_rank}.`:`Live. Last price ${rs(o.cur)}; change so far ${pct(o.chgSoFar)}; potential left to target ${pct(o.potLeft)}.`):`Closed: ${STATUS[o.status][0]} on ${dstr(o.x.bars[o.exitI].t)} at ${rs(o.exitPx)}. Result ${pct(o.ret)}.`,W-2*M),M,y);
-  y=Math.max(y+30,742);doc.setDrawColor(216,218,229);doc.line(M,y-12,W-M,y-12);doc.setFontSize(7.3);doc.setTextColor(95,107,106);
-  doc.text(doc.splitTextToSize('Disclaimer: This note is generated automatically from technical indicators for educational and informational purposes only. It is not investment advice or a recommendation to buy, sell or hold any security, derivative or commodity. TrendLens is not a SEBI-registered Investment Adviser or Research Analyst. Past performance does not guarantee future results. Trading in equities, F&O and commodities involves substantial risk of loss. Consult a SEBI-registered adviser before investing. Prototype note based on simulated prices.',W-2*M),M,y);
+  need(20);y+=15;doc.setDrawColor(231,232,240);doc.line(M,y-9,W-M,y-9);doc.setFont('helvetica','bold');doc.setTextColor(16,32,31);doc.text('Composite score',M,y+3);doc.text((o.score>0?'+':'')+o.score+' / 100',M+420,y+3);
+  y+=26;need(60);doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.text('Current status',M,y);y+=15;doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(36,48,47);
+  {const sl=doc.splitTextToSize(o.status==='live'?(o.term==='momentum'?`Live. Last price ${rs(o.cur)}; change so far ${pct(o.chgSoFar)}; NIFTY over the same period ${pct(o.nifty)}. Rank today #${o.rank_now}; exit alert below #${MOM.rules.exit_rank}.`:`Live. Last price ${rs(o.cur)}; change so far ${pct(o.chgSoFar)}; ${o.term==='medium'?'distance to the first objective':'potential left to target'} ${pct(o.potLeft)}.`):`Closed: ${STATUS[o.status][0]} on ${dstr(o.x.bars[o.exitI].t)} at ${rs(o.exitPx)}. Result ${pct(o.ret)}.`,W-2*M);need(sl.length*12.5+6);doc.text(sl,M,y);y+=sl.length*12.5}
+  doc.setFontSize(7.3);const dl=doc.splitTextToSize('Disclaimer: This note is generated automatically from technical indicators for educational and informational purposes only. It is not investment advice or a recommendation to buy, sell or hold any security, derivative or commodity. TrendLens is not a SEBI-registered Investment Adviser or Research Analyst. Past performance does not guarantee future results. Trading in equities, F&O and commodities involves substantial risk of loss. Consult a SEBI-registered adviser before investing.',W-2*M);y+=30;need(dl.length*9+14);doc.setDrawColor(216,218,229);doc.line(M,y-12,W-M,y-12);doc.setTextColor(95,107,106);doc.text(dl,M,y);
+  const np=doc.getNumberOfPages();for(let pg=1;pg<=np;pg++){doc.setPage(pg);doc.setFontSize(7.5);doc.setTextColor(140,150,149);doc.text(`TrendLens · ${o.label} · page ${pg} of ${np}`,W-M,825,{align:'right'})}
   return doc.output('blob');
 }
 const W_=W;

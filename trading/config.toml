@@ -47,7 +47,8 @@ min_price = 20
 min_avg_value_cr = 5           # 20-day average traded value, crore rupees
 
 [risk]
-max_loss_per_trade = 3000      # rupees = 3% of starting_capital, charges included; 0 = off. Quantity is cut so the loss at the stop stays inside this
+max_loss_pct = 3               # max loss per trade as % of the account (3% of Rs 1,00,000 = Rs 3,000), charges included; 0 = use max_loss_per_trade
+max_loss_per_trade = 0         # optional fixed rupee limit, used only when max_loss_pct = 0
 max_trades_per_day = 3         # 0 = off
 
 [timemachine]

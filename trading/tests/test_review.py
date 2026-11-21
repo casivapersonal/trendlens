@@ -31,7 +31,7 @@ class Review(unittest.TestCase):
 
     def test_sizing_respects_loss_limit_and_charges(self):
         s = review.size_idea(self.cfg, 200.0, 190.0)
-        self.assertGreater(s["qty"], 0); self.assertLessEqual(s["loss_at_stop"], self.cfg["risk"]["max_loss_per_trade"])
+        self.assertGreater(s["qty"], 0); from arena.riskplan import loss_limit; self.assertLessEqual(s["loss_at_stop"], loss_limit(self.cfg)); self.assertEqual(loss_limit(self.cfg), 3000.0)   # 3% of Rs 1 lakh
         self.assertEqual(review.size_idea(self.cfg, 200.0, 250.0)["qty"], 0)
 
     def test_risk_check_blocks_low_reward_and_full_book(self):

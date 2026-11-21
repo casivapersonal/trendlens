@@ -329,6 +329,50 @@ def cmd_ideas(a, cfg):
             fe = make_live_feed(cfg)
             for d in ceo.decide_entries(cfg, now, ideas, frames_for=lambda syms: _history(fe, syms)):
                 print(f"CEO {d['decision']:<8} {d['sym']:<12} {d['conviction']:<7} {d['memo']}")
+    elif a.action == "intraday":
+        # every 5 minutes in market hours: live prices -> entries filled, stop / target exits closed, newly qualifying
+        # top-20 momentum stocks (ranked on live prices) reviewed by the committee and the CEO
+        if not market_open_ist(now) and not a.force:
+            print("Market is closed: the intraday CEO runs 09:15-15:30 IST."); return
+        from . import universe as uni
+        from .committee import Committee
+        from .feeds import make_live_feed
+        from .scanner import daily_setups
+        sys.path.insert(0, str(uni.REPO / "pipeline")); import core
+        h = json.loads((uni.REPO / "web" / "history.json").read_text())
+        pub = ideas.public(); live = [i["sym"] for i in pub["live"]]
+        q = core.quotes(list(dict.fromkeys(h["universe"] + live)))
+        prices = {s: v["p"] for s, v in q.items() if v and v.get("p")}
+        print(f"live prices for {len(prices)} stocks")
+        for g in ideas.monitor_live(cfg, prices, now): print("EXIT SIGNAL", g)
+        if cfg.get("ceo", {}).get("enabled", True):
+            from . import ceo
+            for d in ceo.decide_exits(cfg, now, ideas): print("CEO CLOSED", d)
+        full = {s: prices.get(s) or (h["closes"][s][-1] if h["closes"].get(s) else None) for s in h["universe"]}
+        ranks, moms = core.ranks_now(h, {s: v for s, v in full.items() if v}, now.date().isoformat())
+        er = cfg["ideas"].get("entry_rank", 20); pub = ideas.public(); live = {i["sym"] for i in pub["live"]}
+        top = [s for s, r in sorted(ranks.items(), key=lambda x: x[1]) if r <= er and s not in live]
+        print("top", er, "on live prices, not yet live:", ", ".join(top) or "none")
+        if not top: return
+        feed = make_live_feed(cfg); frames = {}
+        for s, d in _history(feed, top, "1y").items():
+            if d is not None and len(d) > 30:
+                if s in prices:                                            # today's bar at the live price
+                    d = d.copy(); px = float(prices[s])
+                    if d.index[-1].date() == now.date():
+                        d.iloc[-1, d.columns.get_loc("close")] = px
+                        d.iloc[-1, d.columns.get_loc("high")] = max(float(d["high"].iloc[-1]), px); d.iloc[-1, d.columns.get_loc("low")] = min(float(d["low"].iloc[-1]), px)
+                    else:
+                        import pandas as pd
+                        d.loc[pd.Timestamp(now.date()).tz_localize(d.index.tz) if d.index.tz is not None else pd.Timestamp(now.date())] = {"open": px, "high": px, "low": px, "close": px, "volume": float(d["volume"].iloc[-20:].mean())}
+                frames[s] = d
+        class Live: pass
+        sl = Live(); sl.pool = [s for s in top if s in frames]; sl.frames = frames; sl.setups = {}; sl.mom_pct = moms
+        ideas.scan(cfg, sl, Committee(cfg), now, ranks=ranks, moms=moms, entry_time=now.strftime("%H:%M"))
+        if cfg.get("ceo", {}).get("enabled", True):
+            from . import ceo
+            for d in ceo.decide_entries(cfg, now, ideas, frames_for=lambda syms: {k: frames[k] for k in syms if k in frames}):
+                print(f"CEO {d['decision']:<8} {d['sym']:<12} {d['conviction']:<7} {d['memo']}")
     elif a.action == "monitor":
         from .feeds import make_live_feed
         pub = ideas.public(); live = [i["sym"] for i in pub["live"]]
@@ -398,7 +442,7 @@ def main(argv=None):
     sub.add_parser("check", help="test safety guard, market data and Claude setup")
     sub.add_parser("scan", help="scan the universe and print today's short list")
     ix = sub.add_parser("ideas", help="ideas pipeline: scan, pending, approve, reject, monitor, close")
-    ix.add_argument("action", choices=["scan", "pending", "approve", "reject", "monitor", "close"]); ix.add_argument("target", nargs="?")
+    ix.add_argument("action", choices=["scan", "intraday", "pending", "approve", "reject", "monitor", "close"]); ix.add_argument("target", nargs="?")
     ix.add_argument("--reason"); ix.add_argument("--price", type=float); ix.add_argument("--by"); ix.add_argument("--force", action="store_true", help="approve even if the risk check says BLOCK")
     cm = sub.add_parser("committee", help="committee memo for one stock"); cm.add_argument("symbol")
     tm = sub.add_parser("timemachine", help="10,000 replays for one stock")
