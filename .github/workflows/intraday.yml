@@ -1,7 +1,6 @@
 name: Intraday CEO
 on:
   schedule:
-    - cron: "45,50,55 3 * * 1-5"   # 09:15-09:25 IST
     - cron: "*/5 4-9 * * 1-5"      # 09:30-15:25 IST, every 5 minutes
     - cron: "0 10 * * 1-5"         # 15:30 IST
   workflow_dispatch:
