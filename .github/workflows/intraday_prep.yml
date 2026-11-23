@@ -1,0 +1,26 @@
+name: Intraday setups for the next session (manual)
+# The 16:15 IST "Trade ideas" run builds these automatically; this button rebuilds them on demand (no other idea is touched).
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: repo-write
+  cancel-in-progress: false
+jobs:
+  prep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q -r trading/requirements.txt -r pipeline/requirements.txt
+      - name: Conditional intraday setups (exhaustion fade)
+        working-directory: trading
+        run: python -m arena intraday prep
+      - name: Commit
+        run: |
+          git config user.name "trendlens-bot"; git config user.email "trendlens-bot@users.noreply.github.com"
+          for f in web/picks.json trading/ideas/intraday_watch.json nse/fno.csv; do [ -f "$f" ] && git add "$f"; done; true
+          git diff --cached --quiet || (git commit -m "Intraday setups $(date -u +%Y-%m-%dT%H:%MZ)" && git pull --rebase && git push)
