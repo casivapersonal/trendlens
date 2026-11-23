@@ -34,8 +34,8 @@ square_off_time = "15:15"
 no_new_entries_after = "14:45"
 max_positions = 5
 max_position_pct = 20          # max % of equity in one stock
-default_stop_loss_pct = 1.5
-default_target_pct = 3.0
+default_stop_loss_pct = 1.5    # used only by the real-time arena engine, which is switched OFF in TrendLens. Intraday ideas use [intraday]
+default_target_pct = 3.0       # (back-test Nov 2026: fixed % exits mostly killed the intraday edge; 1 daily ATR stop + 2R target kept it)
 max_daily_loss_pct = 3.0       # kill switch: close everything and stop entries for the day
 # Free-text guidance passed to Claude. Use it to try different styles across the series.
 notes = ""
@@ -133,3 +133,21 @@ max_live_short = 4             # short-term setup ideas live at once: their OWN 
 max_per_broad_sector = 6       # live ideas in one broad sector (e.g. Financial Services). Momentum caps count momentum ideas only, in rank order (back-tested: helped)
 ai_review = false              # true + ANTHROPIC_API_KEY secret = Claude takes a second look and may DECLINE (never post) an idea
 model = ""                     # blank = claude-sonnet-5-5
+
+[intraday]
+# Intraday segment: the exhaustion fade (short), back-tested Nov 2026 on 2014-2026 five-minute data (see trading/TRENDLENS.md).
+# Conditional ideas are published after the close for the next session; the scorecard uses the 9:20 candle's open.
+enabled = true
+gap_min = 1.5                  # opens at least this % above yesterday's close ...
+gap_max = 8.0                  # ... and at most this % (bigger gaps are usually news or corporate actions)
+ext50 = 0.25                   # setup: close > 25% above the 50-day average, or
+ret5 = 0.20                    #        up > 20% in 5 sessions, or
+use_breakout = true            #        a close at a 20-day high on 1.5x the 50-day average volume
+stop_atr = 1.0                 # stop = entry + 1 x daily ATR(14)   (exit test: no other exit beat this on both periods)
+target_r = 2.0                 # target = entry - 2 x the stop distance
+entry_at = "09:20"             # entry at the open of this five-minute candle (late-entry test: the edge fades fast after 9:20)
+square_off = "15:15"
+max_per_day = 3                # biggest 5-day run-up first
+min_price = 20
+min_value_cr = 5               # 20-day average traded value, crore rupees
+slippage_pct = 0.10            # per side, in the after-cost results
