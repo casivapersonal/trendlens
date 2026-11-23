@@ -388,6 +388,41 @@ def cmd_ideas(a, cfg):
     elif a.action == "close": print(json.dumps(ideas.close(a.target, who, now, a.reason, a.price), indent=1))
 
 
+def cmd_intraday(a, cfg):
+    """Intraday segment (exhaustion fade, short). prep = after the close, build tomorrow's watch list from daily bars;
+    run = every 5 minutes in market hours: the 9:20 scan (judge -> CEO -> post) and stop / target / 15:15 exits."""
+    from . import ideas, intraday_ideas as ii
+    now = now_ist(); c = ii.conf(cfg)
+    if not c["enabled"]: print("intraday segment is switched off ([intraday] enabled = false)"); return
+    if a.action == "prep":
+        from .feeds import make_live_feed
+        fno = sorted(ii.fno_list())
+        if not fno: print("no F&O list: nothing prepared"); return
+        frames = _history(make_live_feed(cfg), fno, "1y")
+        from .committee import Committee
+        w = ii.prep(cfg, frames, now, news_fn=Committee(cfg).news)
+        pub = ideas.public(); ii.watch_public(pub)
+        ok = [x["sym"] for x in pub["intraday"]["watch"]["stocks"] if x["verdict"] == "APPROVE"]
+        if ok:
+            pub["recent_alerts"] = ([{"type": "watch", "sym": f"{len(ok)} intraday setup{'s' if len(ok) > 1 else ''}", "date": now.date().isoformat(),
+                                      "time": now.strftime("%I:%M %p"), "for": w["for"], "list": ok[:12], "term": "intraday"}] + pub.get("recent_alerts", []))[:60]
+        ideas._publish(pub, now)
+        print(f"F&O stocks {len(fno)}, daily bars {len(frames)}, conditional ideas for {w['for']}: {len(w['stocks'])}")
+        for s, f in sorted(w["stocks"].items(), key=lambda x: -x[1]["ret5"]):
+            print(f"  {f['judge']['verdict']:<8} {s:<14} opens {f['trigger_lo']}-{f['trigger_hi']}: {'; '.join(f['why'])} {'; '.join(f['judge']['rejected_because'])}")
+        return
+    if not market_open_ist(now) and not a.force:
+        print("Market is closed: intraday ideas are checked 09:20-15:30 IST."); return
+    pub = ideas.public()
+    posted = ii.scan(cfg, pub, now)
+    for x in posted: print(f"POSTED  {x['sym']:<12} short {x['entry_price']} stop {x['stop']} target {x['target']}  ({x['ceo']['memo']})")
+    day = ii.book(pub)["days"].get(now.date().isoformat(), {})
+    for x in day.get("candidates", []) if posted else []: print(f"  {x['decision']:<8} {x['sym']:<12} gap {x['gap_pct']:+.1f}%  score {x['score']}")
+    for x in ii.monitor(cfg, pub, now): print(f"CLOSED  {x['sym']:<12} {x['reason']} at {x['exit_price']}  net {x['net_pct']:+.2f}%")
+    ideas._publish(pub, now)
+    b = pub["intraday"]; print(f"intraday live {len(b['live'])}, closed {len(b['closed'])}, stats {b['stats']}")
+
+
 def cmd_gui(a, cfg):
     from .gui import serve
     serve(a.port, not a.no_open)
@@ -430,6 +465,8 @@ def main(argv=None):
     ix = sub.add_parser("ideas", help="ideas pipeline: scan, pending, approve, reject, monitor, close")
     ix.add_argument("action", choices=["scan", "intraday", "pending", "approve", "reject", "monitor", "close"]); ix.add_argument("target", nargs="?")
     ix.add_argument("--reason"); ix.add_argument("--price", type=float); ix.add_argument("--by"); ix.add_argument("--force", action="store_true", help="approve even if the risk check says BLOCK")
+    it = sub.add_parser("intraday", help="intraday segment: prep (after the close) | run (every 5 minutes in market hours)")
+    it.add_argument("action", choices=["prep", "run"]); it.add_argument("--force", action="store_true", help="run outside market hours (testing)")
     cm = sub.add_parser("committee", help="committee memo for one stock"); cm.add_argument("symbol")
     tm = sub.add_parser("timemachine", help="10,000 replays for one stock")
     tm.add_argument("symbol"); tm.add_argument("--stop", type=float); tm.add_argument("--target", type=float)
@@ -443,7 +480,7 @@ def main(argv=None):
     setup_logging(cfg)
     {"run": cmd_run, "replay": cmd_replay, "demo": cmd_demo, "fetch": cmd_fetch, "report": cmd_report,
      "status": cmd_status, "compete": cmd_compete, "upstox-login": cmd_upstox_login, "check": cmd_check, "gui": cmd_gui,
-     "scan": cmd_scan, "ideas": cmd_ideas, "committee": cmd_committee, "timemachine": cmd_timemachine}[a.cmd](a, cfg)
+     "scan": cmd_scan, "ideas": cmd_ideas, "intraday": cmd_intraday, "committee": cmd_committee, "timemachine": cmd_timemachine}[a.cmd](a, cfg)
 
 
 if __name__ == "__main__":
