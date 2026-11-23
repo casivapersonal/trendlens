@@ -15,7 +15,7 @@ each side. Then: results by setup, by year, by factor, and every one- or two-fac
 All exits by 15:15 at the latest. Writes summary.json, summary.md and trades.csv.gz."""
 from __future__ import annotations
 
-import argparse, gzip, itertools, json, sys
+import argparse, gzip, itertools, json, os, sys
 from pathlib import Path
 
 import numpy as np
@@ -89,20 +89,57 @@ def research(D, out):
     atr = tr.rolling(14, min_periods=10).mean().shift(1)
     sma20 = daily.rolling(20, min_periods=15).mean().shift(1); r5 = (daily / daily.shift(5) - 1).shift(1) * 100
     days = list(daily.index)
+    _S.update(D=D, syms=syms, N=N, days=days, C=daily.values, atr=atr, sma20=sma20, r5=r5)
     ranks = {}
-    C = daily.values
-    for i, d in enumerate(days):
-        if i < 253: continue
-        sc = {}
+    for part in _pool_map(_ranks, _spans(253, len(days))): ranks.update(part)
+    _S["ranks"] = ranks
+    rows = []
+    for part in _pool_map(_days, _spans(20, len(days))): rows += part
+    T = pd.DataFrame(rows)
+    out.mkdir(parents=True, exist_ok=True)
+    with gzip.open(out / "trades.csv.gz", "wt") as f: T.to_csv(f, index=False)
+    return T
+
+
+_S = {}                                            # shared read-only state for the worker processes (copied by fork)
+
+
+def _spans(lo, hi, k=None):
+    k = k or max(1, (os.cpu_count() or 1) * 4)
+    step = max(1, -(-(hi - lo) // k))
+    return [(a, min(a + step, hi)) for a in range(lo, hi, step)]
+
+
+def _pool_map(fn, spans):
+    if (os.cpu_count() or 1) < 2 or len(spans) < 2: return [fn(x) for x in spans]
+    import multiprocessing as mp
+    with mp.get_context("fork").Pool(os.cpu_count()) as pool: return pool.map(fn, spans, chunksize=1)
+
+
+def _load_one(f):
+    try: return f.name[:-7], load(f)
+    except Exception as e: print("skip", f.name, e, flush=True); return f.name[:-7], None
+
+
+def _ranks(span):
+    syms, days, C = _S["syms"], _S["days"], _S["C"]
+    ranks = {}
+    for i in range(*span):
+        d = days[i]; sc = {}
         for j, s in enumerate(syms):
             col = C[i - 253:i, j]
             if col[-1] == col[-1]:
                 r = core.momentum_score([None if x != x else float(x) for x in col[:-1]], float(col[-1]))
                 if r: sc[s] = r[1]
         ranks[d] = {s: k + 1 for k, s in enumerate(sorted(sc, key=lambda s: -sc[s]))}
+    return ranks
+
+
+def _days(span):
+    D, syms, N, days, atr, sma20, r5, ranks = (_S[k] for k in ("D", "syms", "N", "days", "atr", "sma20", "r5", "ranks"))
     rows = []
-    for di, day in enumerate(days):
-        if di < 20: continue
+    for di in range(*span):
+        day = days[di]
         prevd = days[di - 1]
         nd = N.get(day); npc = N[prevd][3][-1] if prevd in N else None
         ngap = (nd[0][0] / npc - 1) * 100 if nd is not None and npc else None
@@ -179,10 +216,7 @@ def research(D, out):
                         t = trade(s, day, nm, long, o, h, l, j, px, px - k * A if long else px + k * A, {**feats, "t": j, "rv": rv, "nvw": None}, None)
                         if t: rows.append(t)
                     break
-    T = pd.DataFrame(rows)
-    out.mkdir(parents=True, exist_ok=True)
-    with gzip.open(out / "trades.csv.gz", "wt") as f: T.to_csv(f, index=False)
-    return T
+    return rows
 
 
 def summarise(T, out):
@@ -233,8 +267,7 @@ def summarise(T, out):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(); ap.add_argument("--data", default="intraday_data"); ap.add_argument("--out", default="intraday_results"); a = ap.parse_args()
     D = {}
-    for f in sorted(Path(a.data).glob("*.csv.gz")):
-        try: D[f.name[:-7]] = load(f)
-        except Exception as e: print("skip", f.name, e)
-    print("loaded", len(D), "files")
+    for name, per in _pool_map(_load_one, sorted(Path(a.data).glob("*.csv.gz"))):
+        if per is not None: D[name] = per
+    print("loaded", len(D), "files", flush=True)
     summarise(research(D, Path(a.out)), Path(a.out))
