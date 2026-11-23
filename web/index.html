@@ -1336,6 +1336,24 @@ function showNextPop(){
 function intraBook(){return MOM&&!MOM.error&&MOM.intraday||null}
 function intraLive(){const b=intraBook();return b?(b.live||[]).filter(i=>i.date===istDate()):[]}
 function intraClosed(){const b=intraBook();return b?(b.closed||[]):[]}
+function watchCard(x,w){
+  const rs=v=>v==null?'—':fmt(v,'IN'),built=w.built?new Date(w.built):null;
+  const mon=`<div class="mono" style="background:${PAL[hashStr(x.sym)%PAL.length]}">${EH(x.sym.replace(/[^A-Z]/g,'').slice(0,2)||'TL')}</div>`;
+  const forD=w.for?fD(new Date(w.for+'T00:00:00')):'the next session';
+  return`<div class="idea" data-watch="${EH(x.sym)}">
+    <div class="ihd"><div class="posted"><b>Posted:</b> ${built?fD(built)+' | '+built.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'})+' IST':'after the close'} <span class="real-tag" title="Checked by the coded judge; the CEO posts it only if it triggers">Conditional · for ${forD}</span></div><div class="tag">${ICON.clock} Intraday</div></div>
+    <div style="margin-top:6px"><div class="perf"><span>Triggers if the 9:15 open is <b>${rs(x.trigger_lo)} – ${rs(x.trigger_hi)}</b></span></div><div class="inst">
+      <div class="ihead">${mon}<div><b>${EH(x.sym)}</b><div class="q tabular">Prev close ${rs(x.prev_close)}</div><div style="font-size:12px;color:var(--muted);margin-top:1px">F&amp;O stock · ${EH((x.why||[]).join('; '))}</div></div></div>
+      <div class="itab"><table class="tabular"><thead><tr><th>Prev close</th><th>View</th><th>Entry</th></tr></thead>
+      <tbody><tr><td>${rs(x.prev_close)}</td><td><span class="vchip bear">Bearish · short</span></td><td>9:20 open</td></tr></tbody></table></div>
+      <div class="trio tabular"><div><div class="k">Stop-loss <span class="info" tabindex="0" title="Entry + 1 x daily ATR(14)">i</span></div><div class="v">entry + ₹${fmtN(x.stop_dist)}</div></div>
+      <div><div class="k">Target</div><div class="v">entry − ₹${fmtN(x.target_dist)}</div></div><div><div class="k">Time frame</div><div class="v">Same day <small style="font-size:12px;color:var(--muted)">out by 3:15 PM</small></div></div></div>
+    </div></div>
+    <div class="iside">
+      <div class="grow"><span style="font-size:12px">Judge score</span><b style="font-size:20px;color:var(--ink);margin:2px 0">${x.score}<small style="font-size:12px;color:var(--muted)"> pts</small></b><span>Back-tested rule</span><span>2022–26: <b class="up">+0.34%</b> a trade after costs</span></div>
+      <details class="bigbtn out" style="text-align:left;cursor:pointer;height:auto"><summary style="list-style:none;text-align:center">About trade</summary><div style="font-size:12px;color:var(--muted);margin-top:6px;font-weight:400">If ${EH(x.sym)} opens inside the band, the CEO posts an intraday short at the 9:20 candle's open, with the stop and target set from that price. If it opens outside the band, nothing is posted. Up to 3 a day, biggest 5-day run-up first. Analysis, not investment advice.</div></details>
+    </div></div>`;
+}
 function intraCard(i){
   const live=i.status!=='closed',rs=v=>v==null?'—':fmt(v,'IN'),posted=new Date(i.date+'T00:00:00');
   const mon=`<div class="mono" style="background:${PAL[hashStr(i.sym)%PAL.length]}">${EH(i.sym.replace(/[^A-Z]/g,'').slice(0,2)||'TL')}</div>`;
@@ -1373,14 +1391,13 @@ function renderIntraday(){
   if(IS.tab==='live'){
     const live=intraLive().filter(mq).map(intraCard).join('');
     const ok=(w.stocks||[]).filter(x=>x.verdict==='APPROVE'&&mq(x)),no=(w.stocks||[]).filter(x=>x.verdict!=='APPROVE'&&mq(x));
-    const watch=ok.map(x=>`<tr><td><b>${EH(x.sym)}</b><div class="k">${EH((x.why||[]).join('; '))}</div></td><td>${rs(x.trigger_lo)} – ${rs(x.trigger_hi)}<div class="k">9:15 open inside this band (prev close ${rs(x.prev_close)})</div></td>
-    <td>entry + ₹${fmtN(x.stop_dist)}</td><td>entry − ₹${fmtN(x.target_dist)}</td><td>${x.score} pts</td></tr>`).join('');
+    const watch=ok.map(x=>watchCard(x,w)).join('');
     el.innerHTML=`${head('Intraday ideas · live today')}
   <div class="sub">${EH(R.name||'Exhaustion fade (intraday short)')}: F&amp;O stocks that ran up hard and then open 1.5–8% higher tend to fall back during the day. Setups are published after the close as conditional ideas; if the stock opens inside its trigger band, the view is a short at the 9:20 open, stop 1 × daily ATR above, target 2 × that below, closed by 3:15 PM at the latest. Up to ${R.max_per_day||3} a day, chosen by the CEO (biggest 5-day run-up first).</div>
   ${live?`<div class="igrid" style="margin-top:8px">${live}</div>`:`<div class="k">No intraday idea is live right now.${day.waiting?' Waiting for the first five-minute candles of '+EH(day.waiting.join(', '))+'.':''}</div>`}
   ${day.note?`<div class="k" style="margin-top:6px">${EH(day.note)}</div>`:''}
   <h4 style="margin:12px 0 4px">Conditional setups for ${EH(w.for||'the next session')}</h4>
-  ${watch?`<table><thead><tr><th>Stock</th><th>Trigger band (9:15 open)</th><th>Stop-loss</th><th>Target</th><th>Judge</th></tr></thead><tbody>${watch}</tbody></table>`:'<div class="k">No stock qualifies after the last close.</div>'}
+  ${watch?`<div class="igrid" style="margin-top:8px">${watch}</div>`:'<div class="k">No stock qualifies after the last close.</div>'}
   ${no.length?`<details><summary>Declined by the judge (${no.length})</summary><div class="k">${no.map(x=>EH(x.sym)+': '+EH((x.rejected_because||[]).join('; '))).join('<br>')}</div></details>`:''}
   <div class="k" style="margin-top:8px">Short selling is intraday only (positions must be closed the same day). Analysis, not investment advice.</div>`;
     return}
