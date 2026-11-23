@@ -1,0 +1,38 @@
+name: Exhaustion fade - late entry check
+# Run by hand (pipeline/intraday_delay_test.py). Uses saved 5-minute data; no secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      hist_run:
+        description: "run ID with history-5min-data (2014-2021)"
+        required: true
+        default: "45143637613"
+      new_run:
+        description: "run ID with hf-5min-data (2022-2026)"
+        required: true
+        default: "45141143038"
+permissions:
+  contents: read
+  actions: read
+jobs:
+  exits:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q pandas numpy requests
+      - uses: actions/download-artifact@v4
+        with: { name: history-5min-data, path: hist_data, run-id: "${{ github.event.inputs.hist_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: hf-5min-data, path: new_data, run-id: "${{ github.event.inputs.new_run }}", github-token: "${{ github.token }}" }
+      - name: Late entry test
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/intraday_delay_test.py --old hist_data --new new_data --out delay_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: delay-results
+          path: delay_results
+          retention-days: 30
