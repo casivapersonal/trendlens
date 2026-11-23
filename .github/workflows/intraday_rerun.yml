@@ -1,0 +1,40 @@
+name: Intraday research (rerun on downloaded data)
+# Run by hand: re-runs pipeline/intraday_research.py on the 5-minute data saved by an earlier download run (no new download).
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "run ID of the download run (number in its web address)"
+        required: true
+      artifact:
+        description: "data artifact name in that run"
+        required: false
+        default: "upstox-5min-data"
+permissions:
+  contents: read
+  actions: read
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q pandas numpy
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.event.inputs.artifact }}
+          path: intraday_data
+          run-id: ${{ github.event.inputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Intraday research (every setup, every year, after costs)
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/intraday_research.py --data intraday_data --out intraday_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intraday-results-rerun
+          path: intraday_results
+          retention-days: 30
