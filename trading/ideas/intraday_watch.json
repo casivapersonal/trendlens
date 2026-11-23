@@ -1,0 +1,65 @@
+{
+ "built": "2026-11-23T17:01+05:30",
+ "last_close": "2026-11-23",
+ "for": "2026-11-24",
+ "stocks": {
+  "EICHERMOT": {
+   "close": 8172.5,
+   "date": "2026-11-23",
+   "atr": 235.8929,
+   "sma50": 7385.14,
+   "ret5": 0.0755,
+   "ext50": 0.1066,
+   "bo20": true,
+   "value_cr": 454.1,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 8295.1,
+   "trigger_hi": 8826.3,
+   "stop_dist": 235.89,
+   "target_dist": 471.79,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "PERSISTENT": {
+   "close": 6282.5,
+   "date": "2026-11-23",
+   "atr": 157.7143,
+   "sma50": 5721.44,
+   "ret5": 0.0508,
+   "ext50": 0.0981,
+   "bo20": true,
+   "value_cr": 367.3,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 6376.75,
+   "trigger_hi": 6785.1,
+   "stop_dist": 157.71,
+   "target_dist": 315.43,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  }
+ }
+}
