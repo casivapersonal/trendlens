@@ -1,0 +1,38 @@
+name: Intraday data download (Angel One)
+# Run by hand once. Downloads years of 5-minute bars (market data only, no orders) for the intraday research.
+# Needs 4 repository secrets: ANGEL_API_KEY, ANGEL_CLIENT_CODE, ANGEL_PIN, ANGEL_TOTP_SECRET.
+# The data is attached to the run as a downloadable zip ("Artifacts"), not committed to the repository.
+on:
+  workflow_dispatch:
+    inputs:
+      years:
+        description: "years of history"
+        required: false
+        default: "3"
+      stocks:
+        description: "number of most-traded NIFTY 500 stocks"
+        required: false
+        default: "200"
+permissions:
+  contents: read
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q smartapi-python pyotp logzero websocket-client requests yfinance pandas
+      - name: Download 5-minute bars
+        env:
+          ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
+          ANGEL_CLIENT_CODE: ${{ secrets.ANGEL_CLIENT_CODE }}
+          ANGEL_PIN: ${{ secrets.ANGEL_PIN }}
+          ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
+        run: python pipeline/angel_download.py --years "${{ github.event.inputs.years || '3' }}" --stocks "${{ github.event.inputs.stocks || '200' }}" --out intraday_data
+      - uses: actions/upload-artifact@v4
+        with:
+          name: intraday-5min-data
+          path: intraday_data
+          retention-days: 14
