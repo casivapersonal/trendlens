@@ -410,6 +410,9 @@ def cmd_intraday(a, cfg):
         from .committee import Committee
         w = ii.prep(cfg, frames, now, news_fn=Committee(cfg).news)
         pub = ideas.public(); ii.watch_public(pub)
+        ib = pub["intraday"]                                  # daily bars for the cards, the About pop-up and the PDF (charts on the website)
+        need = {x["sym"] for x in ib["watch"]["stocks"]} | {i["sym"] for i in ib["live"]} | {x["sym"] for x in ib["closed"][:40]}
+        ib["bars"] = {s: ideas.ohlc_rows(frames[s], 200) for s in sorted(need) if frames.get(s) is not None and not frames[s].empty}
         ok = [x["sym"] for x in pub["intraday"]["watch"]["stocks"] if x["verdict"] == "APPROVE"]
         if ok:
             pub["recent_alerts"] = ([{"type": "watch", "sym": f"{len(ok)} intraday setup{'s' if len(ok) > 1 else ''}", "date": now.date().isoformat(),
