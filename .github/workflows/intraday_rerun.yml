@@ -10,6 +10,14 @@ on:
         description: "data artifact name in that run"
         required: false
         default: "upstox-5min-data"
+      index_run_id:
+        description: "optional: run ID whose data has NIFTY50.csv.gz (added if the main data lacks it)"
+        required: false
+        default: ""
+      index_artifact:
+        description: "artifact name in that run"
+        required: false
+        default: "upstox-5min-data"
 permissions:
   contents: read
   actions: read
@@ -28,6 +36,16 @@ jobs:
           path: intraday_data
           run-id: ${{ github.event.inputs.run_id }}
           github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        if: github.event.inputs.index_run_id != ''
+        with:
+          name: ${{ github.event.inputs.index_artifact }}
+          path: index_data
+          run-id: ${{ github.event.inputs.index_run_id }}
+          github-token: ${{ github.token }}
+      - name: Add the NIFTY 50 index file if missing
+        if: github.event.inputs.index_run_id != ''
+        run: if [ ! -f intraday_data/NIFTY50.csv.gz ] && [ -f index_data/NIFTY50.csv.gz ]; then cp index_data/NIFTY50.csv.gz intraday_data/ && echo "NIFTY50 added"; fi; rm -rf index_data
       - name: Intraday research (every setup, every year, after costs)
         env:
           PYTHONUNBUFFERED: "1"
