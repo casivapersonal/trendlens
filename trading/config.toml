@@ -98,20 +98,24 @@ paper_only = true              # cannot be changed; the program refuses to start
 [ideas]
 # Ideas are NOT trades. The coded judge scores a candidate, a human decision-maker approves it, and only then it is posted.
 # It stays live until the decision-maker closes it (or you switch auto_close on). No real-time trading anywhere in this system.
-max_live = 20                  # live ideas at once (the back-test held about 20: enter at top 20, exit below #50)
-max_new_per_day = 10           # ideas the CEO may post per day
+max_live = 20                  # MOMENTUM slots (the back-test holds 20: enter at top 20, exit below #50). Setups have their own slots: [ceo] max_live_short
+max_new_per_day = 4            # new SETUP ideas per day (momentum fills its free slots by rank, as in the back-test)
+reentry_block = false          # audit fix #2, TESTED Nov 2026 and NOT adopted: blocking re-entry after a stop until the rank resets lowered CAGR (2011-19: 18.3% vs 20.4%; 2020-26: 44.0% vs 46.3%)
 entry_rank = 20                # momentum rank that earns judge points (the original TrendLens entry rule)
 exit_rank = 50                 # momentum ideas are FLAGGED when their rank falls below this; the decision-maker closes
 approve_score = 6              # judge score for APPROVE (decision-maker still has the final say); starting point, not back-tested
 watch_score = 4                # judge score for WATCH
 max_atr_pct = 7                # too volatile for ATR-based levels above this daily ATR %
-news_hard_reject = true        # negative headline flags (SEBI order, probe, fraud...) reject a candidate
+news_hard_reject = true        # serious headline flags (fraud, SEBI order, auditor resigns...) veto a SETUP idea; on a momentum idea they are a warning only (keyword hits are not confirmed facts)
+setups = ["bull_flag"]         # setups that become ideas. Back-tested Nov 2026 after costs: bull flag +0.07R a trade (95% range +0.02 to +0.13, 2,588 trades); 20-day breakout -0.08R (dropped)
+results_skip = true            # setup ideas are skipped when company results fall inside the holding period (needs nse/ results calendar)
 entry_atr = 0.4                # entry range = close +/- this x ATR
 short_days = 15                # trading days
 short_stop_atr = 1.5
+slippage_pct = 0.1             # per side, deducted on the Scorecard with Indian delivery charges
 short_r = 2.5                  # target = r x stop distance
 medium_days = 60
-medium_stop_atr = 6            # wide safety stop only: the back-tested momentum rule had no stop (a 2.5 ATR stop cost about 5 points a year in the audit)
+medium_stop_atr = 6            # safety stop from the actual entry price. Back-tested Nov 2026 (pipeline/backtest.py): about neutral (2011-19 20.4% vs 21.0% without; 2020-26 46.3% vs 45.2%); kept as crash protection
 medium_r = 2.0                 # reference objective only (12 ATR, about the back-test's average winner); momentum ideas are NOT closed there
 min_rr = 2.0                   # short-term ideas only
 max_stop_pct_short = 12        # risk check: a short-term stop further than this is too wide
@@ -125,7 +129,7 @@ auto_close = false             # false = exit signals are flagged and the decisi
 # ideas with an exit signal. Every decision is written to trading/ideas/pending.json (ceo_log) and shown on the idea.
 enabled = true                 # false = back to manual approve / close
 max_per_sector = 3             # live ideas in one industry at once (e.g. Banks - Regional)
-max_live_short = 4             # short-term setup ideas (not back-tested) live at once; review the track after 50 closed trades
-max_per_broad_sector = 6       # live ideas in one broad sector (e.g. Financial Services)
+max_live_short = 4             # short-term setup ideas live at once: their OWN slots, never taken from the 20 momentum slots
+max_per_broad_sector = 6       # live ideas in one broad sector (e.g. Financial Services). Momentum caps count momentum ideas only, in rank order (back-tested: helped)
 ai_review = false              # true + ANTHROPIC_API_KEY secret = Claude takes a second look and may DECLINE (never post) an idea
 model = ""                     # blank = claude-sonnet-5-5

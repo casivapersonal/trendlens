@@ -22,15 +22,30 @@ def liquid(d: pd.DataFrame, cfg: dict) -> bool:
     return float(d["close"].iloc[-1]) >= u.get("min_price", 20) and val >= u.get("min_avg_value_cr", 5)
 
 
-def daily_setups(d: pd.DataFrame) -> list[dict]:
+SETUPS_ENABLED = ("bull_flag",)   # Nov 2026 setup back-test (pipeline/backtest.py --setups, 2011-2026, after costs):
+# bull flag +0.07R a trade (44% win, 2,588 trades, 95% range +0.02 to +0.13); 20-day breakout -0.08R (37% win, 11,374): breakouts are kept as
+# information only and no longer become ideas. Override with [ideas] setups = ["bull_flag", "breakout20"] in config.toml.
+
+
+def daily_setups(d: pd.DataFrame, enabled=None) -> list[dict]:
+    """Definitions (audit fix #18, back-tested): breakout = close above the prior 20-day high on volume above 1.5x the 50-day average;
+    bull flag = a rise of 15%+ over 10 sessions, then a 3-10 session pause whose high-low range is under 1.5x ATR(14), close above
+    the 20-day average."""
     c, h, l, v = d["close"], d["high"], d["low"], d["volume"]
+    enabled = SETUPS_ENABLED if enabled is None else enabled
     out = []
-    if c.iloc[-1] > h.iloc[-21:-1].max() and v.iloc[-1] > 1.5 * v.iloc[-21:-1].mean():
-        out.append({"setup": "breakout20", "why": "closed above the 20-day high on 1.5x average volume"})
-    if len(d) >= 30:
-        run, rng = c.iloc[-6] / c.iloc[-16] - 1, (h.iloc[-5:].max() - l.iloc[-5:].min()) / c.iloc[-1]
-        if run >= 0.15 and rng <= 0.06 and c.iloc[-1] > c.iloc[-20:].mean():
-            out.append({"setup": "bull_flag", "why": f"{run*100:.0f}% run, then a {rng*100:.1f}% wide 5-day pause"})
+    if len(d) < 30: return out
+    if "breakout20" in enabled and c.iloc[-1] > h.iloc[-21:-1].max() and v.iloc[-1] > 1.5 * v.iloc[-51:-1].mean():
+        out.append({"setup": "breakout20", "why": "closed above the 20-day high on 1.5x the 50-day average volume"})
+    if "bull_flag" in enabled:
+        pc = c.shift(1)
+        atr = float(pd.concat([h - l, (h - pc).abs(), (l - pc).abs()], axis=1).max(axis=1).iloc[-14:].mean())
+        for k in range(3, 11):
+            if len(d) < k + 12: break
+            rng = float(h.iloc[-k:].max() - l.iloc[-k:].min()); base = len(d) - 1 - k
+            run = float(c.iloc[base] / c.iloc[base - 10] - 1)
+            if rng < 1.5 * atr and run >= 0.15 and c.iloc[-1] > c.iloc[-20:].mean():
+                out.append({"setup": "bull_flag", "why": f"{run*100:.0f}% rise in 10 sessions, then a {k}-session pause within {rng/atr:.1f}x ATR"}); break
     # oversold bounce removed (Nov 2026 audit): it bets against the trend the rest of the system follows
     return out
 
@@ -75,7 +90,7 @@ class Shortlister:
         for s, d in frames.items():
             if d is None or d.empty or not liquid(d, self.cfg):
                 continue
-            rows.append((s, daily_setups(d), momentum(d), float(d["close"].iloc[-1] > d["close"].iloc[-50:].mean())))
+            rows.append((s, daily_setups(d, self.cfg.get("ideas", {}).get("setups")), momentum(d), float(d["close"].iloc[-1] > d["close"].iloc[-50:].mean())))
         if not rows:
             return fallback
         moms = sorted(m for _, _, m, _ in rows if m is not None)

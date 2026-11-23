@@ -56,10 +56,21 @@ class Review(unittest.TestCase):
         try: self.assertEqual(judge(bad, {}, self.cfg)["verdict"], "REJECT")
         finally: self.cfg["ideas"]["timemachine_gate"] = False
 
+    def test_momentum_ideas_get_no_time_machine_and_no_1r_advice(self):        # audit fixes #10 and #11
+        with tempfile.TemporaryDirectory() as t:
+            pp, pu = paths(t); d = frame()
+            q = ideas.scan(self.cfg, FakeShort({"AAA": d}, {}, {"AAA": 0.97}), FakeCommittee(self.cfg), NOW, pp, pu, ranks={"AAA": 3}, moms={"AAA": 0.5})["queue"][0]
+            self.assertEqual(q["term"], "medium"); self.assertIsNone(q["review"]["time_machine"]); self.assertEqual(q["fill_rule"], "next_open")
+            ideas.approve(q["id"], "me", NOW, pp, pu); live = ideas.public(pu)["live"][0]; e, s = live["entry_price"], live["stop"]
+            import pandas as pd
+            nxt = pd.DataFrame({"open": [e], "high": [e + (e - s) * 1.1], "low": [e * 0.999], "close": [e * 1.01], "volume": [3e6]}, index=[d.index[-1] + pd.offsets.BDay(1)])
+            ideas.monitor(self.cfg, {"AAA": pd.concat([d, nxt])}, NOW, pu)
+            self.assertIsNone(ideas.public(pu)["live"][0]["stop_advice"])
+
     def test_scan_adds_review_block_and_approve_respects_risk(self):
         with tempfile.TemporaryDirectory() as t:
             pp, pu = paths(t); d = frame()
-            pen = ideas.scan(self.cfg, FakeShort({"AAA": d}, {"AAA": [{"setup": "breakout20", "why": "x"}]}, {"AAA": 0.97}), FakeCommittee(self.cfg), NOW, pp, pu, ranks={"AAA": 3}, moms={"AAA": 0.5})
+            pen = ideas.scan(self.cfg, FakeShort({"AAA": d}, {"AAA": [{"setup": "bull_flag", "why": "x"}]}, {"AAA": 0.97}), FakeCommittee(self.cfg), NOW, pp, pu)
             q = pen["queue"][0]
             for k in ("review", "risk", "entry_state"): self.assertIn(k, q)
             self.assertIn("bull", q["review"]); self.assertIn("proof", q["review"]["time_machine"])
@@ -70,7 +81,7 @@ class Review(unittest.TestCase):
     def test_monitor_sets_entry_state_and_1r_advice(self):
         with tempfile.TemporaryDirectory() as t:
             pp, pu = paths(t); d = frame()
-            ideas.scan(self.cfg, FakeShort({"AAA": d}, {"AAA": [{"setup": "breakout20", "why": "x"}]}, {"AAA": 0.97}), FakeCommittee(self.cfg), NOW, pp, pu, ranks={"AAA": 3}, moms={"AAA": 0.5})
+            ideas.scan(self.cfg, FakeShort({"AAA": d}, {"AAA": [{"setup": "bull_flag", "why": "x"}]}, {"AAA": 0.97}), FakeCommittee(self.cfg), NOW, pp, pu)
             qid = ideas.pending(pp)["queue"][0]["id"]; ideas.approve(qid, "me", NOW, pp, pu, force=True)
             live = ideas.public(pu)["live"][0]; e, s = live["entry_price"], live["stop"]
             d2 = d.copy(); import pandas as pd

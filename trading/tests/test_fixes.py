@@ -95,9 +95,11 @@ class CEOAndQueue(unittest.TestCase):
     def test_posts_good_declines_blocked_and_doubtful(self):
         dec, pub, pen = self.run_ceo([self.idea("GOOD", 11, rank=5), self.idea("BLOCKED", 12, risk="BLOCK"),
                                       self.idea("DOUBT", 9, tm="tilted toward the stop"), self.idea("MOMO", 8, rank=10, tm="tilted toward the stop")])
-        self.assertEqual(dec, {"BLOCKED": "DECLINE", "GOOD": "POST", "DOUBT": "DECLINE", "MOMO": "POST"})
-        self.assertEqual({i["sym"] for i in pub["live"]}, {"GOOD", "MOMO"}); self.assertEqual(pub["live"][0]["approved_by"], "CEO")
-        self.assertEqual({q["sym"]: q["status"] for q in pen["queue"]}, {"BLOCKED": "watch", "DOUBT": "watch"}); self.assertEqual(len(pen["ceo_log"]), 4)
+        # audit fix #4: a Time Machine doubt is already inside the judge score; it is noted, not counted again as a veto
+        self.assertEqual(dec, {"BLOCKED": "DECLINE", "GOOD": "POST", "DOUBT": "POST", "MOMO": "POST"})
+        self.assertEqual({i["sym"] for i in pub["live"]}, {"GOOD", "MOMO", "DOUBT"}); self.assertEqual(pub["live"][0]["approved_by"], "CEO")
+        self.assertTrue(any("already in the judge score" for n in next(i for i in pub["live"] if i["sym"] == "DOUBT")["ceo"]["noted"]))
+        self.assertEqual({q["sym"]: q["status"] for q in pen["queue"]}, {"BLOCKED": "watch"}); self.assertEqual(len(pen["ceo_log"]), 4)
 
     def test_daily_limit(self):
         dec, pub, _ = self.run_ceo([self.idea(s, 10, rank=3) for s in ("A", "B", "C", "D")])

@@ -68,7 +68,7 @@ class Judge(unittest.TestCase):
 class Levels(unittest.TestCase):
     def test_levels(self):
         cfg = load_config(); lv = ideas.levels(100.0, 2.0, "short", cfg)
-        self.assertEqual((lv["entry_lo"], lv["entry_hi"], lv["stop"], lv["target"]), (99.2, 100.8, 97.0, 107.5))
+        self.assertEqual((lv["entry_lo"], lv["entry_hi"], lv["stop"], lv["target"]), (99.2, 100.5, 97.0, 107.5))   # top of range keeps 2:1 at the fill
         m = ideas.levels(100.0, 2.0, "medium", cfg); self.assertEqual((m["stop"], m["target"], m["days"]), (88.0, 124.0, 60))   # 6 ATR safety stop, 12 ATR reference objective
 
 
@@ -93,7 +93,8 @@ class Flow(unittest.TestCase):
             txt = open(pu).read().lower(); self.assertIn("bullish view", txt); self.assertNotIn('"buy"', txt); self.assertNotIn('"sell"', txt)
     def _live(self, t):
         pp, pu = paths(t)
-        q = ideas.scan(self.cfg, FakeShort({"AAA": frame()}, {"AAA": [{"setup": "breakout20", "why": "b"}]}, {"AAA": 0.97}), FakeCommittee(self.cfg), NOW, pp, pu)["queue"][0]
+        # a pullback (flag) setup: the entry-range rule; breakout and momentum entries have their own tests (AuditFixes2026)
+        q = ideas.scan(self.cfg, FakeShort({"AAA": frame()}, {"AAA": [{"setup": "bull_flag", "why": "b"}]}, {"AAA": 0.97}), FakeCommittee(self.cfg), NOW, pp, pu)["queue"][0]
         return ideas.approve(q["id"], "S", NOW, pp, pu), pp, pu
     def _after(self, rows):
         base = frame(); idx = pd.bdate_range(base.index[-1] + pd.Timedelta(days=1), periods=len(rows), tz=IST)

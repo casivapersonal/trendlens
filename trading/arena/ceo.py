@@ -48,14 +48,9 @@ def _conviction(q: dict) -> tuple[str, list[str]]:
         if tm == "tilted toward the target": pts += 1; why.append("Time Machine tilted toward the target")
         elif tm.startswith(("tilted toward the stop", "past sessions lost money")): pts -= 1; why.append("Time Machine: " + tm)
         return ("High" if pts >= 3 else "Medium" if pts == 2 else "Low"), why
-    if rk is not None and rk <= 20: pts += 2; why.append(f"momentum rank #{rk} (the back-tested rule)")
-    if j["score"] >= 10: pts += 2; why.append(f"judge score {j['score']} (strong)")
-    elif j["score"] >= 8: pts += 1; why.append(f"judge score {j['score']}")
-    if cm.get("agreement", "").startswith("analysts agree"): pts += 1; why.append("analysts agree")
-    if rv.get("lean") == "bull": pts += 1; why.append("bull case outweighs the bear case")
-    tm = (rv.get("time_machine") or {}).get("verdict", "")
-    if tm == "tilted toward the target": pts += 1; why.append("Time Machine tilted toward the target")
-    level = "High" if pts >= 5 else "Medium" if pts >= 3 else "Low"
+    # setup ideas: conviction is the judge's final score, which already holds every piece of evidence once (audit fix #4)
+    sc = j["score"]; why.append(f"judge score {sc}: " + "; ".join(f"{r['points']:+d} {r['rule']}" for r in j.get("rules", [])[:6]))
+    level = "High" if sc >= 10 else "Medium" if sc >= 8 else "Low"
     return level, why
 
 
@@ -68,29 +63,34 @@ def review_entry(q: dict, ctx: dict, cfg: dict) -> dict:
     if (q.get("risk") or {}).get("verdict") != "PASS": no.append("risk officer blocked it: " + "; ".join(q["risk"].get("reasons", [])))
     momentum0 = q.get("entry_rank") is not None and q["entry_rank"] <= ic.get("entry_rank", 20)
     if j["verdict"] == "REJECT" or (j["verdict"] != "APPROVE" and not momentum0): no.append(f"judge verdict {j['verdict']} (score {j['score']})")
-    if ctx["live"] >= ic.get("max_live", 10): no.append(f"book is full ({ctx['live']} live ideas)")
-    if ctx["posted_today"] >= ic.get("max_new_per_day", 10): no.append(f"already posted {ctx['posted_today']} ideas today (limit)")
-    if q.get("term") == "short" and ctx.get("short_live", 0) >= c.get("max_live_short", 8):
-        no.append(f"short-term setup ideas are capped at {c.get('max_live_short', 8)} live (not back-tested, kept from crowding out the momentum rule)")
+    # audit fix #3: separate books. Momentum has its own 20 slots (as back-tested), setups their own few; one never takes the other's slots
+    mom = q.get("term") == "medium"
+    if mom and ctx.get("momentum_live", 0) >= ic.get("max_live", 20): no.append(f"momentum book is full ({ctx['momentum_live']} of {ic.get('max_live', 20)})")
+    if not mom and ctx.get("short_live", 0) >= c.get("max_live_short", 4):
+        no.append(f"setup book is full ({ctx['short_live']} of {c.get('max_live_short', 4)})")
+    if not mom and ctx.get("setups_today", 0) >= ic.get("max_new_per_day", 4): no.append(f"already posted {ctx['setups_today']} setup ideas today (limit)")
     sec = _sector(q["sym"], ctx["funds"]); broad = ((ctx["funds"].get("stocks", {}) or {}).get(q["sym"]) or {}).get("sector") or "Unknown"
-    if broad != "Unknown" and ctx.get("broad", {}).get(broad, 0) >= c.get("max_per_broad_sector", 6):
-        no.append(f"sector limit: already {ctx['broad'][broad]} live ideas in {broad}")
-    if sec != "Unknown" and ctx["sectors"].get(sec, 0) >= c.get("max_per_sector", 3):
-        no.append(f"industry limit: already {ctx['sectors'][sec]} live ideas in {sec}")
+    book = "m" if mom else "all"          # momentum caps count momentum ideas only (as back-tested); setups count the whole book
+    if broad != "Unknown" and ctx.get("broad_" + book, {}).get(broad, 0) >= c.get("max_per_broad_sector", 6):
+        no.append(f"sector limit: already {ctx['broad_' + book][broad]} live ideas in {broad}")
+    if sec != "Unknown" and ctx.get("sectors_" + book, {}).get(sec, 0) >= c.get("max_per_sector", 3):
+        no.append(f"industry limit: already {ctx['sectors_' + book][sec]} live ideas in {sec}")
     if q["sym"] in ctx.get("closed_today", set()): no.append("an idea on this stock was closed today; no re-entry the same day")
+    if mom and ic.get("reentry_block", False) and q["sym"] in ctx.get("reentry_block", {}):
+        no.append("stopped out earlier: re-entry waits until the rank has reset (below the exit rank) and 10 sessions have passed")
     # ---- soft doubts: the back-tested momentum rank can outweigh them, untested evidence cannot ----
     level, why = _conviction(q)
     momentum = q.get("entry_rank") is not None and q["entry_rank"] <= ic.get("entry_rank", 20)
+    # audit fix #4: the doubts below are already inside the judge's score, so they are shown, never counted a second time as vetoes
     doubts = []
     if rv.get("lean") == "bear": doubts.append("bear case outweighs the bull case")
     if (rv.get("time_machine") or {}).get("verdict", "").startswith(("past sessions lost money", "tilted toward the stop")):
         doubts.append("Time Machine: " + rv["time_machine"]["verdict"])
     if (cm.get("analysts", {}).get("technical") or {}).get("stance") == "bearish": doubts.append("technical analyst is bearish")
     if (cm.get("analysts", {}).get("fundamentals") or {}).get("stance") == "concerning": doubts.append("fundamentals concerning")
-    if cm.get("macro") == "cautious" and level != "High": doubts.append("economy is cautious and conviction is not High")
-    if level == "Low" and not momentum: doubts.append("low conviction without the momentum rule behind it")
-    if doubts and not momentum: no += doubts
-    elif doubts: notes += [d + " (noted; the momentum rule carries the idea)" for d in doubts]
+    if cm.get("macro") == "cautious": doubts.append("economy is cautious")
+    notes += [d + (" (noted; the momentum rule carries the idea)" if momentum else " (already in the judge score)") for d in doubts]
+    notes += list(j.get("warnings", []))
     decision = "DECLINE" if no else "POST"
     memo = (f"{decision} {q['sym']} ({q['term']} term, conviction {level}). "
             + (("Reasons against: " + "; ".join(no) + ".") if no else ("Case: " + "; ".join(why) + "." if why else "Judge approved."))
@@ -119,18 +119,24 @@ def _ai_second_look(q: dict, verdict: dict, cfg: dict) -> dict | None:
         log.warning("CEO AI second look failed (rules decision stands): %s", e); return None
 
 
+def _count(ctx: dict, sym: str, mom: bool, funds: dict) -> None:
+    sec = _sector(sym, funds); b = ((funds.get("stocks", {}) or {}).get(sym) or {}).get("sector") or "Unknown"
+    for book in (("m", "all") if mom else ("all",)):
+        ctx["sectors_" + book][sec] = ctx["sectors_" + book].get(sec, 0) + 1; ctx["broad_" + book][b] = ctx["broad_" + book].get(b, 0) + 1
+
+
 def decide_entries(cfg: dict, now, ideas_mod, frames_for=None, pending_path=None, public_path=None) -> list[dict]:
     """Runs after a scan: posts what the CEO approves, records every decision on the pending file."""
     from .committee import Committee
     pen, pub = ideas_mod.pending(pending_path), ideas_mod.public(public_path)
     funds = Committee(cfg)._funds(); today = now.date().isoformat()
-    sectors: dict[str, int] = {}; broad: dict[str, int] = {}
-    for i in pub["live"]:
-        s = _sector(i["sym"], funds); sectors[s] = sectors.get(s, 0) + 1
-        b = ((funds.get("stocks", {}) or {}).get(i["sym"]) or {}).get("sector") or "Unknown"; broad[b] = broad.get(b, 0) + 1
-    ctx = {"live": len(pub["live"]), "posted_today": sum(1 for i in pub["live"] + pub["closed"] if i.get("posted") == today and i.get("approved_by") == NAME),
-           "short_live": sum(1 for i in pub["live"] if i.get("term") == "short"), "sectors": sectors, "broad": broad, "funds": funds,
+    ctx = {"live": len(pub["live"]), "momentum_live": sum(1 for i in pub["live"] if i.get("term") == "medium"),
+           "short_live": sum(1 for i in pub["live"] if i.get("term") != "medium"),
+           "setups_today": sum(1 for i in pub["live"] + pub["closed"] if i.get("posted") == today and i.get("approved_by") == NAME and i.get("term") != "medium"),
+           "sectors_m": {}, "broad_m": {}, "sectors_all": {}, "broad_all": {}, "funds": funds,
+           "reentry_block": pub.get("reentry_block") or {},
            "closed_today": {c["sym"] for c in pub["closed"] if c.get("closed_at", "")[:10] == today}}
+    for i in pub["live"]: _count(ctx, i["sym"], i.get("term") == "medium", funds)
     er = cfg.get("ideas", {}).get("entry_rank", 20)
     out = []
     waiting = [q for q in pen["queue"] if q["status"] == "awaiting decision"]
@@ -149,9 +155,9 @@ def decide_entries(cfg: dict, now, ideas_mod, frames_for=None, pending_path=None
                 if x["id"] == q["id"]: x["ceo"] = v
             ideas_mod._save(pending_path or ideas_mod.PENDING, p)
             ideas_mod.approve(q["id"], NAME, now, pending_path, public_path, frames=(frames_for([q["sym"]]) if frames_for else None))
-            ctx["live"] += 1; ctx["posted_today"] += 1; ctx["sectors"][v["sector"]] = ctx["sectors"].get(v["sector"], 0) + 1
-            b = ((funds.get("stocks", {}) or {}).get(q["sym"]) or {}).get("sector") or "Unknown"; ctx["broad"][b] = ctx["broad"].get(b, 0) + 1
-            ctx["short_live"] += q.get("term") == "short"
+            ctx["live"] += 1; _count(ctx, q["sym"], q.get("term") == "medium", funds)
+            if q.get("term") == "medium": ctx["momentum_live"] += 1
+            else: ctx["short_live"] += 1; ctx["setups_today"] += 1
         else:
             p = ideas_mod.pending(pending_path)
             for x in p["queue"]:
@@ -167,10 +173,11 @@ def decide_entries(cfg: dict, now, ideas_mod, frames_for=None, pending_path=None
 def decide_exits(cfg: dict, now, ideas_mod, public_path=None) -> list[dict]:
     """Runs after monitor: closes every live idea with a flagged exit signal, with the CEO's memo."""
     pub = ideas_mod.public(public_path); out = []
-    for i in [x for x in pub["live"] if x.get("exit_signal")]:
+    for i in [x for x in pub["live"] if x.get("exit_signal") and not x["exit_signal"].get("awaiting")]:   # circuit-locked: wait for a tradable price
         sig = i["exit_signal"]
         if sig.get("not_entered"):
             memo = "the price never traded inside the entry range, so the idea was never entered; it carries no result"
+        elif sig.get("note"): memo = sig["note"]
         else: memo = {"Stop-loss hit": "the stop level was reached; the idea's risk limit is respected without exception",
                       "Target hit": "the target was reached; the idea did its job",
                       "Time up": "the idea's time horizon is over; capital is freed for a fresh idea"}.get(sig["reason"],

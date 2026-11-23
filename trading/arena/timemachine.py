@@ -144,22 +144,36 @@ def _demean(pool):
     return [(c - mu, h - mu, l - mu) for c, h, l in pool]
 
 
+def _mirror(pool):
+    """No-edge baseline (audit fix #1): the stock's own day shapes plus each day mirrored (up becomes down), so up and down moves
+    are exactly balanced. Same size of moves, zero drift, zero skew: what a stock with no edge at all would do."""
+    return list(pool) + [(-c, -l, -h) for c, h, l in pool]
+
+
 def run_daily(d, entry, stop, target, days, cfg, n=None, seed=19, lookback=252):
-    """Time Machine for an idea, without the circularity of the stock's own run-up:
-    1. simulation on DRIFT-NEUTRAL daily moves (the stock's volatility, not its recent trend);
-    2. replay of the same stop and target only on history BEFORE the last `lookback` sessions (the year the stock was selected for),
-       when at least 120 such sessions exist; otherwise the replay is marked unavailable and only the simulation is used.
+    """Time Machine for a SETUP idea (not used on momentum ideas: audit fix #10).
+    1. simulation on DRIFT-NEUTRAL daily moves (the stock's volatility and skew, not its recent trend);
+    2. the same simulation on a NO-EDGE baseline (the moves mirrored): the verdict is the difference, so the stop-first rule
+       inside a day (which favours the stop) and the reward-to-risk shape cancel out (audit fix #1);
+    3. replay of the same stop and target on history BEFORE the last `lookback` sessions, when 120+ such sessions exist.
     A simulation, not a prediction; not back-tested as a filter."""
     n = n or int(cfg.get("timemachine", {}).get("replays", 2000))
-    sim = simulate_daily(_demean(_daily_pool(d)), entry, stop, target, days, n, seed)
+    pool = _demean(_daily_pool(d))
+    sim = simulate_daily(pool, entry, stop, target, days, n, seed)
+    base = simulate_daily(_mirror(pool), entry, stop, target, days, n, seed)
     before = d.iloc[:-lookback] if len(d) > lookback + 120 else None
     stop_pct, tgt_pct = (1 - stop / entry) * 100, (target / entry - 1) * 100
     real = replay_daily(before, stop_pct, tgt_pct, days, cfg) if before is not None else {"sessions": 0, "target": 0, "stop": 0, "neither": 0, "net_pnl": 0.0, "avg_net": None, "unit": "no history before the selection year"}
     r = (target - entry) / (entry - stop) if entry > stop else 1.0
+    edge = None
     if sim["target"] is None: verdict = "no history"
-    elif real["sessions"] >= 20: verdict = verdict_daily(sim, real, r)
-    else:                                     # simulation only
-        edge = (sim["target"] * r - sim["stop"]) / 100
-        verdict = "tilted toward the target" if edge > 0.15 else "tilted toward the stop" if edge < -0.15 else "close to a coin flip"
-    return {"replays": n, "sim": sim, "real": real, "verdict": verdict, "method": "drift-neutral simulation; replay on the period before the selection year",
+    else:
+        edge = round(((sim["target"] * r - sim["stop"]) - (base["target"] * r - base["stop"])) / 100, 3)   # in R vs the no-edge baseline
+        th = 0.10
+        if real["sessions"] >= 20 and real["net_pnl"] < 0 and edge <= th: verdict = "past sessions lost money after charges: unfavourable"
+        elif edge > th and (real["sessions"] < 20 or real["net_pnl"] >= 0): verdict = "tilted toward the target"
+        elif edge < -th: verdict = "tilted toward the stop"
+        else: verdict = "close to a coin flip"
+    return {"replays": n, "sim": sim, "baseline": base, "edge_vs_baseline": edge, "real": real, "verdict": verdict,
+            "method": "drift-neutral simulation compared with a no-edge (mirrored) baseline; replay on the period before the selection year",
             "note": "A simulation, not a prediction. Not back-tested as a filter."}

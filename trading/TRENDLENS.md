@@ -51,3 +51,34 @@ The website does not yet render `review`, `size`, `risk`, `entry_state` or `stop
 
 ## Licenses
 Breaking Money: `LICENSE-BreakingMoney`. Day Trader skill (MIT, Jake Schincariol): `LICENSE-DayTrader`. Keep both with this folder.
+
+## Nov 2026 audit: entry and exit rules (20 fixes)
+
+Back-test: `python pipeline/backtest.py --setups` (downloads ~20 years from Yahoo, caches to backtest_cache.pkl, writes web/backtest.json).
+It uses `core.momentum_score`, the same function as the live ranking. Known bias: today's NIFTY 500 members only.
+
+| # | Fix | Status |
+|---|-----|--------|
+| 1 | Time Machine judged against a no-edge (mirrored) baseline | done |
+| 2 | Re-entry block after a stop | tested, hurt returns (18.3% vs 20.4% in 2011-19): off, `reentry_block = false` |
+| 3 | Separate momentum (20) and setup (4) slots; momentum sector caps in rank order | done; caps back-tested: helped |
+| 4 | Each signal counted once (CEO no longer re-vetoes judge points) | done |
+| 5 | Fill re-checked: momentum stop from the fill; setups skipped below 2:1 at the fill | done |
+| 6 | Breakout = next open, cancelled below the breakout level | done (breakouts later dropped, see 18) |
+| 7 | Liquidity floor scaled to the market level; costs; survivorship stated | done |
+| 8 | New ideas only at the 16:15 scan on closing prices | done |
+| 9 | One shared momentum score; 12-minus-1 tested | done; 12-1 was worse, not adopted |
+| 10 | No Time Machine on momentum ideas | done |
+| 11 | No "protect the gain" advice on momentum | done |
+| 12 | Setups skipped when results fall inside the hold; momentum shows a badge | done |
+| 13 | Headline keywords: warning on momentum, veto only on setups | done |
+| 14 | NSE ASM / GSM / results calendar refreshed every morning (pipeline/nse_fetch.py) | done; NSE may block cloud servers, old files are then kept |
+| 15 | Circuit-locked stop exits at the next tradable price | done |
+| 16 | Scorecard after brokerage, STT, exchange, GST, stamp, 0.1% slippage | done |
+| 17 | Benchmark NIFTY 500 (price index; NIFTY 50 kept as a second line) | done |
+| 18 | Flag 3-10 sessions < 1.5x ATR; volume vs 50-day average | done; back-test (one signal per stock per 15 sessions, live filters, after costs): flag +0.07R (95% range +0.02 to +0.13, 2,588 trades), breakout -0.08R (-0.10 to -0.06); breakouts no longer posted |
+| 19 | 6x ATR momentum stop tested | about neutral (21.2% vs 22.5% with caps; 45.4% vs 45.7%); kept as crash protection |
+| 20 | No RSI penalty on strength setups | done |
+
+Momentum back-test with the live rules (stop + caps), after costs: 2011-19 21.2% a year (max fall -28.1%), 2020-26 45.4% (-37.9%);
+NIFTY 500 price index 7.9% and 13.8%.

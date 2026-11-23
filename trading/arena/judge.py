@@ -9,7 +9,7 @@ SEVERE = {"fraud", "sebi order", "insolvency", "default", "ED probe", "raid", "C
 
 def judge(memo: dict, macro: dict, cfg: dict, live_ids: set[str] | None = None, sym: str = "", blocked: dict | None = None) -> dict:
     ic = cfg.get("ideas", {}); a = memo["analysts"]; m = a["technical"]["metrics"]
-    score, hits, hard = 0, [], []
+    score, hits, hard, warn = 0, [], [], []
 
     def add(n, why):
         nonlocal score
@@ -23,11 +23,15 @@ def judge(memo: dict, macro: dict, cfg: dict, live_ids: set[str] | None = None, 
     if m["atr_pct"] > ic.get("max_atr_pct", 7):
         if top: add(-1, f"volatile (daily ATR {m['atr_pct']:.1f}%); kept because the back-tested momentum rule selected it")
         else: hard.append(f"too volatile (daily ATR {m['atr_pct']:.1f}%)")
+    # audit fixes #4 / #13: every signal counts ONCE. Serious headline keywords are a veto on a setup idea (never also points);
+    # on a momentum idea a keyword hit is a warning only: keyword matches are not confirmed facts (NSE surveillance is, above).
     negs = a["news"].get("neg_flags", a["news"].get("flags", [])) if a["news"]["stance"] == "negative flags" else []
-    severe = [f for f in negs if f in SEVERE]
-    if severe and ic.get("news_hard_reject", True): hard.append("serious headline flags: " + ", ".join(severe))
-    soft = [f for f in negs if f not in SEVERE]
-    if soft: add(-min(2, len(soft)), "negative headline flags (read the source): " + ", ".join(soft))
+    severe = [f for f in negs if f in SEVERE]; soft = [f for f in negs if f not in SEVERE]
+    if top:
+        if negs: warn.append("headline keywords to check (not confirmed, not scored): " + ", ".join(negs))
+    else:
+        if severe and ic.get("news_hard_reject", True): hard.append("serious headline flags: " + ", ".join(severe))
+        if soft: add(-min(2, len(soft)), "negative headline flags (read the source): " + ", ".join(soft))
     # ---- technical ----
     er, rk = ic.get("entry_rank", 20), m.get("rank")
     if rk is not None:
@@ -41,7 +45,7 @@ def judge(memo: dict, macro: dict, cfg: dict, live_ids: set[str] | None = None, 
         if m["macd_above_signal"]: add(1, "MACD above signal")
         if 50 <= m["rsi"] <= 75: add(1, "RSI in the 50-75 trend zone")
         if m["close"] >= 0.9 * m["hi52"]: add(1, "within 10% of the 52-week high")
-        if m["rsi"] > 85: add(-2, f"RSI {m['rsi']:.0f}: stretched")
+        # audit fix #20: no RSI penalty: both setups (breakout, flag) are strength setups, a high RSI is part of them
         if m["ext50"] > 0.40: add(-2, f"{m['ext50']*100:.0f}% above the 50-day average: extended")
         elif m["ext50"] > 0.25: add(-1, f"{m['ext50']*100:.0f}% above the 50-day average")
         if m["ret5"] > 0.20: add(-1, f"up {m['ret5']*100:.0f}% in 5 days: chasing risk")
@@ -61,4 +65,4 @@ def judge(memo: dict, macro: dict, cfg: dict, live_ids: set[str] | None = None, 
     if top: verdict = "REJECT" if hard else "APPROVE"      # the back-tested rule: only hard risks stop it; the score is information
     else: verdict = "REJECT" if hard else "APPROVE" if score >= ic.get("approve_score", 6) else "WATCH" if score >= ic.get("watch_score", 4) else "REJECT"
     if not hard and verdict == "REJECT": hard = [f"score {score} is below the watch level"]
-    return {"verdict": verdict, "score": score, "rules": hits, "rejected_because": hard, "by": "coded judge v2 (no AI)"}
+    return {"verdict": verdict, "score": score, "rules": hits, "rejected_because": hard, "warnings": warn, "by": "coded judge v3 (no AI)"}

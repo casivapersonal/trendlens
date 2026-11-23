@@ -47,8 +47,8 @@ def _publish(pub: dict, now: datetime, path: Path | None = None) -> None:
     _save(path or PUBLIC, pub, compact=True)               # same compact format the website pipeline writes
 
 
-def _nifty(pub: dict) -> float | None:
-    b = pub.get("bars", {}).get("NIFTY 50")
+def _nifty(pub: dict, index: str = "NIFTY 50") -> float | None:
+    b = pub.get("bars", {}).get(index)
     return float(b[-1][4]) if b else None
 
 
@@ -69,7 +69,10 @@ def update_bars(pub: dict, frames: dict) -> None:
 def levels(close: float, atr: float, term: str, cfg: dict) -> dict:
     ic = cfg["ideas"]; k = ic[f"{term}_stop_atr"]; r = ic[f"{term}_r"]
     stop_d = k * atr
-    return {"entry_lo": tick(close - ic["entry_atr"] * atr), "entry_hi": tick(close + ic["entry_atr"] * atr),
+    up = ic["entry_atr"]
+    if term == "short":          # top of the range still gives min_rr at the fill (audit re-check): (r*k - x) / (k + x) >= min_rr
+        mr = ic.get("min_rr", 2.0); up = min(up, max(0.0, (r * k - mr * k) / (1 + mr)))
+    return {"entry_lo": tick(close - ic["entry_atr"] * atr), "entry_hi": tick(close + up * atr),
             "stop": tick(close - stop_d), "target": tick(close + r * stop_d), "days": ic[f"{term}_days"], "r": r}
 
 
@@ -89,6 +92,47 @@ def verdict_status(v: str) -> str:
     return "awaiting decision" if v == "APPROVE" else "watch"
 
 
+def _sessions_until(today, iso) -> int:
+    """Trading sessions (Mon-Fri) from the session after `today` up to and including `iso`."""
+    import numpy as np
+    return int(np.busday_count(today + __import__("datetime").timedelta(days=1), date.fromisoformat(iso) + __import__("datetime").timedelta(days=1)))
+
+
+def _rank_resets(pub: dict, ranks: dict, now: datetime, cfg: dict, public_path: Path | None = None) -> None:
+    """Optional re-entry block after a stop (config reentry_block, off: the back-test showed it lowers returns).
+    A stopped-out stock is cleared once its rank has fallen below the exit rank and at least 10 sessions have passed."""
+    rb = pub.get("reentry_block") or {}
+    if not rb or not ranks: return
+    er = cfg["ideas"].get("exit_rank", 50); ch = False
+    for sym, b in list(rb.items()):
+        r = ranks.get(sym)
+        if (r is None or r > er) and not b.get("reset"): b["reset"] = True; ch = True
+        if b.get("reset") and _sessions_until(date.fromisoformat(b["since"]), now.date().isoformat()) >= 10: rb.pop(sym); ch = True
+    if ch: pub["reentry_block"] = rb; _publish(pub, now, public_path)
+
+
+def _fill_checks(i: dict, fill: float, cfg: dict) -> str | None:
+    """After the actual fill (audit fix #5): momentum keeps its stop distance from the fill (as back-tested); setup ideas keep their
+    chart levels and are skipped if the fill leaves less than min_rr reward-to-risk. Returns a reason to skip, or None."""
+    if i.get("term") == "medium":
+        st0 = i.setdefault("stop_posted", i.get("stop")); tg0 = i.setdefault("target_posted", i.get("target"))
+        dist = (i.get("entry_price") or fill) - (st0 or 0)
+        if st0 and dist > 0: i["stop"] = tick(fill - dist); i["target"] = tick(fill + (i.get("r") or 2) * dist)
+        return None
+    st, tg = i.get("stop"), i.get("target")
+    if not st or not tg: return None
+    if fill <= st: return "Not entered: price opened at or below the stop"
+    rr = (tg - fill) / (fill - st)
+    i["r_at_fill"] = round(rr, 2)
+    if rr < cfg["ideas"].get("min_rr", 2.0): return f"Not entered: at the fill price {fill:.2f} reward-to-risk is {rr:.1f} (below {cfg['ideas'].get('min_rr', 2.0)})"
+    return None
+
+
+def _locked(r) -> bool:
+    """A session that traded at one price all day (circuit-locked): nobody could sell at the stop."""
+    return float(r["high"]) == float(r["low"])
+
+
 # ---------------------------------------------------------------- scan -> pending
 def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | None = None, public_path: Path | None = None,
          ranks: dict | None = None, moms: dict | None = None, entry_time: str = "after close") -> dict:
@@ -100,7 +144,8 @@ def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | 
     # Every scan re-scores the whole queue on fresh data, so nothing waits on stale levels, sizing or verdicts.
     # An idea already awaiting a decision keeps its place if it still earns APPROVE.
     was_waiting = {q["sym"] for q in pen["queue"] if q["status"] == "awaiting decision"}
-    macro = committee.macro(); bl = universe.blocked()
+    macro = committee.macro(); bl = universe.blocked(); res = universe.results()
+    _rank_resets(pub, ranks, now, cfg, public_path)
     room = max(0, cfg["ideas"]["max_live"] - len(live_syms))
     top = [s for s, r in sorted(ranks.items(), key=lambda x: x[1]) if r <= cfg["ideas"].get("entry_rank", 20)]
     out, log = [], []
@@ -113,8 +158,14 @@ def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | 
         m = tech["metrics"]; term = term_for(m["setups"], ranks.get(s), cfg["ideas"].get("entry_rank", 20))
         if term is None: log.append({"sym": s, "verdict": "REJECT", "score": 0, "why": ["no fresh setup and not in the momentum top ranks"]}); continue
         lv = levels(m["close"], m["atr"], term, cfg)
-        try: memo["timemachine"] = timemachine.run_daily(d, m["close"], lv["stop"], lv["target"], lv["days"], cfg)
-        except Exception: memo["timemachine"] = None
+        rdate = res.get(s) if res.get(s, "") >= now.date().isoformat() else None
+        # window = up to 3 sessions to enter + the hold + 2 sessions of buffer (the count is Mon-Fri and ignores NSE holidays)
+        if term == "short" and rdate and cfg["ideas"].get("results_skip", True) and _sessions_until(now.date(), rdate) <= lv["days"] + 3 + 2:
+            log.append({"sym": s, "verdict": "REJECT", "score": 0, "why": [f"company results on {rdate}, inside the {lv['days']}-day holding period (audit fix #12)"]}); continue
+        memo["timemachine"] = None
+        if term == "short":          # audit fix #10: no Time Machine on momentum ideas (the rank is the back-tested evidence)
+            try: memo["timemachine"] = timemachine.run_daily(d, m["close"], lv["stop"], lv["target"], lv["days"], cfg)
+            except Exception: memo["timemachine"] = None
         v = judge(memo, macro, cfg, live_syms, s, bl)
         log.append({"sym": s, "verdict": v["verdict"], "score": v["score"], "why": v["rejected_because"]})
         if v["verdict"] == "REJECT": continue
@@ -126,15 +177,19 @@ def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | 
         ret1 = float(d["close"].iloc[-1] / d["close"].iloc[-2] - 1) if len(d) > 1 else None
         risk = review.risk_check({"r": lv["r"], "term": term, "entry_price": m["close"], "stop": lv["stop"], "ret1": ret1}, cfg, 0)   # book limits are the CEO's job
         tm = memo.get("timemachine")
+        setnames = [x if isinstance(x, str) else x.get("setup") for x in (m["setups"] or [])]
+        fill_rule = "next_open" if term == "medium" else "breakout" if "breakout20" in setnames and "bull_flag" not in setnames else "range"
+        bo_level = tick(float(d["high"].iloc[-21:-1].max())) if fill_rule == "breakout" else None
         out.append({"id": f"{s}-{pdate}-{term[0]}", "sym": s, "name": (committee._funds().get("stocks", {}).get(s) or {}).get("name") or s,
                     "view": "Bullish view", "term": term, "entry_date": pdate, "entry_time": entry_time, "entry_price": round(m["close"], 2),
                     "entry_rank": ranks.get(s), "mom_pct": round(moms[s] * 100, 1) if s in moms else None,
+                    "fill_rule": fill_rule, "breakout_level": bo_level, "results_date": rdate, "warnings": v.get("warnings", []),
                     **{k: lv[k] for k in ("entry_lo", "entry_hi", "stop", "target", "days", "r")},
                     # the back-tested rank rule reaches the CEO even when the untested judge points only reach WATCH
                     "status": ("awaiting decision" if v["verdict"] == "APPROVE" or (term == "medium" and v["verdict"] == "WATCH") else "watch") if risk["verdict"] == "PASS" else "watch",
                     "entry_state": review.entry_state({**lv, "entry_price": m["close"]}, m["close"]), "risk": risk,
                     "review": {"bull": deb["bull"], "bear": deb["bear"], "lean": deb["lean"], "economic": deb["economic"],
-                               "time_machine": ({"sim": tm["sim"], "past": {k: tm["real"][k] for k in ("sessions", "target", "stop", "neither")}, "verdict": tm["verdict"], "proof": "simulation; not back-tested"} if tm else None),
+                               "time_machine": ({"sim": tm["sim"], "baseline": tm.get("baseline"), "edge_vs_baseline": tm.get("edge_vs_baseline"), "past": {k: tm["real"][k] for k in ("sessions", "target", "stop", "neither")}, "verdict": tm["verdict"], "proof": "simulation vs a no-edge baseline; not back-tested"} if tm else None),
                                "proof": {**committee_proof(), "judge": "weights not back-tested"}, "decision_needed": "approve, reject or leave on watch"},
                     "judge": v, "committee": {"agreement": agree, "macro": macro.get("stance"),
                                               "analysts": {k: {"stance": x["stance"], "points": x.get("points") or x.get("flags", [])} for k, x in memo["analysts"].items()},
@@ -160,8 +215,8 @@ def approve(idea_id: str, by: str, now: datetime, pending_path: Path | None = No
     if any(i["sym"] == q["sym"] for i in pub["live"]): raise ValueError(f"{q['sym']} is already live")
     if (q.get("risk") or {}).get("verdict") == "BLOCK" and not force: raise ValueError(f"risk check blocks {q['sym']}: " + "; ".join(q["risk"]["reasons"]) + " (use force to override)")
     idea = {**q, "status": "live", "posted": now.date().isoformat(), "approved_by": by, "approved_at": now.isoformat(timespec="minutes"),
-            "nifty_entry": _nifty(pub), "price_now": q["entry_price"], "rank_now": q.get("entry_rank"), "nifty_pct": 0.0,
-            "results_date": None, "surveillance": None, "days_held": 0, "exit_signal": None, "fill_rule": "range", "filled": None}
+            "nifty_entry": _nifty(pub), "n500_entry": _nifty(pub, "NIFTY 500"), "price_now": q["entry_price"], "rank_now": q.get("entry_rank"), "nifty_pct": 0.0,
+            "results_date": q.get("results_date"), "surveillance": None, "days_held": 0, "exit_signal": None, "fill_rule": q.get("fill_rule") or "range", "filled": None}
     pen["queue"] = [x for x in pen["queue"] if x["id"] != idea_id]
     pub["live"].insert(0, idea)
     pub["recent_alerts"] = ([{"type": "entry", "sym": idea["sym"], "date": now.date().isoformat(), "time": now.strftime("%I:%M %p"), "price": idea["entry_price"],
@@ -184,13 +239,15 @@ def close(key: str, by: str, now: datetime, reason: str | None = None, price: fl
     reason = reason or (sig["reason"] if sig else "Closed by decision-maker")
     px = float(price if price is not None else sig["price"] if sig else i.get("price_now") or i["entry_price"])
     kind = KINDS.get(reason) or ("rank" if reason.startswith(("Momentum rank", "Left the")) else "not_entered" if reason.startswith("Not entered") else "manual")
-    nf = _nifty(pub)
+    nf, n5 = _nifty(pub), _nifty(pub, "NIFTY 500")
     done = {k: v for k, v in i.items() if k not in ("exit_signal", "rank_exit")}
     done.update(status="closed", exit_date=sig["date"] if at_signal else now.date().isoformat(), exit_time="after close", exit_price=round(px, 2),
                 exit_rank=i.get("rank_now"), reason=reason, close_kind=kind, closed_by=by, closed_at=now.isoformat(timespec="minutes"),
                 ret_pct=None if (sig or {}).get("not_entered") else round((px / ((i.get("filled") or {}).get("price") or i["entry_price"]) - 1) * 100, 2), not_entered=bool((sig or {}).get("not_entered")),
-                nifty_pct=round((nf / i["nifty_entry"] - 1) * 100, 2) if nf and i.get("nifty_entry") else None)
+                nifty_pct=round((nf / i["nifty_entry"] - 1) * 100, 2) if nf and i.get("nifty_entry") else None,
+                n500_pct=round((n5 / i["n500_entry"] - 1) * 100, 2) if n5 and i.get("n500_entry") else None)
     pub["live"] = [x for x in pub["live"] if x is not i]; pub["closed"].insert(0, done)
+    if kind == "stop": pub.setdefault("reentry_block", {})[i["sym"]] = {"since": done["exit_date"], "reset": False}
     pub["recent_alerts"] = ([{"type": "exit", "sym": i["sym"], "date": now.date().isoformat(), "time": now.strftime("%I:%M %p"), "price": done["exit_price"],
                               "rank": done["exit_rank"], "ret_pct": done["ret_pct"], "reason": reason}] + pub["recent_alerts"])[:60]
     _publish(pub, now, public_path)
@@ -200,57 +257,83 @@ def close(key: str, by: str, now: datetime, reason: str | None = None, price: fl
 # ---------------------------------------------------------------- monitor live ideas on daily bars
 def monitor(cfg: dict, frames: dict, now: datetime, public_path: Path | None = None) -> list[dict]:
     """Updates bars and flags exit signals: stop, target, time up (price levels on daily bars) or faded momentum rank
-    (set by pipeline/update_picks.py as `rank_exit`). Closes only if auto_close is on; otherwise the decision-maker closes."""
+    (set by pipeline/update_picks.py as `rank_exit`). Closes only if auto_close is on; otherwise the CEO / decision-maker closes.
+    Entry rules (audit fixes #5, #6): momentum = next session's open (as back-tested); breakout = next open, cancelled if it opens
+    back below the breakout level; pullback (flag) = first session inside the entry range within 3 sessions. Every fill is re-checked."""
     pub = public(public_path); signals = []; to_close = []
+
+    def flag(i, sg):
+        i["exit_signal"] = sg; signals.append({"id": i.get("id", i["sym"]), **sg})
+        if cfg["ideas"].get("auto_close") and not sg.get("awaiting"): to_close.append(i["sym"])
+
     for i in list(pub["live"]):
         d = frames.get(i["sym"])
         if d is None or d.empty: continue
         posted = date.fromisoformat(i["entry_date"]); after = d[[x.date() > posted for x in d.index]]
-        stop, tgt, sig = i.get("stop"), i.get("target"), None
-        momentum = i.get("term") == "medium"           # back-tested rule: held until the rank fades (or the stop); no target or time exit
-        # entry: the idea is entered on the first session that trades inside the range (a gap above it is not chased)
-        if i.get("filled") is None and not i.get("fill_rule"):              # ideas posted before the entry-range rule: entered at the posted price
+        sig = None
+        momentum = i.get("term") == "medium"           # back-tested rule: held until the rank fades (or the safety stop); no target or time exit
+        rule = i.get("fill_rule")
+        if i.get("filled") is None and not rule:                             # ideas posted before the entry rules: entered at the posted price
             i["filled"] = {"price": i["entry_price"], "date": (after.index[0].date().isoformat() if len(after) else i["entry_date"])}
-        if i.get("filled") is None and len(after):
-            lo_e, hi_e = i.get("entry_lo") or i["entry_price"], i.get("entry_hi") or i["entry_price"]
+        # ---- entry
+        if rule in ("next_open", "breakout") and len(after) and (i.get("filled") is None or i["filled"].get("provisional")):
+            ts, r0 = after.index[0], after.iloc[0]; o = float(r0["open"]) if r0["open"] == r0["open"] else float(r0["close"])
+            if rule == "breakout" and i.get("breakout_level") and o < i["breakout_level"]:
+                i["filled"] = None
+                flag(i, {"reason": "Not entered: opened back below the breakout level", "price": i["entry_price"], "date": ts.date().isoformat(), "not_entered": True}); continue
+            i["filled"] = {"price": round(o, 2), "date": ts.date().isoformat()}
+            why = _fill_checks(i, o, cfg)
+            if why: i["filled"] = None; flag(i, {"reason": why, "price": i["entry_price"], "date": ts.date().isoformat(), "not_entered": True}); continue
+        elif rule == "range" and (i.get("filled") is None or i["filled"].get("provisional")) and len(after):
+            i["filled"] = None
+            lo_e, hi_e = i.get("entry_lo") or i["entry_price"], i.get("entry_hi") or i["entry_price"]; stop0 = i.get("stop")
             for k, (ts, r) in enumerate(after.iterrows()):
-                o, h, l = float(r["open"]), float(r["high"]), float(r["low"])
-                if stop and o <= stop: break                                    # gapped below the stop before entry: never entered
+                o, l = float(r["open"]), float(r["low"])
+                if stop0 and o <= stop0: break                                  # gapped below the stop before entry: never entered
                 if l <= hi_e:
                     i["filled"] = {"price": round(min(o, hi_e) if o >= lo_e else o, 2), "date": ts.date().isoformat()}; break
                 if k >= 2: break                                                # 3 sessions above the range: let it go
-            if i.get("filled") is None and (len(after) >= 3 or (stop and float(after["open"].iloc[0]) <= stop)):
-                i["exit_signal"] = {"reason": "Not entered: price never came into the entry range", "price": i["entry_price"], "date": after.index[-1].date().isoformat(), "not_entered": True}
-                signals.append({"id": i.get("id", i["sym"]), **i["exit_signal"]})
-                if cfg["ideas"].get("auto_close"): to_close.append(i["sym"])
-                continue
+            if i.get("filled") is None and (len(after) >= 3 or (stop0 and float(after["open"].iloc[0]) <= stop0)):
+                flag(i, {"reason": "Not entered: price never came into the entry range", "price": i["entry_price"], "date": after.index[-1].date().isoformat(), "not_entered": True}); continue
+            if i.get("filled"):
+                why = _fill_checks(i, i["filled"]["price"], cfg)
+                if why: fd = i["filled"]["date"]; i["filled"] = None; flag(i, {"reason": why, "price": i["entry_price"], "date": fd, "not_entered": True}); continue
         if i.get("filled") is None:
             i["days_held"] = 0; i["entry_state"] = review.entry_state(i, float(d["close"].iloc[-1])); i["exit_signal"] = None
             if i.get("rank_exit"):                                              # the reason for the idea faded before it was entered
-                i["exit_signal"] = {"reason": i["rank_exit"]["reason"] + " (before entry)", "price": i["entry_price"], "date": d.index[-1].date().isoformat(), "not_entered": True}
-                signals.append({"id": i.get("id", i["sym"]), **i["exit_signal"]})
-                if cfg["ideas"].get("auto_close"): to_close.append(i["sym"])
+                flag(i, {"reason": i["rank_exit"]["reason"] + " (before entry)", "price": i["entry_price"], "date": d.index[-1].date().isoformat(), "not_entered": True})
             continue
+        stop, tgt = i.get("stop"), i.get("target")
         fdate = date.fromisoformat(i["filled"]["date"]); held_bars = after[[x.date() >= fdate for x in after.index]]
         win = held_bars if momentum or not i.get("days") else held_bars.iloc[:i["days"]]
+        awaiting = None
         for n, (ts, r) in enumerate(win.iterrows()):
             o, h, l = float(r["open"]), float(r["high"]), float(r["low"])
-            if n == 0 and i.get("fill_rule"): o = i["filled"]["price"]                                 # the entry bar starts at the fill
+            if n == 0 and rule: o = i["filled"]["price"]                                 # the entry bar starts at the fill
             if not momentum and tgt and o >= tgt: sig = ("Target hit", o, ts); break      # gap up through the target fills at the open
-            if stop and o <= stop: sig = ("Stop-loss hit", o, ts); break               # gap through the stop fills at the open
-            if stop and l <= stop: sig = ("Stop-loss hit", stop, ts); break             # stop is checked first inside a bar
+            if stop and (o <= stop or l <= stop):
+                if _locked(r):                                                 # audit fix #15: locked at the lower circuit, no sale possible
+                    nxt = [(t2, r2) for t2, r2 in held_bars[[x > ts for x in held_bars.index]].iterrows() if not _locked(r2)]
+                    if nxt: sig = ("Stop-loss hit", float(nxt[0][1]["open"]), nxt[0][0], "lower circuit: exited at the next tradable price")
+                    else: awaiting = ts
+                    break
+                sig = ("Stop-loss hit", o if o <= stop else stop, ts); break          # gap through the stop fills at the open; else at the stop
             if not momentum and tgt and h >= tgt: sig = ("Target hit", max(o, tgt), ts); break
         held = len(held_bars); last = float(d["close"].iloc[-1]); i["days_held"] = held
         i["entry_state"] = review.entry_state(i, last)
-        i["stop_advice"] = None if sig else review.one_r_advice({**i, "entry_price": i["filled"]["price"]}, float(win["high"].max()) if len(win) else None)
+        # audit fix #11: no "protect the gain" advice on momentum ideas (not part of the tested rule); a tip only on setups
+        i["stop_advice"] = None if (sig or momentum or awaiting is not None) else review.one_r_advice({**i, "entry_price": i["filled"]["price"]}, float(win["high"].max()) if len(win) else None)
+        if awaiting is not None:
+            flag(i, {"reason": "Stop-loss hit (locked at the lower circuit: exit at the next tradable price)", "price": stop, "date": awaiting.date().isoformat(), "awaiting": True}); continue
         if not sig and not momentum and i.get("days") and held >= i["days"]: sig = ("Time up", float(win["close"].iloc[-1]), win.index[-1])
         if not sig and i.get("rank_exit"): sig = (i["rank_exit"]["reason"], last, d.index[-1])
-        i["exit_signal"] = {"reason": sig[0], "price": round(sig[1], 2), "date": sig[2].date().isoformat()} if sig else None
+        i["exit_signal"] = None
         if momentum and not sig and tgt and len(win) and float(win["high"].max()) >= tgt and not i.get("target_reached"):
             i["target_reached"] = {"date": d.index[-1].date().isoformat(), "note": "first objective reached; the momentum rule holds until the rank fades"}
         if sig:
-            signals.append({"id": i.get("id", i["sym"]), **i["exit_signal"]})
-            if cfg["ideas"].get("auto_close"): to_close.append(i["sym"])
+            sg = {"reason": sig[0], "price": round(sig[1], 2), "date": sig[2].date().isoformat()}
+            if len(sig) > 3: sg["note"] = sig[3]
+            flag(i, sg)
     update_bars(pub, frames)
     _publish(pub, now, public_path)
     for sym in to_close:                      # only if auto_close is on; otherwise the decision-maker closes
@@ -259,7 +342,14 @@ def monitor(cfg: dict, frames: dict, now: datetime, public_path: Path | None = N
 
 
 # ---------------------------------------------------------------- intraday: live prices every 5 minutes in market hours
-def monitor_live(cfg: dict, prices: dict, now: datetime, public_path: Path | None = None) -> list[dict]:
+def _at_circuit(p: float, pc: float | None) -> bool:
+    """Price sitting on a typical NSE lower band (-2, -5, -10 or -20% from the previous close): a stop there may not be sellable."""
+    if not pc: return False
+    mv = p / pc - 1
+    return any(abs(mv + b) <= 0.0015 for b in (0.02, 0.05, 0.10, 0.20))
+
+
+def monitor_live(cfg: dict, prices: dict, now: datetime, public_path: Path | None = None, prev_close: dict | None = None) -> list[dict]:
     """Marks entries and flags stop / target hits on live prices during market hours (the 16:15 run still checks daily bars,
     time limits and momentum rank). A price checked every few minutes can be past the level: the exit uses the worse of the two."""
     pub = public(public_path); signals = []; hm = now.strftime("%H:%M")
@@ -267,14 +357,33 @@ def monitor_live(cfg: dict, prices: dict, now: datetime, public_path: Path | Non
         p = prices.get(i["sym"])
         if not p or i.get("exit_signal"): continue
         i["price_now"] = round(float(p), 2)
-        stop, tgt = i.get("stop"), i.get("target")
-        if i.get("filled") is None and i.get("fill_rule"):
-            lo, hi = i.get("entry_lo") or i["entry_price"], i.get("entry_hi") or i["entry_price"]
-            if lo <= p <= hi or (stop and stop < p < lo):
+        rule = i.get("fill_rule")
+        if i.get("filled") is None and rule:
+            if now.date().isoformat() <= i["entry_date"]: continue           # posted after today's close: entry starts next session
+            lo, hi, stop0 = i.get("entry_lo") or i["entry_price"], i.get("entry_hi") or i["entry_price"], i.get("stop")
+            why = None
+            if rule in ("next_open", "breakout"):                            # first price of the session; the 16:15 run replaces it with the open
+                if rule == "breakout" and i.get("breakout_level") and p < i["breakout_level"]:
+                    why = "Not entered: fell back below the breakout level"
+                else:
+                    i["filled"] = {"price": round(float(p), 2), "date": now.date().isoformat(), "time": hm, "provisional": True}
+            elif lo <= p <= hi or (stop0 and stop0 < p < lo):
                 i["filled"] = {"price": round(float(p), 2), "date": now.date().isoformat(), "time": hm}
+            if i.get("filled") and not why:
+                why = _fill_checks(i, float(p), cfg)
+                if why: i["filled"] = None
+            if why:
+                i["exit_signal"] = {"reason": why, "price": i["entry_price"], "date": now.date().isoformat(), "time": hm, "not_entered": True}
+                signals.append({"id": i.get("id", i["sym"]), **i["exit_signal"]})
             continue
+        stop, tgt = i.get("stop"), i.get("target")
         if i.get("filled") is None: continue
         sig = None
+        if stop and p <= stop and _at_circuit(float(p), (prev_close or {}).get(i["sym"])):
+            # audit fix #15: possibly locked at the lower circuit; the 16:15 daily check decides the real exit (next tradable price)
+            i["exit_signal"] = {"reason": "Stop-loss hit (price at the lower circuit band: exit confirmed after the close)", "price": round(float(p), 2),
+                                "date": now.date().isoformat(), "time": hm, "awaiting": True}
+            signals.append({"id": i.get("id", i["sym"]), **i["exit_signal"]}); continue
         if stop and p <= stop: sig = ("Stop-loss hit", min(float(p), stop))
         elif i.get("term") != "medium" and tgt and p >= tgt: sig = ("Target hit", float(tgt))
         if sig:

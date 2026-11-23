@@ -6,9 +6,10 @@ from concurrent.futures import ThreadPoolExecutor
 ENTRY_RANK, EXIT_RANK, UNIVERSE = 20, 50, 500
 UNIVERSE_LABEL = "NIFTY 500"
 MIN_TURNOVER_CR, MIN_PRICE = 10, 50     # ranked only if 20-day median traded value >= Rs 10 cr a day and price >= Rs 50 (Nov 2026 audit)
-STATS = {"rule": "NIFTY 500 stocks ranked by 12-month return divided by 12-month volatility. Back-test rule: enter at top 20, exit below #50. The back-test uses today's index members and includes thinly traded stocks; with a Rs 10 cr/day liquidity floor an independent audit found about 22% a year for 2011-19. Realistic expectation: about 18-25% a year, with drops of 35-45%", "realistic": "18-25% a year, with drops of 35-45%", "periods": [
-    {"period": "2011–2019", "cagr": 34.9, "nifty": 8.1, "maxdd": -21.7, "trades": 980, "win": 43.0, "avg_win": 34.7, "avg_loss": -6.8, "med_days": 60},
-    {"period": "2020–2026", "cagr": 50.7, "nifty": 11.4, "maxdd": -35.5, "trades": 673, "win": 42.5, "avg_win": 51.0, "avg_loss": -9.1, "med_days": 65}]}
+STATS = {"rule": "NIFTY 500 stocks ranked by 12-month return divided by 12-month volatility. Enter at the top 20 (next open), exit below #50, 6x ATR safety stop, at most 3 per industry and 6 per broad sector. Re-tested Nov 2026 with pipeline/backtest.py: liquidity floor scaled to the market level, Indian delivery charges and 0.1% slippage each side. The stock list is today's NIFTY 500, so stocks dropped or delisted since are missing, which flatters the results. Live, stocks on NSE ASM/GSM surveillance are skipped; the back-test cannot apply that (no free historical lists). Realistic expectation: about 18-25% a year, with drops of 30-40%",
+         "realistic": "18-25% a year, with drops of 30-40%", "source": "web/backtest.json", "benchmark": "NIFTY 500 (price index)", "periods": [
+    {"period": "2011–2019", "cagr": 21.2, "nifty": 7.9, "maxdd": -28.1, "trades": 495, "win": 47.9, "avg_win": 31.4, "avg_loss": -10.0, "med_days": 44},
+    {"period": "2020–2026", "cagr": 45.4, "nifty": 13.8, "maxdd": -37.9, "trades": 341, "win": 50.4, "avg_win": 55.6, "avg_loss": -12.7, "med_days": 67}]}
 
 def ist_now():
     return dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)
@@ -62,24 +63,34 @@ def quotes(syms):
     with ThreadPoolExecutor(16) as ex:
         return {s: q for s, q in ex.map(quote, syms) if q}
 
+def momentum_score(past, price):
+    """THE momentum score, shared by the live ranking and pipeline/backtest.py (audit fix #9: one function, no drift).
+    past: daily closes up to the previous session (None allowed for missing days); price: today's price.
+    Returns (12-month return, score) or None. 12-month return = price / close 252 sessions ago - 1;
+    score = that return / annualised volatility of the last 252 daily returns (including today's move)."""
+    if price is None or len(past) < 252 or not past[-252]:
+        return None
+    cc = [x for x in list(past[-252:]) + [price] if x]
+    rets = [cc[i] / cc[i - 1] - 1 for i in range(1, len(cc))]
+    if len(rets) < 200:
+        return None
+    m = sum(rets) / len(rets); vol = (sum((r - m) ** 2 for r in rets) / (len(rets) - 1)) ** 0.5 * 252 ** 0.5
+    if vol <= 0:
+        return None
+    mom = price / past[-252] - 1
+    return mom, mom / vol
+
+
 def ranks_now(hist, prices, today):
-    """Risk-adjusted momentum: (price now / close 252 sessions ago - 1) / annualised volatility of daily returns."""
-    dates = hist["dates"]; k = 253 if dates[-1] == today else 252   # if today's bar is in history, skip it
+    """Risk-adjusted momentum rank on today's prices, via momentum_score (the back-tested function)."""
+    dates = hist["dates"]; today_in = dates[-1] == today        # if today's bar is in history, the past ends the session before
     mom, score = {}, {}
     for s in hist.get("rank_universe") or hist["universe"]:
         c = hist["closes"].get(s)
-        p = prices.get(s)
-        if not c or len(c) < k or p is None or not c[-k]:
-            continue
-        cc = [x for x in c[-253:] if x]
-        rets = [cc[i] / cc[i - 1] - 1 for i in range(1, len(cc))]
-        if len(rets) < 200:
-            continue
-        m = sum(rets) / len(rets); vol = (sum((r - m) ** 2 for r in rets) / (len(rets) - 1)) ** 0.5 * 252 ** 0.5
-        if vol <= 0:
-            continue
-        mom[s] = p / c[-k] - 1; score[s] = mom[s] / vol
-    order = sorted(score, key=lambda s: -score[s])
+        if not c: continue
+        r = momentum_score(c[:-1] if today_in else c, prices.get(s))
+        if r: mom[s], score[s] = r
+    order = sorted(score, key=lambda s: (-score[s], s))
     return {s: i + 1 for i, s in enumerate(order)}, mom
 
 RANK_EXIT_TERMS = ("momentum", "medium")      # only ideas built on momentum rank are flagged when the rank fades
@@ -102,7 +113,7 @@ def rank_exit_flags(state, rk, now):
     return flagged
 
 
-def refresh_live(state, rk, prices, nifty_now, now, blocked=None, results=None):
+def refresh_live(state, rk, prices, nifty_now, now, blocked=None, results=None, n500_now=None):
     """Updates price, rank, NIFTY comparison and NSE flags on live ideas. Opens and closes nothing."""
     date = now.date().isoformat()
     for e in state["live"]:
@@ -112,6 +123,8 @@ def refresh_live(state, rk, prices, nifty_now, now, blocked=None, results=None):
         e["rank_now"] = rk.get(s); e["price_now"] = round(prices.get(s, e.get("price_now", e["entry_price"])), 2)
         if nifty_now and e.get("nifty_entry"):
             e["nifty_pct"] = round((nifty_now / e["nifty_entry"] - 1) * 100, 2)
+        if n500_now and e.get("n500_entry"):
+            e["n500_pct"] = round((n500_now / e["n500_entry"] - 1) * 100, 2)
 
 
 def fallback_bars(hist, s):
@@ -157,6 +170,9 @@ def load_nse(folder):
             except Exception:
                 continue
             s = str(r[sym]).strip()
-            if s and s != "nan" and (s not in results or d < results[s]):
-                results[s] = d
+            if s and s != "nan":
+                results.setdefault(s, []).append(d)
+    today = ist_now().date().isoformat()
+    # the NEXT results date (earliest one today or later); a stock with only past dates keeps its latest past date
+    results = {s: (min([x for x in v if x >= today]) if any(x >= today for x in v) else max(v)) for s, v in results.items()}
     return blocked, results

@@ -14,7 +14,7 @@ state = json.load(open(PICKS)) if os.path.exists(PICKS) else {}
 state.setdefault("live", []); state.setdefault("closed", [])
 syms = list(dict.fromkeys(open(os.path.join(HERE, "syms.txt")).read().split()))
 frames, raw = {}, {}
-tick = [s + ".NS" for s in syms] + ["^NSEI", "^NSEBANK"]
+tick = [s + ".NS" for s in syms] + ["^NSEI", "^NSEBANK", "^CRSLDX"]    # ^CRSLDX = NIFTY 500 (the benchmark, audit fix #17)
 for k in range(0, len(tick), 80):
     d = yf.download(tick[k:k + 80], period="2y", progress=False, auto_adjust=True, group_by="ticker", threads=True)
     for t in tick[k:k + 80]:
@@ -56,7 +56,8 @@ if last == today and not market_open(now):     # after the close: refresh live i
     prices = {s: hist["closes"][s][-1] for s in hist["closes"] if hist["closes"][s][-1]}
     rk, mom = ranks_now(hist, prices, today)
     blocked, results = load_nse(os.path.join(HERE, "..", "nse"))
-    refresh_live(state, rk, prices, float(nifty.iloc[-1]), now, blocked, results)
+    n500 = float(frames["^CRSLDX"]["Close"].iloc[-1]) if "^CRSLDX" in frames else None
+    refresh_live(state, rk, prices, float(nifty.iloc[-1]), now, blocked, results, n500_now=n500)
     print("exit flags (decision-maker closes):", rank_exit_flags(state, rk, now))
 def ohlc(x, n=330):
     x = x.iloc[-n:]
@@ -64,6 +65,9 @@ def ohlc(x, n=330):
 need = {e["sym"] for e in state["live"]} | {c["sym"] for c in state["closed"][:60]}
 state["bars"] = {s: ohlc(D[s]) for s in need if s in D}
 state["bars"]["NIFTY 50"] = ohlc(frames["^NSEI"]); state["bars"]["NIFTY BANK"] = ohlc(frames["^NSEBANK"])
+if "^CRSLDX" in frames: state["bars"]["NIFTY 500"] = ohlc(frames["^CRSLDX"])
+try: state["nse_asof"] = open(os.path.join(HERE, "..", "nse", "asof.txt")).read().strip()
+except Exception: state["nse_asof"] = None
 state.update(asof=last, updated_ist=now.strftime("%d %b %Y, %I:%M %p IST"), provisional=False, watching=len(universe), stats=STATS,
              rules=dict(entry_rank=ENTRY_RANK, exit_rank=EXIT_RANK, universe=UNIVERSE, basis="12-month return divided by 12-month volatility, closing prices", approval="decision-maker"))
 state.setdefault("recent_alerts", []); state["alerts_today"] = [a for a in state["recent_alerts"] if a["date"] == today]

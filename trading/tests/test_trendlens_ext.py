@@ -55,7 +55,8 @@ class Universe(unittest.TestCase):
 class Scanner(unittest.TestCase):
     cfg = load_config()
     def test_breakout_found_and_filters(self):
-        self.assertIn("breakout20", [s["setup"] for s in scanner.daily_setups(daily(last_breakout=True))])
+        self.assertIn("breakout20", [s["setup"] for s in scanner.daily_setups(daily(last_breakout=True), ("breakout20", "bull_flag"))])
+        self.assertEqual(scanner.daily_setups(daily(last_breakout=True)), [])     # breakouts dropped by default (back-test: -0.08R a trade)
         self.assertEqual(scanner.daily_setups(daily()), [])
         self.assertTrue(scanner.liquid(daily(), self.cfg))
         self.assertFalse(scanner.liquid(daily(vol=1e3), self.cfg))        # illiquid
@@ -64,7 +65,7 @@ class Scanner(unittest.TestCase):
         class F:
             def history(self, syms, period, interval):
                 return {s: daily(120, last_breakout=(s == "WIN")) for s in syms}
-        cfg = load_config(); cfg["universe"]["file"] = "x"
+        cfg = load_config(); cfg["universe"]["file"] = "x"; cfg["ideas"]["setups"] = ["bull_flag", "breakout20"]
         import arena.universe as U
         orig = U.load; U.load = lambda c=None: ["AAA", "WIN", "BBB"]
         try:

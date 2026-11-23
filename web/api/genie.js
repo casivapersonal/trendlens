@@ -62,11 +62,11 @@ async function liveQuote(sym, raw) {
 // ---------- finding the stock in the question ----------
 const ALIAS = { zomato: 'ETERNAL', reliance: 'RELIANCE', 'reliance power': 'RPOWER', 'reliance industries': 'RELIANCE', sbi: 'SBIN', 'l&t': 'LT', 'l and t': 'LT', larsen: 'LT', airtel: 'BHARTIARTL', hul: 'HINDUNILVR', 'hindustan unilever': 'HINDUNILVR',
   'jio financial': 'JIOFIN', jio: 'JIOFIN', mahindra: 'M&M', 'm and m': 'M&M', hero: 'HEROMOTOCO', 'hero motocorp': 'HEROMOTOCO', 'bajaj auto': 'BAJAJ-AUTO', 'tata consultancy': 'TCS',
-  'dr reddy': 'DRREDDY', "dr reddy's": 'DRREDDY', 'sun pharma': 'SUNPHARMA', 'asian paints': 'ASIANPAINT', 'maruti suzuki': 'MARUTI', 'ongc': 'ONGC', 'kotak bank': 'KOTAKBANK', 'kotak mahindra': 'KOTAKBANK', 'ultratech': 'ULTRACEMCO', 'power grid': 'POWERGRID', 'hdfc bank': 'HDFCBANK', 'icici bank': 'ICICIBANK', 'axis bank': 'AXISBANK', 'bajaj finserv': 'BAJAJFINSV', 'bajaj finance': 'BAJFINANCE', 'tech mahindra': 'TECHM', 'eicher': 'EICHERMOT', 'tata steel': 'TATASTEEL', 'tata power': 'TATAPOWER', 'tata consumer': 'TATACONSUM', 'info edge': 'NAUKRI', 'infosys': 'INFY', 'paytm': 'PAYTM', 'nykaa': 'NYKAA', 'swiggy': 'SWIGGY', 'indigo': 'INDIGO', 'vedanta': 'VEDL', 'adani green': 'ADANIGREEN', 'adani power': 'ADANIPOWER', 'adani ports': 'ADANIPORTS', 'adani enterprises': 'ADANIENT', 'tata motors': 'TMPV', 'tata motor': 'TMPV', 'icici': 'ICICIBANK', 'kotak': 'KOTAKBANK', 'bob': 'BANKBARODA', 'pnb': 'PNB', 'hal': 'HAL', 'bel': 'BEL', 'bhel': 'BHEL', 'ntpc': 'NTPC', 'irctc': 'IRCTC', 'lic': 'LICI', 'dmart': 'DMART', 'd mart': 'DMART', 'avenue supermarts': 'DMART', 'policybazaar': 'POLICYBZR', 'divis': 'DIVISLAB', "divi's": 'DIVISLAB', 'tata elxsi': 'TATAELXSI', 'tcs': 'TCS', 'hdfc life': 'HDFCLIFE', 'hdfc amc': 'HDFCAMC', 'sbi life': 'SBILIFE', 'sbi card': 'SBICARD', 'ultratech cement': 'ULTRACEMCO', 'wipro': 'WIPRO', 'hcl': 'HCLTECH', 'hcl tech': 'HCLTECH', 'ltimindtree': 'LTIM', 'nestle': 'NESTLEIND', 'britannia': 'BRITANNIA', 'titan': 'TITAN', 'cipla': 'CIPLA', 'grasim': 'GRASIM', 'hindalco': 'HINDALCO', 'jsw steel': 'JSWSTEEL', 'coal india': 'COALINDIA', 'bharat electronics': 'BEL', 'hindustan aeronautics': 'HAL', 'trent': 'TRENT', 'bajaj holdings': 'BAJAJHLDNG' };
+  'dr reddy': 'DRREDDY', 'sun pharm': 'SUNPHARMA', 'au bank': 'AUBANK', 'm and m financial': 'M&MFIN', 'm and m finance': 'M&MFIN', 'mahindra finance': 'M&MFIN', 'l and t finance': 'LTF', 'l and t technology': 'LTTS', 'l and t tech': 'LTTS', 'lti mindtree': 'LTIM', 'sbi cards': 'SBICARD', 'sbi card': 'SBICARD', 'sbi life': 'SBILIFE', 'hdfc life': 'HDFCLIFE', 'hdfc amc': 'HDFCAMC', 'icici lombard': 'ICICIGI', 'icici pru': 'ICICIPRULI', 'icici prudential': 'ICICIPRULI', "dr reddy's": 'DRREDDY', 'sun pharma': 'SUNPHARMA', 'asian paints': 'ASIANPAINT', 'maruti suzuki': 'MARUTI', 'ongc': 'ONGC', 'kotak bank': 'KOTAKBANK', 'kotak mahindra': 'KOTAKBANK', 'ultratech': 'ULTRACEMCO', 'power grid': 'POWERGRID', 'hdfc bank': 'HDFCBANK', 'icici bank': 'ICICIBANK', 'axis bank': 'AXISBANK', 'bajaj finserv': 'BAJAJFINSV', 'bajaj finance': 'BAJFINANCE', 'tech mahindra': 'TECHM', 'eicher': 'EICHERMOT', 'tata steel': 'TATASTEEL', 'tata power': 'TATAPOWER', 'tata consumer': 'TATACONSUM', 'info edge': 'NAUKRI', 'infosys': 'INFY', 'paytm': 'PAYTM', 'nykaa': 'NYKAA', 'swiggy': 'SWIGGY', 'indigo': 'INDIGO', 'vedanta': 'VEDL', 'adani green': 'ADANIGREEN', 'adani power': 'ADANIPOWER', 'adani ports': 'ADANIPORTS', 'adani enterprises': 'ADANIENT', 'tata motors': 'TMPV', 'tata motor': 'TMPV', 'icici': 'ICICIBANK', 'kotak': 'KOTAKBANK', 'bob': 'BANKBARODA', 'pnb': 'PNB', 'hal': 'HAL', 'bel': 'BEL', 'bhel': 'BHEL', 'ntpc': 'NTPC', 'irctc': 'IRCTC', 'lic': 'LICI', 'dmart': 'DMART', 'd mart': 'DMART', 'avenue supermarts': 'DMART', 'policybazaar': 'POLICYBZR', 'divis': 'DIVISLAB', "divi's": 'DIVISLAB', 'tata elxsi': 'TATAELXSI', 'tcs': 'TCS', 'hdfc life': 'HDFCLIFE', 'hdfc amc': 'HDFCAMC', 'sbi life': 'SBILIFE', 'sbi card': 'SBICARD', 'ultratech cement': 'ULTRACEMCO', 'wipro': 'WIPRO', 'hcl': 'HCLTECH', 'hcl tech': 'HCLTECH', 'ltimindtree': 'LTIM', 'nestle': 'NESTLEIND', 'britannia': 'BRITANNIA', 'titan': 'TITAN', 'cipla': 'CIPLA', 'grasim': 'GRASIM', 'hindalco': 'HINDALCO', 'jsw steel': 'JSWSTEEL', 'coal india': 'COALINDIA', 'bharat electronics': 'BEL', 'hindustan aeronautics': 'HAL', 'trent': 'TRENT', 'bajaj holdings': 'BAJAJHLDNG' };
 const WORDLIKE = new Set(['IDEA', 'FACT', 'OIL', 'CLEAN', 'ACE', 'SAIL', 'NH', 'ACC', 'GAIL', 'CCL', 'AIIL', 'IRB']); // real words: only count when typed in capitals
 const GENERIC = new Set('ltd limited corporation corp india indian industries company co of the and services enterprises private pvt public sector holdings group global international technologies technology solutions systems energy power finance financial'.split(' '));
-const lev = (a, b) => { const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; };
-const toks = s => String(s).toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9' ]+/g, ' ').split(/\s+/).filter(Boolean);
+const lev = (a, b) => { const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) { d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1); } return d[a.length][b.length]; };   // swapped letters count as one typo
+const toks = s => String(s).toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9' ]+/g, ' ').replace(/\b([a-z]) (?=[a-z]\b)/g, '$1').replace(/\b([a-z])(?=[a-z]\b)/g, '$1').split(/\s+/).filter(Boolean);
 
 function findStock(q, universe, F) {
   const set = new Set(universe), low = q.toLowerCase();
@@ -80,10 +80,10 @@ function findStock(q, universe, F) {
   for (const s of universe) {
     const nm = F.stocks[s] && F.stocks[s].name; if (!nm) continue;
     const nt = toks(nm).filter(t => !GENERIC.has(t)); if (!nt.length) continue;
-    let m = 0; for (const t of nt) if (qt.some(w => w === t || (t.length >= 6 && w.length >= 5 && lev(w, t) <= 1))) m++;
-    if (m) hits.push({ sym: s, ratio: m / nt.length, m });
+    let m = 0; for (const t of nt) if (qt.some(w => w === t || (t.length >= 5 && w.length >= 4 && lev(w, t) <= 1) || (t.length >= 8 && w.length >= 7 && lev(w, t) <= 2))) m++;
+    if (m) hits.push({ sym: s, ratio: m / nt.length, m, cov: qt.filter(w => nt.some(t => w === t || (t.length >= 5 && w.length >= 4 && lev(w, t) <= 1) || (t.length >= 8 && w.length >= 7 && lev(w, t) <= 2))).length });
   }
-  hits.sort((a, b) => b.ratio - a.ratio || b.m - a.m);
+  hits.sort((a, b) => b.cov - a.cov || b.ratio - a.ratio || b.m - a.m);
   if (!hits.length) return null;
   const best = hits[0], tied = hits.filter(h => h.ratio === best.ratio && h.m === best.m);
   if (best.ratio < 1) return { ambiguous: hits.slice(0, 5).map(h => h.sym) };   // only part of the name matched: ask
@@ -247,8 +247,19 @@ function glossary(q) {
 // ---------- finding one or more stocks ----------
 const reEsc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function findStocks(q, universe, F) {
+  q = String(q).replace(/&/g, ' and ');
   const set = new Set(universe), low = q.toLowerCase(), found = [], used = [];
   const free = (a, b) => !used.some(([x, y]) => a < y && b > x);
+  // full multi-word company names first ("ITC Hotels" is one company, not ITC plus a hotel stock)
+  if (F && F.stocks) {
+    const ph = [];
+    const LEGAL = new Set('ltd limited the company corporation corp co pvt private inc'.split(' ')), first2 = {};
+    for (const s of universe) { const nm = F.stocks[s] && F.stocks[s].name; if (!nm) continue; const nt = toks(nm).filter(t => !LEGAL.has(t)); if (nt.length >= 2 && nt.some(t => !GENERIC.has(t)) || nt.length >= 2 && nt.join(' ').length >= 8) ph.push([nt.join(' '), s]); if (nt.length >= 3 && nt[0] !== 'and' && nt[1] !== 'and') { const k = nt[0] + ' ' + nt[1]; (first2[k] = first2[k] || []).push(s); } }
+    for (const [k, v] of Object.entries(first2)) if (v.length === 1 && !ph.some(x => x[0] === k)) ph.push([k, v[0]]);
+    ph.sort((x, y) => y[0].length - x[0].length);
+    const lowT = ' ' + toks(low).join(' ') + ' ';
+    for (const [p, s] of ph) { if (lowT.indexOf(' ' + p + ' ') < 0) continue; const re = new RegExp('(^|[^a-z0-9])(' + p.split(' ').map(reEsc).join('[^a-z0-9]+') + ')($|[^a-z0-9])', 'g'); let m; while ((m = re.exec(low))) { const st = m.index + m[1].length, en = st + m[2].length; if (free(st, en)) { used.push([st, en]); found.push({ sym: s, pos: st }); } } }
+  }
   for (const [a, s] of Object.entries(ALIAS).sort((x, y) => y[0].length - x[0].length)) {
     if (!set.has(s)) continue;
     const re = new RegExp('(^|[^a-z0-9])(' + reEsc(a) + ')($|[^a-z0-9])', 'g'); let m;
@@ -275,19 +286,21 @@ function findStocks(q, universe, F) {
   return { syms, ambiguous: syms.length ? null : amb, alts };
 }
 function nameMatch(q, universe, F) {
-  const qt = toks(q).filter(t => !GENERIC.has(t) && !STOP.has(t)), hits = [];
+  const qt = toks(q).filter(t => !GENERIC.has(t) && !STOP.has(t) && !STOP2.has(t) && !/^\d+$/.test(t)), hits = [];
   if (!qt.length) return null;
+  if (qt.every(w => SECTW.test(w)) && toks(q).filter(t => !STOP.has(t) && !STOP2.has(t) && !/^\d+$/.test(t) && t !== 'and').every(w => SECTW.test(w) || !GENERIC.has(w))) return null;   // a sector word alone ("cement", "oil") is a screen, not a company; "Indian Hotels" still is one
   for (const s of universe) {
     const nm = F.stocks[s] && F.stocks[s].name; if (!nm) continue;
     const nt = toks(nm).filter(t => !GENERIC.has(t)); if (!nt.length) continue;
-    let m = 0; for (const t of nt) if (qt.some(w => w === t || (t.length >= 6 && w.length >= 5 && lev(w, t) <= 1))) m++;
-    if (m) hits.push({ sym: s, ratio: m / nt.length, m });
+    let m = 0; for (const t of nt) if (qt.some(w => w === t || (t.length >= 5 && w.length >= 4 && lev(w, t) <= 1) || (t.length >= 8 && w.length >= 7 && lev(w, t) <= 2))) m++;
+    if (m) hits.push({ sym: s, ratio: m / nt.length, m, cov: qt.filter(w => nt.some(t => w === t || (t.length >= 5 && w.length >= 4 && lev(w, t) <= 1) || (t.length >= 8 && w.length >= 7 && lev(w, t) <= 2))).length });
   }
-  hits.sort((a, b) => b.ratio - a.ratio || b.m - a.m);
+  hits.sort((a, b) => b.cov - a.cov || b.ratio - a.ratio || b.m - a.m);
   if (!hits.length) return null;
   const best = hits[0], tied = hits.filter(h => h.ratio === best.ratio && h.m === best.m);
   if (best.ratio < 1) {
-    const nt = toks(F.stocks[best.sym].name).filter(t => !GENERIC.has(t)), extra = qt.filter(w => !nt.some(t => w === t || (t.length >= 6 && w.length >= 5 && lev(w, t) <= 1)));
+    const nt = toks(F.stocks[best.sym].name).filter(t => !GENERIC.has(t)), extra = qt.filter(w => !nt.some(t => w === t || (t.length >= 5 && w.length >= 4 && lev(w, t) <= 1) || (t.length >= 8 && w.length >= 7 && lev(w, t) <= 2)));
+    if (qt.every(w => SECTW.test(w) || STOP.has(w))) return null;   // "metal stocks near 52 week low" is a screen, not Lloyds Metals
     if (best.ratio >= 0.5 && tied.length === 1 && !extra.length) return { sym: best.sym };   // "hdfc", "divis": only name words were typed
     return extra.length ? null : { ambiguous: hits.slice(0, 5).map(h => h.sym) };
   }
@@ -296,6 +309,36 @@ function nameMatch(q, universe, F) {
 }
 // words that are never part of a company name in a question
 const STOP = new Set('what whats is are the a an of for to in on at about its it this that how why when which who show me tell give list find stock stocks share shares price prices today now current live latest outlook view trend technical technicals fundamentals fundamental analysis averages average moving support resistance news headlines rank momentum idea ideas pe ratio roe debt equity growth dividend yield market cap cap sector high low week year month returns return chart vs versus compare comparison between better than against doing performing up down fall falling rise rising rally crash jump gain gaining drop dropping please can you could would should i my me we our your do does did any all top best worst cheapest highest lowest with having where above below under over less more than greater least near rsi macd sma dma ema bullish bearish oversold overbought large mid small big buy sell hold target stop loss nifty sensex bank'.split(' '));
+
+const SECTW = /^(metals?|steel|mining|banks?|banking|pharma|auto|autos|automobiles?|power|energy|cements?|chemicals?|finance|financials?|nbfcs?|insurance|realty|infra|textiles?|hotels?|healthcare|hospitals?|oil|gas|telecom|media|housing|defence|defense|aerospace|software|tech|technology|fmcg|it|retail|travel|construction|engineering|utilities)$/;   // sectors that have a screen
+const STOP2 = new Set('good bad buy sell hold worth target targets doing ok okay fine right kya hai ka ki ke kitna kaisa kaise batao abhi aaj day days one two three five ten year years month months quarter quarterly 1y 3m 6m ytd level levels zone entry exit stoploss stop loss safe risky investment invest long term short eps rsi macd sma dma ema chart charts graph'.split(' '));
+// short questions people actually type, rewritten into ones the engine answers well (only when no stock is named)
+const SHORT = [
+  [/^(top|best|top stocks?|best stocks?|stocks?|shares?|good stocks?|strong stocks?|trending( stocks?)?|momentum stocks?|top picks?|leaders?)$/, 'top 10 momentum stocks'],
+  [/^(breakouts?|breakout stocks?|new highs?|52 ?w(ee)?k? highs?|all.?time highs?)$/, 'stocks near 52 week high'],
+  [/^(52 ?w(ee)?k? lows?|new lows?|beaten down( stocks?)?|fallen stocks?)$/, 'stocks near 52 week low'],
+  [/^(dividends?|dividend stocks?|high dividends?|dividend yield|income stocks?)$/, 'high dividend stocks'],
+  [/^(cheap( stocks?)?|undervalued( stocks?)?|value( stocks?)?|low pe( stocks?)?|bargains?)$/, 'stocks with pe below 15'],
+  [/^(penny( stocks?)?|low price( stocks?)?|cheap shares?|stocks? under (100|₹ ?100|rs ?100))$/, 'stocks with price below 100'],
+  [/^(debt ?free|zero debt|no debt)( stocks?)?$/, 'debt free stocks'],
+  [/^(high roe|quality( stocks?)?|high quality( stocks?)?)$/, 'stocks with roe above 20'],
+  [/^(low debt)( stocks?)?$/, 'stocks with debt to equity below 0.3'],
+  [/^(high growth|growth stocks?|fast growing( stocks?)?)$/, 'stocks with earnings growth above 25%'],
+  [/^(oil|gas|oil and gas|oil & gas)$/, 'energy stocks'],
+  [/^(oversold( stocks?)?|low rsi)$/, 'stocks with rsi below 30'],
+  [/^(overbought( stocks?)?|high rsi)$/, 'stocks with rsi above 70'],
+  [/^(sectors?|sector wise|sectoral|today|aaj|market today|how is the market|market kaisa hai|news|market news|headlines|update|updates)$/, 'market'],
+  [/^(buy|what to buy|which stock to buy|stock to buy|kya kharidu|tips?|stock tips?|recommend|recommendation|suggest)$/, 'which stocks are top momentum stocks to buy'],
+  [/^(psu|psus|psu stocks?|government stocks?|govt stocks?|public sector)$/, 'psu banks'],
+  [/^(small ?caps?|small ?cap stocks?)$/, 'small cap stocks'],
+  [/^(mid ?caps?|mid ?cap stocks?)$/, 'mid cap stocks'],
+  [/^(large ?caps?|large ?cap stocks?|blue ?chips?|bluechip stocks?)$/, 'large cap stocks'],
+  [/^top (\d{1,2})( momentum)?( stocks?| shares?| picks?)?$/, m => `top ${m[1]} momentum stocks`],
+  [/^(?:stocks?|shares?) (?:under|below|less than) (?:₹|rs\.? ?)?(\d[\d,]*)$/, m => `stocks with price below ${m[1].replace(/,/g, '')}`],
+  [/^(?:stocks?|shares?) (?:above|over|more than) (?:₹|rs\.? ?)?(\d[\d,]*)$/, m => `stocks with price above ${m[1].replace(/,/g, '')}`],
+  [/^(ev|electric vehicles?|ev stocks?)$/, 'auto stocks'],
+];
+function shortRewrite(q) { const c = q.toLowerCase().replace(/[?!.]+/g, ' ').replace(/\b(please|pls|show|me|list|give|the|any|some)\b/g, ' ').replace(/\s+/g, ' ').trim(); for (const [re, to] of SHORT) { const m = c.match(re); if (m) return typeof to === 'function' ? to(m) : to; } return null; }
 
 // ---------- per-stock metrics over the whole universe (last close; cached per history file) ----------
 let ROWS = null;
@@ -327,8 +370,9 @@ function rows(H, F) {
 
 // ---------- screener ----------
 const SECTORS = [
+  [/\bpsu banks?|public sector banks?|government banks?|govt banks?/, r => /^(SBIN|PNB|BANKBARODA|CANBK|UNIONBANK|INDIANB|BANKINDIA|MAHABANK|IOB|UCOBANK|CENTRALBK|PSB)$/.test(r.sym), 'public sector banks'],
   [/\bpharma|drug|healthcare|hospital|diagnostic/, r => /Healthcare/.test(r.sector), 'healthcare and pharma'],
-  [/\bprivate banks?|\bpsu banks?|\bpublic sector banks?|\bbanks?\b|banking/, r => /^Banks/.test(r.industry), 'banks'],
+  [/\bprivate banks?|\bbanks?\b|banking/, r => /^Banks/.test(r.industry), 'banks'],
   [/\bnbfc|finance compan|lender|credit/, r => /Credit Services|Mortgage Finance/.test(r.industry), 'NBFCs and lenders'],
   [/\binsurance|insurer/, r => /Insurance/.test(r.industry), 'insurance'],
   [/\bfinancials?|financial services/, r => /Financial/.test(r.sector), 'financial services'],
@@ -377,7 +421,7 @@ function screenFilters(q) {
     const lo = /below|under|less|lower|<|most|max|not more/.test(cmp), bt = cmp === 'between';
     const va = parseNum(a, ua, field), vb = b != null ? parseNum(b, ub, field) : null;
     if (isNaN(va) || F.some(f => f.field === field)) return;
-    if (bt && vb != null) { F.push({ field, test: v => v != null && v >= Math.min(va, vb) && v <= Math.max(va, vb) }); desc.push(`${label} between ${a} and ${b}`); }
+    if (bt && vb != null) { F.push({ field, test: v => v != null && v >= Math.min(va, vb) && v <= Math.max(va, vb) }); desc.push(`${label} between ${a} and ${b}${ub ? ' ' + ub : ''}`); return; }
     const u = ua ? (/^[%x]$/.test(ua) ? ua : ' ' + ua) : '';
     if (lo) { F.push({ field, test: v => v != null && v <= va }); desc.push(`${label} ≤ ${a}${u}`); }
     else { F.push({ field, test: v => v != null && v >= va }); desc.push(`${label} ≥ ${a}${u}`); }
@@ -571,10 +615,13 @@ module.exports = async (req, res) => {
 };
 
 async function answer(question, b, H, F, P) {
-  const l = question.toLowerCase();
+  let l = question.toLowerCase();
   const last = b.last && H.universe.includes(String(b.last)) ? String(b.last) : null;
   const lastTopics = Array.isArray(b.lastTopics) ? b.lastTopics.filter(t => typeof t === 'string' && /^(price|tech|avg|fund|mom|news|why|idea|overview)$/.test(t)) : null;
+  question = question.replace(/\bbnk\b/gi, 'bank');
   let { syms, ambiguous, alts } = findStocks(question, H.universe, F);
+  if (!syms.length && !ambiguous) { const rw = shortRewrite(question); if (rw && !(last && (/^(news|headlines|update|updates|today|aaj)\??$/i.test(question.trim()) || routeStock(question)[0] !== 'overview' || /to buy$/.test(rw)))) { question = rw; ({ syms, ambiguous, alts } = findStocks(question, H.universe, F)); } }
+  l = question.toLowerCase();
   if (syms.length === 1 && last && last !== syms[0] && /\b(compare|vs\.?|versus|against|it with|with it|than it)\b/i.test(l)) syms = [last, syms[0]];   // "compare it with TCS"
   const advice = /\b(buy|sell|hold|accumulate|should i (buy|sell|invest|hold|exit|enter)|worth (buying|investing)|multibagger|tip|tips)\b/i.test(question);
   const pre = advice ? "TrendLens doesn't give buy, sell or hold calls. Here are the facts instead:\n" : '';
@@ -586,7 +633,7 @@ async function answer(question, b, H, F, P) {
   if (g && !syms.length && /\b(what('s| is| are| does)|meaning|explain|define|stand for|how (is|does) .* (work|calculated))\b/i.test(l))
     return { text: `**${g[1]}**\n${g[2]}`, mode: 'quick', kind: 'glossary' };
   // 3) ideas
-  if (/\b(ideas?|posted|live ideas|closed ideas|track record|win rate|hit rate|your (picks|calls)|ceo|portfolio)\b/.test(l) && (!syms.length || /\b(idea|post|ceo|committee|conviction)\b/.test(l)))
+  if (/\b(ideas?|posted|live ideas|closed ideas|track record|win rate|hit rate|your (picks|calls)|ceo|portfolio)\b/.test(l) && (!syms.length || /\b(idea|post|ceo|committee|conviction)\b/.test(l.replace(/vodafone idea/g, ''))))
     return { text: pre + ideasAnswer(question, P, syms[0]), mode: 'quick', kind: 'ideas', sym: syms[0] || null };
   // 4) compare
   if (syms.length >= 2) {
@@ -599,7 +646,9 @@ async function answer(question, b, H, F, P) {
   if (!syms.length && /\b(market|nifty|sensex|bank ?nifty|vix|breadth|dalal)\b/.test(l.replace(/market ?cap|nifty ?500/g, '')) && !/\b(stocks?|compan(y|ies)|shares)\b/.test(l) && !screenSort(question))
     return { text: await market(H, F), mode: 'quick', kind: 'market' };
   // 6) screener
-  if (!syms.length && (isScreenQ(question) || sf.F.length)) {
+  if (!last && !syms.length && /^(is it|is this|should i (buy|sell|hold) (it|this)|buy it|sell it|hold it|what about it)\b/i.test(question.trim())) return { text: 'Which stock do you mean? Type its name or NSE symbol, e.g. "Is TCS a buy?" (TrendLens shows the facts; it does not give buy or sell calls).', mode: 'quick', kind: 'ambiguous' };
+  const pron = last && /\b(is it|it a|it good|about it(?! (stocks?|sector|companies))|it's|does it|did it|will it|can it|buy it|sell it|hold it|its (price|pe|rsi|target|news|trend|chart|dividend))\b/i.test(question);   // "is it a buy": it = the stock, not the IT sector
+  if (!syms.length && !pron && (isScreenQ(question) || sf.F.length)) {
     const s = screen(question, H, F);
     if (s) return { text: pre + s.text, mode: 'quick', kind: 'screen', candidates: s.syms.slice(0, 6) };
   }

@@ -46,3 +46,15 @@ def blocked() -> dict[str, str]:
         return load_nse(str(REPO / "nse"))[0]
     except Exception:
         return {}
+
+
+def results() -> dict[str, str]:
+    """{symbol: next results date 'YYYY-MM-DD'} from the repo's nse/*.csv board-meeting / event calendar (refreshed every morning
+    by pipeline/nse_fetch.py). Empty if missing."""
+    try:
+        import sys
+        sys.path.insert(0, str(REPO / "pipeline"))
+        from core import load_nse
+        return load_nse(str(REPO / "nse"))[1]
+    except Exception:
+        return {}

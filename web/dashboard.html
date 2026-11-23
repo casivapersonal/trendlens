@@ -83,13 +83,17 @@ let P=null,ROWS=[],F={status:'all',term:'all'},SORT={k:'progress',d:-1};
 function sessionsBetween(bars,a,b){if(!bars)return null;return bars.filter(r=>r[0]>a&&r[0]<=b).length}
 function build(){
   const out=[];
+// audit fix #16: results after Indian delivery costs on a Rs 1 lakh idea, zero-brokerage delivery account: STT 0.1% each side, exchange 0.00297%, SEBI, stamp 0.015% (buy),
+// GST 18% on exchange + SEBI, DP charge Rs 15.93 on the sale, and 0.1% slippage each side (about 0.44% a round trip)
+const COST_BUY=0.1+0.00297+0.0001+0.015+0.18*(0.00297+0.0001)+0.1, COST_SELL=0.1+0.00297+0.0001+0.18*(0.00297+0.0001)+15.93/1e5*100+0.1;
+const netRet=r=>r==null||isNaN(r)?r:((1+r/100)*(1-COST_SELL/100)/(1+COST_BUY/100)-1)*100;
   const add=(e,st)=>{
     const bars=(P.bars||{})[e.sym];
     const fill=e.filled&&e.filled.price?e.filled.price:e.entry_price;
     const notEntered=st==='closed'?!!e.not_entered||e.close_kind==='not_entered':(!!e.fill_rule&&!e.filled);
     const expT=e.target?(e.target/fill-1)*100:null, expS=e.stop?(e.stop/fill-1)*100:null;
     const now=st==='live'?(e.price_now||e.entry_price):e.exit_price;
-    const actual=notEntered?null:st==='closed'?(e.ret_pct!=null?e.ret_pct:(now/fill-1)*100):(now/fill-1)*100;
+    const actual=notEntered?null:netRet(st==='closed'?(e.ret_pct!=null?e.ret_pct:(now/fill-1)*100):(now/fill-1)*100);   // net of costs
     let progress=null;
     if(actual!=null){progress=actual>=0?(expT?actual/expT*100:null):(expS?-(actual/expS)*100:null)}
     const from=(e.filled&&e.filled.date)||e.entry_date,to=st==='closed'?e.exit_date:'9999';
@@ -103,7 +107,7 @@ function build(){
     const held=st==='closed'?sessionsBetween(bars,e.entry_date,e.exit_date):(e.days_held??sessionsBetween(bars,e.entry_date,'9999'));
     out.push({sym:e.sym,name:e.name||e.sym,st,term:e.term||'momentum',conv:(e.ceo&&e.ceo.conviction)||'—',score:e.judge?e.judge.score:null,posted:e.posted||e.entry_date,
       fill,entry:e.entry_price,target:e.target,stop:e.stop,expT,expS,actual,progress,dev:actual!=null&&expT!=null?actual-expT:null,best,worst,cls,held,expDays:e.term==='short'?e.days:null,
-      reason:st==='closed'?e.reason:(e.exit_signal?e.exit_signal.reason:null),nifty:e.nifty_pct});
+      reason:st==='closed'?e.reason:(e.exit_signal?e.exit_signal.reason:null),nifty:e.n500_pct!=null?e.n500_pct:e.nifty_pct,nifty50:e.nifty_pct});   // benchmark: NIFTY 500 (audit fix #17)
   };
   (P.live||[]).forEach(e=>add(e,'live'));(P.closed||[]).forEach(e=>add(e,'closed'));
   ROWS=out;
@@ -122,7 +126,7 @@ function tiles(V){
     t('Average progress to target',prog==null?'—':Math.round(prog)+'%',`100% = target reached · ${L.length} live, ${C.length} closed`)+
     t('Closed ideas: average deviation',devC==null?'—':pp(devC),C.length?`actual result minus the expected move, over ${C.length} closed`:'No closed ideas yet')+
     t('Closed ideas that made money',win==null?'—':Math.round(win)+'%',C.length?`${C.filter(r=>r.actual>0).length} of ${C.length}`:'Builds up as ideas close')+
-    t('Versus NIFTY (equal weight)',exc==null?'—':pp(exc),exc==null?'NIFTY over the same holding periods; builds up as ideas trade':`average idea minus NIFTY over the same days, ${XN} ideas`)+
+    t('Versus NIFTY 500 (equal weight)',exc==null?'—':pp(exc),exc==null?'NIFTY 500 over the same holding periods; builds up as ideas trade':`average idea after costs minus NIFTY 500 (price index; NIFTY 50 for ideas without a NIFTY 500 level) over the same days, ${XN} ideas`)+
     t('After tax (20% short-term gains)',tax==null?'—':pc(tax),tax==null?'Builds up as ideas trade':`average result if gains are taxed at 20% (held under a year); before tax ${pc(avg(E.map(r=>r.actual).filter(x=>x!=null)))}`);
 }
 

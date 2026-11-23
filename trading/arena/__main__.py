@@ -319,7 +319,7 @@ def cmd_ideas(a, cfg):
         ranks, moms = _momentum_ranks()
         extra = [x for x, r in ranks.items() if r <= cfg["ideas"].get("entry_rank", 20) and x not in sl.frames]
         for x, d in _history(feed, extra, "2y").items():
-            if d is not None and not d.empty and len(d) > 30: sl.frames[x] = d; sl.setups[x] = daily_setups(d)
+            if d is not None and not d.empty and len(d) > 30: sl.frames[x] = d; sl.setups[x] = daily_setups(d, cfg["ideas"].get("setups"))
         pen = ideas.scan(cfg, sl, Committee(cfg), now, ranks=ranks, moms=moms)
         for q in pen["queue"]:
             print(f"{q['status']:<18} {q['id']:<26} score {q['judge']['score']:>2}  entry {q['entry_lo']}-{q['entry_hi']}  stop {q['stop']}  target {q['target']}  {q['term']}")
@@ -330,15 +330,11 @@ def cmd_ideas(a, cfg):
             for d in ceo.decide_entries(cfg, now, ideas, frames_for=lambda syms: _history(fe, syms)):
                 print(f"CEO {d['decision']:<8} {d['sym']:<12} {d['conviction']:<7} {d['memo']}")
     elif a.action == "intraday":
-        # every 5 minutes in market hours: live prices -> entries filled, stop / target exits closed, newly qualifying
-        # top-20 momentum stocks (ranked on live prices) reviewed by the committee and the CEO
+        # every 5 minutes in market hours: live prices -> entries filled, stop / target exits closed
         import datetime as _dt, time as _t
         if not (market_open_ist(now) and now.time() >= _dt.time(9, 30)) and not a.force:
             print("Market is closed: the intraday CEO runs 09:30-15:30 IST (opening-auction prices are skipped)."); return
         from . import universe as uni
-        from .committee import Committee
-        from .feeds import make_live_feed
-        from .scanner import daily_setups
         sys.path.insert(0, str(uni.REPO / "pipeline")); import core
         h = json.loads((uni.REPO / "web" / "history.json").read_text())
         pub = ideas.public(); live = [i["sym"] for i in pub["live"]]
@@ -346,7 +342,7 @@ def cmd_ideas(a, cfg):
         nifty = core.quote("NIFTY 50")[1]
         if not a.force and not fresh(nifty):
             print("No trading session right now (NIFTY has not traded in the last 10 minutes: holiday or feed delay). Nothing done."); return
-        q = core.quotes(list(dict.fromkeys(h["universe"] + live)))
+        q = core.quotes(live) if live else {}
         prices = {s: v["p"] for s, v in q.items() if v and v.get("p") and (a.force or fresh(v))}
         last = {s: c[-1] for s, c in h["closes"].items() if c and c[-1]}
         jump = [s for s, p in prices.items() if s in last and abs(p / last[s] - 1) > cfg["ideas"].get("max_day_move", 0.35)]
@@ -354,36 +350,15 @@ def cmd_ideas(a, cfg):
         if jump: print("held for review (one-day move above 35%, possible corporate action):", ", ".join(jump))
         print(f"live prices for {len(prices)} stocks ({len(q) - len(prices)} stale or held)")
         if market_open_ist(now):                   # a forced test outside market hours must not mark entries or exits on stale prices
-            for g in ideas.monitor_live(cfg, prices, now): print("EXIT SIGNAL", g)
+            pcs = {s: v.get("pc") for s, v in q.items() if v}
+            for g in ideas.monitor_live(cfg, prices, now, prev_close=pcs): print("EXIT SIGNAL", g)
         else: print("market closed: entries and exits are not checked on a forced run")
         if cfg.get("ceo", {}).get("enabled", True):
             from . import ceo
             for d in ceo.decide_exits(cfg, now, ideas): print("CEO CLOSED", d)
-        full = {s: prices.get(s) or (h["closes"][s][-1] if h["closes"].get(s) else None) for s in h["universe"]}
-        ranks, moms = core.ranks_now(h, {s: v for s, v in full.items() if v}, now.date().isoformat())
-        er = cfg["ideas"].get("entry_rank", 20); pub = ideas.public(); live = {i["sym"] for i in pub["live"]}
-        top = [s for s, r in sorted(ranks.items(), key=lambda x: x[1]) if r <= er and s not in live]
-        print("top", er, "on live prices, not yet live:", ", ".join(top) or "none")
-        if not top: return
-        feed = make_live_feed(cfg); frames = {}
-        for s, d in _history(feed, top, "2y").items():
-            if d is not None and len(d) > 30:
-                if s in prices:                                            # today's bar at the live price
-                    d = d.astype(float); px = float(prices[s])   # float columns: no dtype warning when the live bar is written
-                    if d.index[-1].date() == now.date():
-                        d.iloc[-1, d.columns.get_loc("close")] = px
-                        d.iloc[-1, d.columns.get_loc("high")] = max(float(d["high"].iloc[-1]), px); d.iloc[-1, d.columns.get_loc("low")] = min(float(d["low"].iloc[-1]), px)
-                    else:
-                        import pandas as pd
-                        d.loc[pd.Timestamp(now.date()).tz_localize(d.index.tz) if d.index.tz is not None else pd.Timestamp(now.date())] = {"open": px, "high": px, "low": px, "close": px, "volume": float(d["volume"].iloc[-20:].mean())}
-                frames[s] = d
-        class Live: pass
-        sl = Live(); sl.pool = [s for s in top if s in frames]; sl.frames = frames; sl.setups = {}; sl.mom_pct = moms
-        ideas.scan(cfg, sl, Committee(cfg), now, ranks=ranks, moms=moms, entry_time=now.strftime("%H:%M"))
-        if cfg.get("ceo", {}).get("enabled", True):
-            from . import ceo
-            for d in ceo.decide_entries(cfg, now, ideas, frames_for=lambda syms: {k: frames[k] for k in syms if k in frames}):
-                print(f"CEO {d['decision']:<8} {d['sym']:<12} {d['conviction']:<7} {d['memo']}")
+        # audit fix #8: NEW momentum ideas are posted only by the 16:15 scan on closing prices (as back-tested), never on
+        # intraday prices; this run only marks entries and flags stop / target exits on live prices.
+        print("entries and exits checked; new ideas are chosen only by the 16:15 scan on closing prices")
     elif a.action == "monitor":
         from .feeds import make_live_feed
         pub = ideas.public(); live = [i["sym"] for i in pub["live"]]

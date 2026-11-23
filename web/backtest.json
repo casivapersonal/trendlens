@@ -1,0 +1,290 @@
+{
+ "asof": "2026-11-20",
+ "stocks": 475,
+ "liquidity": "relative (scaled by NIFTY 500 level)",
+ "bias": "Stock list is today's NIFTY 500: stocks dropped from the index or delisted since are missing, which flatters results.",
+ "costs": "Indian delivery charges (STT, exchange, SEBI, stamp, GST, DP) + 0.1% slippage per side; dividends ignored",
+ "benchmark": {
+  "2011-2019": {
+   "NIFTY 500 (price)": 7.9,
+   "NIFTY 50 (price)": 7.9
+  },
+  "2020-2026": {
+   "NIFTY 500 (price)": 13.8,
+   "NIFTY 50 (price)": 11.5
+  },
+  "Last 5 years": {
+   "NIFTY 500 (price)": 10.0,
+   "NIFTY 50 (price)": 8.2
+  }
+ },
+ "variants": {
+  "A. Rule as published: top 20 in, below #50 out, no stop": {
+   "2011-2019": {
+    "cagr": 21.0,
+    "maxdd": -29.5,
+    "trades": 425,
+    "win": 47.8,
+    "avg_win": 34.0,
+    "avg_loss": -9.6,
+    "med_days": 56,
+    "stop_exits": 0
+   },
+   "2020-2026": {
+    "cagr": 45.2,
+    "maxdd": -36.6,
+    "trades": 312,
+    "win": 53.8,
+    "avg_win": 55.8,
+    "avg_loss": -13.4,
+    "med_days": 87,
+    "stop_exits": 0
+   },
+   "Last 5 years": {
+    "cagr": 34.1,
+    "maxdd": -33.7,
+    "trades": 247,
+    "win": 49.8,
+    "avg_win": 51.6,
+    "avg_loss": -12.4,
+    "med_days": 77,
+    "stop_exits": 0
+   }
+  },
+  "B. A + 6x ATR stop (live momentum stop)": {
+   "2011-2019": {
+    "cagr": 20.4,
+    "maxdd": -31.1,
+    "trades": 477,
+    "win": 45.5,
+    "avg_win": 35.7,
+    "avg_loss": -10.1,
+    "med_days": 49,
+    "stop_exits": 52
+   },
+   "2020-2026": {
+    "cagr": 46.3,
+    "maxdd": -36.9,
+    "trades": 338,
+    "win": 51.2,
+    "avg_win": 53.8,
+    "avg_loss": -13.2,
+    "med_days": 71,
+    "stop_exits": 45
+   },
+   "Last 5 years": {
+    "cagr": 34.6,
+    "maxdd": -34.3,
+    "trades": 267,
+    "win": 48.7,
+    "avg_win": 48.8,
+    "avg_loss": -12.5,
+    "med_days": 68,
+    "stop_exits": 30
+   }
+  },
+  "C. B + no re-entry after a stop until the rank resets (fix #2)": {
+   "2011-2019": {
+    "cagr": 18.3,
+    "maxdd": -28.7,
+    "trades": 522,
+    "win": 44.6,
+    "avg_win": 31.0,
+    "avg_loss": -10.0,
+    "med_days": 43,
+    "stop_exits": 62
+   },
+   "2020-2026": {
+    "cagr": 44.0,
+    "maxdd": -36.6,
+    "trades": 341,
+    "win": 50.7,
+    "avg_win": 55.4,
+    "avg_loss": -12.7,
+    "med_days": 77,
+    "stop_exits": 40
+   },
+   "Last 5 years": {
+    "cagr": 34.2,
+    "maxdd": -33.2,
+    "trades": 267,
+    "win": 47.2,
+    "avg_win": 53.7,
+    "avg_loss": -12.1,
+    "med_days": 68,
+    "stop_exits": 27
+   }
+  },
+  "D. A + sector caps 6 / industry 3 (fix #3)": {
+   "2011-2019": {
+    "cagr": 22.5,
+    "maxdd": -26.4,
+    "trades": 465,
+    "win": 49.7,
+    "avg_win": 30.4,
+    "avg_loss": -9.5,
+    "med_days": 47,
+    "stop_exits": 0
+   },
+   "2020-2026": {
+    "cagr": 45.7,
+    "maxdd": -34.2,
+    "trades": 322,
+    "win": 52.2,
+    "avg_win": 55.6,
+    "avg_loss": -11.9,
+    "med_days": 74,
+    "stop_exits": 0
+   },
+   "Last 5 years": {
+    "cagr": 32.7,
+    "maxdd": -34.2,
+    "trades": 256,
+    "win": 49.6,
+    "avg_win": 47.7,
+    "avg_loss": -11.6,
+    "med_days": 69,
+    "stop_exits": 0
+   }
+  },
+  "E. B + C + D (all audit rules)": {
+   "2011-2019": {
+    "cagr": 21.0,
+    "maxdd": -28.4,
+    "trades": 503,
+    "win": 46.7,
+    "avg_win": 30.6,
+    "avg_loss": -9.8,
+    "med_days": 44,
+    "stop_exits": 53
+   },
+   "2020-2026": {
+    "cagr": 42.6,
+    "maxdd": -33.7,
+    "trades": 355,
+    "win": 48.5,
+    "avg_win": 52.3,
+    "avg_loss": -12.3,
+    "med_days": 63,
+    "stop_exits": 43
+   },
+   "Last 5 years": {
+    "cagr": 32.4,
+    "maxdd": -33.2,
+    "trades": 273,
+    "win": 46.2,
+    "avg_win": 48.3,
+    "avg_loss": -11.8,
+    "med_days": 63,
+    "stop_exits": 30
+   }
+  },
+  "G. B + D: the LIVE rules (6x ATR stop + sector caps; re-entry block not adopted)": {
+   "2011-2019": {
+    "cagr": 21.2,
+    "maxdd": -28.1,
+    "trades": 495,
+    "win": 47.9,
+    "avg_win": 31.4,
+    "avg_loss": -10.0,
+    "med_days": 44,
+    "stop_exits": 54
+   },
+   "2020-2026": {
+    "cagr": 45.4,
+    "maxdd": -37.9,
+    "trades": 341,
+    "win": 50.4,
+    "avg_win": 55.6,
+    "avg_loss": -12.7,
+    "med_days": 67,
+    "stop_exits": 39
+   },
+   "Last 5 years": {
+    "cagr": 34.0,
+    "maxdd": -33.6,
+    "trades": 266,
+    "win": 48.5,
+    "avg_win": 47.8,
+    "avg_loss": -11.6,
+    "med_days": 66,
+    "stop_exits": 25
+   }
+  },
+  "F. A with 12-minus-1-month momentum (info only, fix #9)": {
+   "2011-2019": {
+    "cagr": 19.8,
+    "maxdd": -26.3,
+    "trades": 410,
+    "win": 52.2,
+    "avg_win": 30.4,
+    "avg_loss": -10.3,
+    "med_days": 64,
+    "stop_exits": 0
+   },
+   "2020-2026": {
+    "cagr": 42.6,
+    "maxdd": -34.8,
+    "trades": 368,
+    "win": 54.6,
+    "avg_win": 45.9,
+    "avg_loss": -13.7,
+    "med_days": 61,
+    "stop_exits": 0
+   },
+   "Last 5 years": {
+    "cagr": 31.8,
+    "maxdd": -32.9,
+    "trades": 307,
+    "win": 51.5,
+    "avg_win": 41.9,
+    "avg_loss": -13.5,
+    "med_days": 55,
+    "stop_exits": 0
+   }
+  }
+ },
+ "setups": {
+  "old definitions (5-day pause <= 6%, 20-day volume)": {
+   "breakout": {
+    "trades": 12293,
+    "avg_R": -0.082,
+    "ci95": [
+     -0.108,
+     -0.057
+    ],
+    "win": 36.8
+   },
+   "flag": {
+    "trades": 948,
+    "avg_R": -0.037,
+    "ci95": [
+     -0.115,
+     0.047
+    ],
+    "win": 39.3
+   }
+  },
+  "new definitions (3-10 day pause < 1.5x ATR, 50-day volume)": {
+   "breakout": {
+    "trades": 11374,
+    "avg_R": -0.079,
+    "ci95": [
+     -0.102,
+     -0.055
+    ],
+    "win": 37.0
+   },
+   "flag": {
+    "trades": 2588,
+    "avg_R": 0.073,
+    "ci95": [
+     0.02,
+     0.13
+    ],
+    "win": 44.0
+   }
+  },
+  "method": "one signal per stock per 15 sessions; ATR <= 7%; liquidity floor; entry as live; R after costs; 95% bootstrap interval"
+ }
+}
