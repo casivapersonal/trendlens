@@ -1336,6 +1336,31 @@ function showNextPop(){
 function intraBook(){return MOM&&!MOM.error&&MOM.intraday||null}
 function intraLive(){const b=intraBook();return b?(b.live||[]).filter(i=>i.date===istDate()):[]}
 function intraClosed(){const b=intraBook();return b?(b.closed||[]):[]}
+function intraCard(i){
+  const live=i.status!=='closed',rs=v=>v==null?'—':fmt(v,'IN'),posted=new Date(i.date+'T00:00:00');
+  const mon=`<div class="mono" style="background:${PAL[hashStr(i.sym)%PAL.length]}">${EH(i.sym.replace(/[^A-Z]/g,'').slice(0,2)||'TL')}</div>`;
+  const pot=live&&i.price_now&&i.target?(i.price_now/i.target-1)*100:null;
+  const sc=/Target/.test(i.reason||'')?'bull':/Stop/.test(i.reason||'')?'bear':'neu';
+  const perf=live?`<div class="perf ${i.pnl_now_pct<0?'bad':''}"><span>Change so far: <span class="box ${i.pnl_now_pct>0?'up':i.pnl_now_pct<0?'dn':''}">${pct(i.pnl_now_pct||0)}</span></span><span class="sep"></span><span>Potential left: <b class="${pot>=0?'up':'dn'}">${pot==null?'—':pct(pot)}</b></span></div>`
+    :`<div class="perf ${i.net_pct<0?'bad':''}"><span>Result: <span class="box ${i.net_pct==null?'':i.net_pct>=0?'up':'dn'}">${i.net_pct==null?'not counted':pct(i.net_pct)}</span> <small style="color:var(--muted)">after costs</small></span><span class="sep"></span><span><span class="chip ${sc}">${EH(i.reason||'Closed')}</span> ${EH(i.exit_time||'')}</span></div>`;
+  const d=live&&i.price_now!=null?i.price_now-i.entry_price:null;
+  const q=live?`${rs(i.price_now)} ${d==null?'':`<span class="${d<=0?'up':'dn'}">${d>=0?'+':'−'}${fmtN(Math.abs(d))} (${pct((i.price_now/i.entry_price-1)*100)})</span>`}${i.price_at?` <small style="color:var(--muted)">at ${EH(i.price_at)}</small>`:''}`:`<span style="color:var(--muted)">Covered at ${rs(i.exit_price)}</span>`;
+  const j=i.judge||{},c=i.ceo||{},cv=c.conviction&&c.conviction!=='-'?' · '+EH(c.conviction)+' conviction':'';
+  return`<div class="idea ${live?'':'closed'}" data-intra="${EH(i.id||i.sym)}">
+    <div class="ihd"><div class="posted"><b>Posted:</b> ${fD(posted)} | ${EH(i.time||'09:20')} IST <span class="real-tag" title="Posted only after the CEO agent approved it">Approved by CEO${cv}</span></div><div class="tag">${ICON.clock} Intraday</div></div>
+    <div style="margin-top:6px">${perf}<div class="inst">
+      <div class="ihead">${mon}<div><b>${EH(i.sym)}</b><div class="q tabular">${q}</div><div style="font-size:12px;color:var(--muted);margin-top:1px">F&amp;O stock · ${EH((i.why||[]).join('; '))}</div></div></div>
+      <div class="itab"><table class="tabular"><thead><tr><th>Prev close</th><th>View</th><th>Entry (9:20 open)</th><th>Opened</th></tr></thead>
+      <tbody><tr><td>${rs(i.prev_close)}</td><td><span class="vchip bear">Bearish · short</span></td><td>${rs(i.entry_price)}</td><td>${pct(i.gap_pct)} vs prev close</td></tr></tbody></table></div>
+      <div class="trio tabular"><div><div class="k">Stop-loss <span class="info" tabindex="0" title="Entry + 1 x daily ATR(14). Hit if the price trades at or above it.">i</span></div><div class="v">${rs(i.stop)}</div></div>
+      <div><div class="k">Target</div><div class="v">${rs(i.target)}</div></div><div><div class="k">Time frame</div><div class="v">Same day <small style="font-size:12px;color:var(--muted)">out by 3:15 PM</small></div></div></div>
+      ${c.memo?`<div class="memo"><b>CEO${cv}:</b> ${EH(c.memo)}</div>`:''}
+    </div></div>
+    <div class="iside">
+      <div class="grow"><span style="font-size:12px">Judge score</span><b style="font-size:20px;color:var(--ink);margin:2px 0">${j.score??'—'}<small style="font-size:12px;color:var(--muted)"> pts</small></b><span>Back-tested rule</span><span>2022–26: <b class="up">+0.34%</b> a trade after costs</span></div>
+      <details class="bigbtn out" style="text-align:left;cursor:pointer;height:auto"><summary style="list-style:none;text-align:center">About trade</summary><div style="font-size:12px;color:var(--muted);margin-top:6px;font-weight:400">${(j.rules||[]).map(r=>`+${r.points} ${EH(r.rule)}`).join('<br>')||'Exhaustion fade rule'}<br>Short selling is intraday only. Analysis, not investment advice.</div></details>
+    </div></div>`;
+}
 function renderIntraday(){
   const el=document.getElementById('intraday');const b=intraBook();
   const show=b&&IS.seg==='MOM'&&(IS.term==='all'||IS.term==='intraday');
@@ -1346,14 +1371,13 @@ function renderIntraday(){
   const bt1=bt['2014-2021']||{},bt2=bt['2022-2026']||{};
   const head=t=>`<h3>${t}</h3>`;
   if(IS.tab==='live'){
-    const live=intraLive().filter(mq).map(i=>`<tr><td><b>${EH(i.sym)}</b><div class="k">${EH((i.why||[]).join('; '))}</div></td><td><span class="pill">Short</span><div class="k">opened ${pct(i.gap_pct)} · 9:20 entry</div></td>
-    <td>${rs(i.entry_price)}</td><td>${rs(i.stop)}</td><td>${rs(i.target)}</td><td>${rs(i.price_now)}<div class="k ${i.pnl_now_pct>=0?'up':'dn'}">${pct(i.pnl_now_pct)} before costs${i.price_at?' · '+EH(i.price_at):''}</div></td></tr>`).join('');
+    const live=intraLive().filter(mq).map(intraCard).join('');
     const ok=(w.stocks||[]).filter(x=>x.verdict==='APPROVE'&&mq(x)),no=(w.stocks||[]).filter(x=>x.verdict!=='APPROVE'&&mq(x));
     const watch=ok.map(x=>`<tr><td><b>${EH(x.sym)}</b><div class="k">${EH((x.why||[]).join('; '))}</div></td><td>${rs(x.trigger_lo)} – ${rs(x.trigger_hi)}<div class="k">9:15 open inside this band (prev close ${rs(x.prev_close)})</div></td>
     <td>entry + ₹${fmtN(x.stop_dist)}</td><td>entry − ₹${fmtN(x.target_dist)}</td><td>${x.score} pts</td></tr>`).join('');
     el.innerHTML=`${head('Intraday ideas · live today')}
   <div class="sub">${EH(R.name||'Exhaustion fade (intraday short)')}: F&amp;O stocks that ran up hard and then open 1.5–8% higher tend to fall back during the day. Setups are published after the close as conditional ideas; if the stock opens inside its trigger band, the view is a short at the 9:20 open, stop 1 × daily ATR above, target 2 × that below, closed by 3:15 PM at the latest. Up to ${R.max_per_day||3} a day, chosen by the CEO (biggest 5-day run-up first).</div>
-  ${live?`<table><thead><tr><th>Stock</th><th>View</th><th>Entry</th><th>Stop-loss</th><th>Target</th><th>Now</th></tr></thead><tbody>${live}</tbody></table>`:`<div class="k">No intraday idea is live right now.${day.waiting?' Waiting for the first five-minute candles of '+EH(day.waiting.join(', '))+'.':''}</div>`}
+  ${live?`<div class="igrid" style="margin-top:8px">${live}</div>`:`<div class="k">No intraday idea is live right now.${day.waiting?' Waiting for the first five-minute candles of '+EH(day.waiting.join(', '))+'.':''}</div>`}
   ${day.note?`<div class="k" style="margin-top:6px">${EH(day.note)}</div>`:''}
   <h4 style="margin:12px 0 4px">Conditional setups for ${EH(w.for||'the next session')}</h4>
   ${watch?`<table><thead><tr><th>Stock</th><th>Trigger band (9:15 open)</th><th>Stop-loss</th><th>Target</th><th>Judge</th></tr></thead><tbody>${watch}</tbody></table>`:'<div class="k">No stock qualifies after the last close.</div>'}
@@ -1361,13 +1385,12 @@ function renderIntraday(){
   <div class="k" style="margin-top:8px">Short selling is intraday only (positions must be closed the same day). Analysis, not investment advice.</div>`;
     return}
   const C=intraClosed().filter(mq);
-  const closed=C.slice(0,50).map(c=>`<tr><td><b>${EH(c.sym)}</b><div class="k">${EH(c.date)}</div></td><td>${rs(c.entry_price)} → ${rs(c.exit_price)}</td><td>${EH(c.reason)}<div class="k">${EH(c.exit_time||'')}</div></td>
-    <td class="${c.net_pct==null?'':c.net_pct>=0?'up':'dn'}"><b>${c.net_pct==null?'not counted':pct(c.net_pct)}</b><div class="k">${c.net_pct==null?'no price data':'after costs'}</div></td></tr>`).join('');
+  const closed=C.slice(0,50).map(intraCard).join('');
   el.innerHTML=`${head('Intraday ideas · closed')}
   <div class="grid"><div><span class="k">Live record (after costs)</span><b class="${(st.avg_net_pct||0)>=0?'up':'dn'}">${st.trades?pct(st.avg_net_pct):'—'}</b><span class="k">${st.trades?`a trade, ${st.trades} trades, ${st.win_pct}% profitable`:'no closed trades yet'}</span></div>
   <div><span class="k">Back-test 2014–21 (F&amp;O)</span><b class="up">${pct(bt1.net_pct)}</b><span class="k">a trade, ${bt1.trades||'—'} trades, ${bt1.years_positive||'—'} years positive</span></div>
   <div><span class="k">Back-test 2022–26 (F&amp;O)</span><b class="up">${pct(bt2.net_pct)}</b><span class="k">a trade, ${bt2.trades||'—'} trades, ${bt2.years_positive||'—'} years positive</span></div></div>
-  ${closed?`<table><thead><tr><th>Stock</th><th>Short → covered</th><th>Exit</th><th>Result</th></tr></thead><tbody>${closed}</tbody></table>`:'<div class="k">No closed intraday ideas yet. They move here when the CEO closes them (stop, target or 3:15 PM).</div>'}
+  ${closed?`<div class="igrid" style="margin-top:8px">${closed}</div>`:'<div class="k">No closed intraday ideas yet. They move here when the CEO closes them (stop, target or 3:15 PM).</div>'}
   <div class="k" style="margin-top:8px">Costs used in results: intraday brokerage, STT, exchange, GST, stamp and 0.10% slippage each side. Back-tests use today's F&amp;O list for 2022–26 and an unofficial archive for 2014–21; past results do not guarantee future ones. Analysis, not investment advice.</div>`;
 }
 function fmtISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
