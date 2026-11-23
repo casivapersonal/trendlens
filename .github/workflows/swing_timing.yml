@@ -1,0 +1,38 @@
+name: Swing timing study (5-minute data)
+# Run by hand (pipeline/swing_timing_study.py). Can 5-minute data improve momentum and bull-flag entries / exits? No secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      hist_run:
+        description: "run ID with history-5min-data (2014-2021)"
+        required: true
+        default: "45143637613"
+      new_run:
+        description: "run ID with hf-5min-data (2022-2026)"
+        required: true
+        default: "45141143038"
+permissions:
+  contents: read
+  actions: read
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q -r trading/requirements.txt -r pipeline/requirements.txt
+      - uses: actions/download-artifact@v4
+        with: { name: history-5min-data, path: hist_data, run-id: "${{ github.event.inputs.hist_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: hf-5min-data, path: new_data, run-id: "${{ github.event.inputs.new_run }}", github-token: "${{ github.token }}" }
+      - name: Timing study
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/swing_timing_study.py --old hist_data --new new_data --out swing_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: swing-timing-results
+          path: swing_results
+          retention-days: 30
