@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
-      - run: pip install -q pandas numpy
+      - run: pip install -q pandas numpy requests
       - name: Clone the 1-minute archive
         run: git clone --depth 1 https://github.com/gsidhu/nse-intraday-data.git ../nse-intraday-data && du -sh ../nse-intraday-data
       - name: Convert to 5-minute bars
