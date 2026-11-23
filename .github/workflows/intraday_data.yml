@@ -1,5 +1,5 @@
 name: Intraday data download (Angel One)
-# Run by hand. Downloads 5-minute bars (market data only, no orders) and runs the intraday research on GitHub.
+# Run by hand. Job 1 downloads 5-minute bars (market data only, no orders); job 2 runs the intraday research on them.
 # Needs 4 repository secrets: ANGEL_API_KEY, ANGEL_CLIENT_CODE, ANGEL_PIN, ANGEL_TOTP_SECRET.
 # Results ("intraday-results": summary, groups, trade list) and the raw data are attached to the run as Artifacts.
 on:
@@ -18,21 +18,43 @@ permissions:
 jobs:
   download:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install -q smartapi-python pyotp logzero websocket-client requests yfinance pandas numpy
-      - name: Download 5-minute bars
+      - name: Download 5-minute bars (stops cleanly before GitHub's 6-hour limit)
         env:
           PYTHONUNBUFFERED: "1"
           ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
           ANGEL_CLIENT_CODE: ${{ secrets.ANGEL_CLIENT_CODE }}
           ANGEL_PIN: ${{ secrets.ANGEL_PIN }}
           ANGEL_TOTP_SECRET: ${{ secrets.ANGEL_TOTP_SECRET }}
-        run: python pipeline/angel_download.py --years "${{ github.event.inputs.years || 'max' }}" --stocks "${{ github.event.inputs.stocks || '200' }}" --out intraday_data
+        run: python pipeline/angel_download.py --years "${{ github.event.inputs.years || 'max' }}" --stocks "${{ github.event.inputs.stocks || '200' }}" --out intraday_data --minutes 335
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intraday-5min-data
+          path: intraday_data
+          retention-days: 7
+  research:
+    needs: download
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q pandas numpy
+      - uses: actions/download-artifact@v4
+        with:
+          name: intraday-5min-data
+          path: intraday_data
       - name: Intraday research (every setup, every year, after costs)
+        env:
+          PYTHONUNBUFFERED: "1"
         run: python pipeline/intraday_research.py --data intraday_data --out intraday_results
       - uses: actions/upload-artifact@v4
         if: always()
@@ -40,9 +62,3 @@ jobs:
           name: intraday-results
           path: intraday_results
           retention-days: 30
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: intraday-5min-data
-          path: intraday_data
-          retention-days: 5
