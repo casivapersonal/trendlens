@@ -11,6 +11,7 @@ each side. Then: results by setup, by year, by factor, and every one- or two-fac
              stop 10% of daily ATR (as published by Zarattini, Barbon and Aziz) and a wider 25% version
   vwap     : pullback to VWAP in the direction of the day after 10:00, stop beyond the pullback bar
   gapfade  : fade a gap of more than 1.5% when the first 15 minutes move back toward the previous close
+  z_sma / z_vwap : z-score mean reversion (2+ standard deviations from the 20-bar mean or from VWAP), target the mean
 All exits by 15:15 at the latest. Writes summary.json, summary.md and trades.csv.gz."""
 from __future__ import annotations
 
@@ -64,11 +65,12 @@ def exit_walk(o, h, l, e, entry, stop, long, tgt=None):
     return o[EXIT_BAR]
 
 
-def trade(sym, day, setup, long, o, h, l, e, entry_raw, stop, feats, tgt_r=None):
+def trade(sym, day, setup, long, o, h, l, e, entry_raw, stop, feats, tgt_r=None, tgt_px=None):
     entry = entry_raw * (1 + SLIP if long else 1 - SLIP)
     risk = abs(entry - stop)
     if risk <= 0 or risk / entry > 0.04 or risk / entry < 0.001: return None
-    tgt = (entry + tgt_r * risk if long else entry - tgt_r * risk) if tgt_r else None
+    tgt = (entry + tgt_r * risk if long else entry - tgt_r * risk) if tgt_r else tgt_px
+    if tgt is not None and ((long and tgt <= entry) or (not long and tgt >= entry)): return None
     ex = exit_walk(o, h, l, e, entry, stop, long, tgt) * (1 - SLIP if long else 1 + SLIP)
     g = ex / entry - 1 if long else entry / ex - 1
     net = g - cost_frac(entry)
@@ -150,7 +152,21 @@ def research(D, out):
                 if (long and c[2] > o[0]) or (not long and c[2] < o[0]):
                     t = trade(s, day, "gapfade", long, o, h, l, 3, o[3], (l[:3].min() if long else h[:3].max()), {**feats, "t": 3, "rv": None, "nvw": None}, None)
                     if t: rows.append(t)
-            # 4) Stocks in Play candidates (5-minute opening range)
+            # 4) z-score mean reversion: price stretched 2+ standard deviations from its 20-bar mean (z_sma) or from VWAP
+            #    (z_vwap); enter against the stretch at the next open, target the mean, stop 1.5 standard deviations away
+            zf = {**feats, "rv": None, "nvw": None}
+            for nm, i0 in (("z_sma", 20), ("z_vwap", 12)):
+                for i in range(i0, 66):
+                    if nm == "z_sma": m = c[i - 19:i + 1].mean(); sd = c[i - 19:i + 1].std()
+                    else: m = vw[i]; sd = np.std(c[:i + 1] - vw[:i + 1])
+                    if not sd > 0: continue
+                    z = (c[i] - m) / sd
+                    if abs(z) >= 2:
+                        long = z < 0; e = o[i + 1]
+                        t = trade(s, day, nm, long, o, h, l, i + 1, e, e - 1.5 * sd if long else e + 1.5 * sd, {**zf, "t": i, "z": round(float(z), 2)}, None, m)
+                        if t: rows.append(t)
+                        break
+            # 5) Stocks in Play candidates (5-minute opening range)
             v0 = vavg[0]
             if v0 > 0 and c[0] != o[0] and A == A: sip.append((v[0] / v0, s, A, feats))
         sip.sort(reverse=True, key=lambda x: x[0])
@@ -184,6 +200,7 @@ def summarise(T, out):
     B = {"t": pd.cut(T.t, [0, 6, 12, 22, 80]), "gap": pd.cut(T.gap, [-99, -1, -0.3, 0.3, 1, 99]), "ngap": pd.cut(T.ngap, [-99, -0.5, -0.15, 0.15, 0.5, 99]),
          "rk": pd.cut(T.rk, [0, 20, 50, 150, 999]), "trend": T.trend, "r5": pd.cut(T.r5, [-99, -5, -2, 0, 2, 5, 99]), "atrp": pd.cut(T.atrp, [0, 1.5, 2.5, 4, 99]),
          "tvcr": pd.cut(T.tvcr, [0, 30, 100, 300, 1e7]), "rv": pd.cut(T.rv, [0, 0.8, 1.2, 2, 3, 999]), "nvw": pd.cut(T.nvw, [-99, -0.1, 0.1, 99]), "wd": T.wd}
+    if "z" in T: B["z"] = pd.cut(T.z.abs(), [2, 2.5, 3, 99], include_lowest=True)
     groups = []
     for (su, sd), g in T.groupby(["setup", "side"]):
         for k in (1, 2):
