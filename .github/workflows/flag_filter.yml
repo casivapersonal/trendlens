@@ -1,0 +1,41 @@
+name: Bull flag first-30-minute filter test
+# Run by hand (pipeline/flag_filter_test.py). Uses the trade list from a Swing timing study run and the saved 5-minute data.
+on:
+  workflow_dispatch:
+    inputs:
+      study_run:
+        description: "run ID with swing-timing-results"
+        required: true
+        default: "45184712291"
+      hist_run:
+        description: "run ID with history-5min-data (2014-2021)"
+        required: true
+        default: "45143637613"
+      new_run:
+        description: "run ID with hf-5min-data (2022-2026)"
+        required: true
+        default: "45141143038"
+permissions:
+  contents: read
+  actions: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q -r trading/requirements.txt -r pipeline/requirements.txt
+      - uses: actions/download-artifact@v4
+        with: { name: swing-timing-results, path: study, run-id: "${{ github.event.inputs.study_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: history-5min-data, path: hist_data, run-id: "${{ github.event.inputs.hist_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: hf-5min-data, path: new_data, run-id: "${{ github.event.inputs.new_run }}", github-token: "${{ github.token }}" }
+      - name: Filter test
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/flag_filter_test.py --trades study/flag_trades.csv --old hist_data --new new_data --out filter_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: flag-filter-results, path: filter_results, retention-days: 30 }
