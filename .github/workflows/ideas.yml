@@ -76,16 +76,17 @@ jobs:
           if [ "$ACT" = "scan" ] && [ "$EVT" = "schedule" ]; then python -m arena ideas monitor; fi
           python -m arena "${args[@]}"
       - name: Intraday segment - conditional ideas for the next session (exhaustion fade)
-        if: ${{ github.event_name == 'schedule' || github.event.inputs.action == 'scan' }}
+        if: ${{ always() && (github.event_name == 'schedule' || github.event.inputs.action == 'scan') }}   # runs even if the momentum scan failed
         continue-on-error: true
         working-directory: trading
         run: python -m arena intraday prep
       - name: Notify subscribers (ideas posted or closed today)
-        if: ${{ env.VAPID_PRIVATE_KEY != '' && env.UPSTASH_REDIS_REST_URL != '' }}
+        if: ${{ always() && env.VAPID_PRIVATE_KEY != '' && env.UPSTASH_REDIS_REST_URL != '' }}
         continue-on-error: true
         working-directory: pipeline
         run: python notify.py ../web/picks.json
       - name: Commit
+        if: ${{ always() }}
         run: |
           git config user.name "trendlens-bot"; git config user.email "trendlens-bot@users.noreply.github.com"
           for f in web/picks.json web/history.json trading/ideas/pending.json trading/ideas/intraday_watch.json nse/fno.csv; do [ -f "$f" ] && git add "$f"; done; true
