@@ -11,6 +11,8 @@ from arena.clock import IST
 from arena.config import load_config
 
 CFG = load_config()
+_WATCH = ii.WATCH
+def tearDownModule(): ii.WATCH = _WATCH
 DAY = datetime(2026, 11, 24)                                   # a Tuesday
 
 
@@ -52,6 +54,16 @@ class Prep(unittest.TestCase):
         self.assertAlmostEqual(f["atr"], float(bt.atr), places=3); self.assertAlmostEqual(f["ret5"], float(bt.ret5), places=3)
         self.assertAlmostEqual(f["ext50"], float(bt.ext50), places=3)
 
+    def test_next_session_skips_holidays_and_stale_stocks_are_dropped(self):
+        self.assertEqual(ii._next_session(datetime(2026, 12, 24, 16), {"market": {"holidays": ["2026-12-25"]}}), "2026-12-28")
+        late = daily("run").iloc[:-1]                                      # this stock's feed missed the last close
+        w = ii.prep(CFG, {"RUN": late, "EXT": daily("ext")}, DAY - timedelta(hours=8))
+        self.assertEqual(set(w["stocks"]), {"EXT"})
+
+    def test_a_run_during_the_session_ignores_todays_partial_bar(self):
+        d = daily("ext"); w = ii.prep(CFG, {"EXT": d}, datetime.combine(d.index[-1].date(), datetime.min.time()).replace(hour=11))
+        self.assertEqual(w["last_close"], d.index[-2].date().isoformat())
+
     def test_illiquid_or_cheap_stocks_are_left_out(self):
         d = daily("run"); d["volume"] = 1000
         self.assertEqual(ii.prep(CFG, {"THIN": d}, DAY)["stocks"], {})
@@ -62,7 +74,7 @@ class ScanAndCeo(unittest.TestCase):
 
     def setUp(self, **kw):
         self.tmp = tempfile.TemporaryDirectory(); ii.WATCH = Path(self.tmp.name) / "watch.json"
-        ii.prep(CFG, {"RUN": daily("run"), "EXT": daily("ext")}, DAY - timedelta(days=1), results=kw.get("results", {}), blocked={},
+        ii.prep(CFG, {"RUN": daily("run"), "EXT": daily("ext")}, DAY - timedelta(hours=7, minutes=45), results=kw.get("results", {}), blocked={},
                 news_fn=kw.get("news_fn"), next_session=DAY.date().isoformat())
         self.w = json.loads(ii.WATCH.read_text())
 
@@ -70,8 +82,24 @@ class ScanAndCeo(unittest.TestCase):
         pc = self.w["stocks"][sym]["close"]; o = pc * (1 + gap / 100); e = e or o * 0.996
         return candles(o, [(o, o * 1.002, o * 0.995, o * 0.996), (e, e * 1.002, e * 0.998, e * 0.999), (e, e * 1.001, e * 0.999, e)])
 
-    def scan(self, pub, t, bars, prev=None):
+    def scan(self, pub, t, bars, prev=None, fill=True):
+        if fill: bars = {**{s: self.bars_gap(s, 0) for s in self.w["stocks"]}, **bars}      # the other watched stocks: data, no gap
         return ii.scan(CFG, pub, datetime(DAY.year, DAY.month, DAY.day, *t), bars=bars, prev_session=prev or self.PREV)
+
+    def test_missing_candles_are_retried_until_10(self):
+        pub = {}
+        self.assertEqual(self.scan(pub, (9, 21), {"RUN": self.bars_gap("RUN", 3)[:1]}), [])          # 9:20 candle not out yet
+        self.assertEqual(pub["intraday"]["days"][DAY.date().isoformat()]["waiting"], ["RUN"])
+        self.assertEqual(len(self.scan(pub, (9, 26), {"RUN": self.bars_gap("RUN", 3)})), 1)          # the next run posts
+        pub = {}
+        self.assertEqual(self.scan(pub, (9, 30), {}, fill=False), [])                               # feed down: nothing marked
+        self.assertIsNone(pub["intraday"]["days"][DAY.date().isoformat()]["scanned"])
+        self.assertEqual(self.scan(pub, (10, 1), {}, fill=False), [])                               # after 10:00: given up, with a note
+        self.assertIn("no five-minute data", pub["intraday"]["days"][DAY.date().isoformat()]["note"])
+
+    def test_results_already_out_do_not_block(self):
+        self.setUp(results={"RUN": "2026-10-30"})
+        self.assertEqual(self.w["stocks"]["RUN"]["judge"]["verdict"], "APPROVE")
 
     def test_published_the_evening_before_with_a_trigger_band(self):
         f = self.w["stocks"]["RUN"]; self.assertEqual(self.w["for"], DAY.date().isoformat())
@@ -154,8 +182,15 @@ class Exits(unittest.TestCase):
         pub = self.run_path([(100, 100.5, 99.5, 100)] * 2 + [(100, 100.2, 95.5, 96)])
         st = pub["intraday"]["stats"]; self.assertEqual(st["trades"], 1); self.assertEqual(st["wins"], 1)
 
+    def test_no_data_is_not_a_fake_result(self):
+        pub = {"intraday": {"live": [dict(self.idea)], "closed": [], "days": {}, "stats": {}}}
+        ii.monitor(CFG, pub, datetime(DAY.year, DAY.month, DAY.day, 15, 20), bars={})
+        self.assertEqual(len(pub["intraday"]["live"]), 1)                       # retried later the same day
+        ii.monitor(CFG, pub, datetime(DAY.year, DAY.month, DAY.day, 16, 40), bars={})
+        c = pub["intraday"]["closed"][0]; self.assertIsNone(c["net_pct"]); self.assertEqual(pub["intraday"]["stats"]["trades"], 0)
+
     def test_yesterdays_idea_is_closed_at_its_last_price(self):
-        pub = {"intraday": {"live": [{**self.idea, "date": "2026-11-20", "price_now": 98.0}], "closed": [], "days": {}, "stats": {}}}
+        pub = {"intraday": {"live": [{**self.idea, "date": "2026-11-20", "price_now": 98.0, "price_at": "15:10"}], "closed": [], "days": {}, "stats": {}}}
         ii.monitor(CFG, pub, datetime(DAY.year, DAY.month, DAY.day, 9, 40), bars={"X": candles(90, [(90, 91, 89, 90)] * 6)})
         self.assertEqual(pub["intraday"]["closed"][0]["exit_price"], 98.0)
 
