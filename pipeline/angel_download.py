@@ -24,8 +24,8 @@ def login():
     if miss: sys.exit("missing GitHub secrets: " + ", ".join(miss))
     api = SmartConnect(api_key=os.environ["ANGEL_API_KEY"])
     s = api.generateSession(os.environ["ANGEL_CLIENT_CODE"], os.environ["ANGEL_PIN"], pyotp.TOTP(os.environ["ANGEL_TOTP_SECRET"]).now())
-    if not s or not s.get("status"): sys.exit("Angel One login failed: " + str((s or {}).get("message")))
-    print("logged in to Angel One (market data only)")
+    if not s or not s.get("status"): sys.exit("Angel One login failed: " + str((s or {}).get("message")) + " " + str((s or {}).get("errorcode")))
+    print("logged in to Angel One (market data only)", flush=True)
     return api
 
 
@@ -55,18 +55,24 @@ def chunks(start, end, days=95):
         a = b + dt.timedelta(days=1)
 
 
+ERRORS = {}
+
+
 def candles(api, token, a, b, exch="NSE"):
     p = {"exchange": exch, "symboltoken": token, "interval": "FIVE_MINUTE", "fromdate": a.strftime("%Y-%m-%d 09:15"), "todate": b.strftime("%Y-%m-%d 15:30")}
-    for k in range(6):
+    for k in range(5):
         try:
             r = api.getCandleData(p)
             if r and r.get("status"): return r.get("data") or []
-            msg = str((r or {}).get("message", "")) + str((r or {}).get("errorcode", ""))
-            if "AB1021" in msg or "many" in msg.lower(): time.sleep(5 + 5 * k); continue
-            if "AB1004" in msg or "no data" in msg.lower(): return []
-            time.sleep(2 + 2 * k)
+            msg = str((r or {}).get("message", "")) + " " + str((r or {}).get("errorcode", ""))
         except Exception as e:
-            print("  retry after error:", str(e)[:120]); time.sleep(3 + 3 * k)
+            msg = "error: " + str(e)[:150]
+        ERRORS[msg] = ERRORS.get(msg, 0) + 1
+        if ERRORS[msg] <= 3: print(f"  {token} {a}..{b}: {msg}", flush=True)
+        if "AB1004" in msg or "no data" in msg.lower(): return []
+        if any(x in msg for x in ("AG8001", "AG8002", "AG8003", "AB1050", "AB1053", "Invalid Token", "Invalid API")):
+            sys.exit("Angel One refused the request (" + msg + "): check the API key app type (Historical / Market Feeds) and the secrets")
+        time.sleep(3 + 4 * k)
     return None
 
 
@@ -75,8 +81,8 @@ def main():
     ap.add_argument("--out", default="intraday_data"); a = ap.parse_args()
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     syms = [s.strip() for s in open(HERE / "nifty500.txt") if s.strip()]
-    pick = liquid(syms, a.stocks); print("stocks picked by traded value:", len(pick))
-    tok = tokens(pick); print("Angel tokens found:", len(tok), "missing:", [s for s in pick if s not in tok][:20])
+    pick = liquid(syms, a.stocks); print("stocks picked by traded value:", len(pick), flush=True)
+    tok = tokens(pick); print("Angel tokens found:", len(tok), "missing:", [s for s in pick if s not in tok][:20], flush=True)
     api = login()
     end = dt.date.today() - dt.timedelta(days=1)
     start = dt.date(2016, 1, 1) if str(a.years).lower() == "max" else max(dt.date(2016, 1, 1), end - dt.timedelta(days=int(365 * float(a.years))))
@@ -86,12 +92,13 @@ def main():
         for x, y in chunks(start, end):
             d = candles(api, t, x, y)
             if d is None: failed.append(f"{s} {x}..{y}"); continue
-            rows += d; time.sleep(0.4)
+            rows += d; time.sleep(0.35)
         if rows:
             with gzip.open(out / f"{s}.csv.gz", "wt") as f:
                 f.write("time,open,high,low,close,volume\n")
                 for r in sorted({r[0]: r for r in rows}.values()): f.write(",".join(str(v) for v in r[:6]) + "\n")
-        print(f"{n}/{len(todo)} {s}: {len(rows)} bars", flush=True)
+        print(f"{n}/{len(todo)} {s}: {len(rows)} bars ({time.strftime('%H:%M:%S')})", flush=True)
+        if n == 1 and not rows: sys.exit("no bars for NIFTY 50: stopping (see the messages above)")
     (out / "_info.json").write_text(json.dumps({"from": str(start), "to": str(end), "interval": "5 minute", "stocks": len(todo), "failed_chunks": failed}, indent=1))
     print("done; failed chunks:", len(failed))
 
