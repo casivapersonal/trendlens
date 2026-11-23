@@ -57,7 +57,7 @@ tr:hover td{background:#faf9f6}
   <p class="lead" id="lead">How each idea is doing against what the CEO expected when it was posted: the target (the reference objective for momentum ideas) above, the stop-loss below.</p>
   <div class="filters">
     <div class="seg" id="fStatus"><button data-v="all" class="on">All ideas</button><button data-v="live">Live</button><button data-v="closed">Closed</button></div>
-    <div class="seg" id="fTerm"><button data-v="all" class="on">All terms</button><button data-v="medium">Momentum (medium)</button><button data-v="short">Short term</button></div>
+    <div class="seg" id="fTerm"><button data-v="all" class="on">All terms</button><button data-v="medium">Momentum (medium)</button><button data-v="short">Short term</button><button data-v="intraday">Intraday</button></div>
   </div>
   <div class="tiles" id="tiles"></div>
   <div class="card"><h2>Outcome mix</h2><p class="hint">Each idea placed by how far it has moved from its entry toward its target (or toward its stop-loss).</p><div id="mix"></div></div>
@@ -110,6 +110,14 @@ const netRet=r=>r==null||isNaN(r)?r:((1+r/100)*(1-COST_SELL/100)/(1+COST_BUY/100
       reason:st==='closed'?e.reason:(e.exit_signal?e.exit_signal.reason:null),nifty:e.n500_pct!=null?e.n500_pct:e.nifty_pct,nifty50:e.nifty_pct});   // benchmark: NIFTY 500 (audit fix #17)
   };
   (P.live||[]).forEach(e=>add(e,'live'));(P.closed||[]).forEach(e=>add(e,'closed'));
+  const ib=P.intraday||{},today=new Date(Date.now()+19800e3).toISOString().slice(0,10);   // intraday shorts: results after intraday costs, from the CEO's own records
+  const addI=(e,st)=>{const fill=e.entry_price,expT=e.target?-(e.target/fill-1)*100:null,expS=e.stop?-(e.stop/fill-1)*100:null;
+    const actual=st==='closed'?e.net_pct:(e.price_now!=null?-(e.price_now/fill-1)*100:null);
+    let progress=null;if(actual!=null)progress=actual>=0?(expT?actual/expT*100:null):(expS?-(actual/expS)*100:null);
+    const cls=actual==null?'ne':st==='closed'&&/Target/.test(e.reason||'')||progress>=100?'met':progress>=50?'ahead':progress>=0?'track':progress>-50?'lag':'risk';
+    out.push({sym:e.sym,name:e.sym,st,term:'intraday',conv:(e.ceo&&e.ceo.conviction)||'—',score:e.judge?e.judge.score:null,posted:e.date,fill,entry:fill,target:e.target,stop:e.stop,expT,expS,actual,progress,
+      dev:actual!=null&&expT!=null?actual-expT:null,best:actual!=null?Math.max(actual,0):null,worst:actual!=null?Math.min(actual,0):null,cls,held:0,expDays:null,reason:st==='closed'?e.reason:null,nifty:null,nifty50:null})};
+  (ib.live||[]).filter(e=>e.date===today).forEach(e=>addI(e,'live'));(ib.closed||[]).forEach(e=>addI(e,'closed'));
   ROWS=out;
 }
 const view=()=>ROWS.filter(r=>(F.status==='all'||r.st===F.status)&&(F.term==='all'||r.term===F.term));
@@ -186,7 +194,7 @@ const COLS=[['sym','Stock'],['st','Status'],['term','Term'],['conv','Conviction'
 function detail(V){
   if(!V.length){$('#detail').innerHTML='<div class="empty">No ideas match these filters.</div>';return}
   const k=SORT.k,R=V.slice().sort((a,b)=>{const x=a[k],y=b[k];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (typeof x==='string'?x.localeCompare(y):x-y)*SORT.d});
-  const cell=(r,c)=>{const v=r[c];switch(c){case'sym':return `<b>${esc(v)}</b>`;case'st':return v==='live'?'Live':'Closed';case'term':return v==='medium'?'Momentum':v==='short'?'Short':'Auto';case'fill':return rs(v);case'expT':case'expS':case'best':case'worst':return pc(v);
+  const cell=(r,c)=>{const v=r[c];switch(c){case'sym':return `<b>${esc(v)}</b>`;case'st':return v==='live'?'Live':'Closed';case'term':return v==='medium'?'Momentum':v==='short'?'Short':v==='intraday'?'Intraday':'Auto';case'fill':return rs(v);case'expT':case'expS':case'best':case'worst':return pc(v);
     case'actual':return `<span class="${v>=0?'up':'dn'}">${pc(v)}</span>`;case'progress':return v==null?'—':Math.round(v)+'%';case'dev':return pp(v);case'held':return v==null?'—':v+(r.expDays?' / '+r.expDays:'');case'cls':return `<span class="chip"><i style="background:${CLS[v][1]}"></i>${CLS[v][0]}</span>`;default:return esc(v)}};
   $('#detail').innerHTML=`<table><thead><tr>${COLS.map(([c,l,n])=>`<th class="${n?'num':''}" data-k="${c}">${l}${SORT.k===c?(SORT.d<0?' ↓':' ↑'):''}</th>`).join('')}</tr></thead><tbody>${R.map(r=>`<tr>${COLS.map(([c,,n])=>`<td class="${n?'num':''}">${cell(r,c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
