@@ -17,7 +17,7 @@ subs = redis("SMEMBERS", "trendlens:subs") or []
 sent = 0
 todo = [a for a in d.get("alerts_today", []) if not redis("SISMEMBER", "trendlens:notified", f'{a["type"]}:{a["sym"]}:{a["date"]}')]
 if len(todo) > 3:      # a batch from one CEO run: one notification, not ten
-    en = [a["sym"] for a in todo if a["type"] == "entry"]; ex = [a["sym"] for a in todo if a["type"] != "entry"]
+    en = [a["sym"] for a in todo if a["type"] == "entry"]; ex = [a["sym"] for a in todo if a["type"] == "exit"]
     summary = {"type": "batch", "sym": f"{len(en)} new, {len(ex)} closed", "date": todo[0]["date"],
                "title": f"TrendLens: {len(en)} new idea{'s' if len(en) != 1 else ''}" + (f", {len(ex)} closed" if ex else ""),
                "body": ("New: " + ", ".join(en) + ". " if en else "") + ("Closed: " + ", ".join(ex) + "." if ex else "")}
@@ -27,12 +27,18 @@ for a in todo:
     key = f'{a["type"]}:{a["sym"]}:{a["date"]}'
     if a["type"] == "batch":
         title, body = a["title"], a["body"]
+    elif a["type"] == "watch":
+        title = f'Intraday setups for {a.get("for") or "the next session"}'
+        body = "If they open 1.5-8% above yesterday's close, intraday short at 9:20: " + ", ".join(a.get("list") or []) + ". Stop, target and trigger band on TrendLens."
+    elif a["type"] == "entry" and a.get("side") == "short":
+        title = f'Intraday short: {a["sym"]}'
+        body = f'Triggered: short at Rs {a["price"]:,.2f} (9:20 open). Stop-loss Rs {a["stop"]:,.2f}, target Rs {a["target"]:,.2f}, squared off by 3:15 PM. Approved by the CEO.'
     elif a["type"] == "entry":
         title = f'New idea: {a["sym"]}'
         lv = f' Stop-loss Rs {a["stop"]:,.2f}, target Rs {a["target"]:,.2f}.' if a.get("stop") and a.get("target") else ''
         body = f'Bullish view posted at about Rs {a["price"]:,.2f}.{lv} Approved by the CEO.'
     else:
-        title = f'Idea closed: {a["sym"]}'
+        title = f'{"Intraday short closed" if a.get("term") == "intraday" else "Idea closed"}: {a["sym"]}'
         body = f'{a.get("reason") or "Closed by the CEO"}. ' + ("Never entered, so no result." if a.get("ret_pct") is None else f'Result {a["ret_pct"]:+.2f}%.') + ' Moved to Closed ideas.'
     payload = json.dumps({"title": title, "body": body, "tag": key, "url": SITE})
     for s in subs:
