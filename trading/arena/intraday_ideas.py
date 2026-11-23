@@ -38,6 +38,7 @@ DEFAULTS = {"enabled": True, "gap_min": 1.5, "gap_max": 8.0, "ext50": 0.25, "ret
             "max_per_day": 3, "min_price": 20, "min_value_cr": 5, "max_stop_pct": 8.0, "slippage_pct": 0.10, "notional": 100000}
 tick = lambda p: round(round(p / 0.05) * 0.05, 2)
 hm = lambda s: dtime(int(s[:2]), int(s[3:5]))
+WAIT_UNTIL = dtime(10, 0)          # missing 9:15 / 9:20 candles: keep retrying until then, so one early or failed run does not lose the day
 
 
 def conf(cfg: dict) -> dict:
@@ -51,14 +52,24 @@ def _load(p: Path, default):
 
 # ---------------------------------------------------------------- data
 def fno_list() -> set[str]:
-    """NSE F&O stocks (nse/fno.csv, refreshed by prep from NSE's fo_mktlots.csv; the saved copy is used if NSE is unreachable)."""
+    """NSE F&O stocks (nse/fno.csv, refreshed by prep from NSE's fo_mktlots.csv, else Upstox's F&O futures; else the saved copy)."""
+    syms = []
     try:
         r = requests.get("https://nsearchives.nseindia.com/content/fo/fo_mktlots.csv", headers={**UA, "Accept": "*/*"}, timeout=30); r.raise_for_status()
         syms = sorted({row[1].strip() for row in csv.reader(io.StringIO(r.text)) if len(row) > 2 and row[1].strip() and row[1].strip() != "SYMBOL"})
-        if len(syms) > 100:
-            FNO.parent.mkdir(parents=True, exist_ok=True); FNO.write_text("SYMBOL\n" + "\n".join(syms) + "\n")
+        if len(syms) <= 100: raise ValueError(f"only {len(syms)} symbols")
     except Exception as e:
-        log.warning("NSE F&O list not refreshed: %s", e)
+        log.warning("NSE F&O list not read (%s): trying Upstox's F&O instruments", e)
+        try:
+            import gzip
+            r = requests.get("https://assets.upstox.com/market-quote/instruments/exchange/NSE.json.gz", headers=UA, timeout=120); r.raise_for_status()
+            m = json.loads(gzip.decompress(r.content))
+            syms = sorted({x.get("underlying_symbol") or x.get("asset_symbol") for x in m if x.get("segment") == "NSE_FO"
+                           and x.get("instrument_type") == "FUT" and x.get("underlying_type") != "INDEX"} - {None, ""})
+        except Exception as e2:
+            log.warning("Upstox F&O list not read either (%s): using the saved nse/fno.csv", e2); syms = []
+    if len(syms) > 100:
+        FNO.parent.mkdir(parents=True, exist_ok=True); FNO.write_text("SYMBOL\n" + "\n".join(syms) + "\n")
     try: return {x.strip() for x in FNO.read_text().splitlines()[1:] if x.strip()}
     except Exception: return set()
 
@@ -111,41 +122,51 @@ def prep(cfg: dict, frames: dict, now: datetime, results: dict | None = None, bl
     for the next session, each with its trigger band, already checked by the judge (results, surveillance, serious news)."""
     c = conf(cfg); out = {}
     results = results if results is not None else universe.results(); blocked = blocked if blocked is not None else universe.blocked()
-    nxt = next_session or _next_session(now)
+    nxt = next_session or _next_session(now, cfg); today = now.date().isoformat()
     for s, d in frames.items():
+        if d is not None and len(d) and d.index[-1].date() == now.date() and now.time() < dtime(15, 35):
+            d = d.iloc[:-1]                                  # a run during the session: today's bar is not a close yet
         f = indicators(d)
         if not f or f["close"] < c["min_price"] or f["value_cr"] < c["min_value_cr"]: continue
         why = qualifies(f, c)
         if not why: continue
         f = {**f, "why": why, "trigger_lo": tick(f["close"] * (1 + c["gap_min"] / 100)), "trigger_hi": tick(f["close"] * (1 + c["gap_max"] / 100)),
              "stop_dist": round(c["stop_atr"] * f["atr"], 2), "target_dist": round(c["target_r"] * c["stop_atr"] * f["atr"], 2)}
-        f["judge"] = judge_watch(s, f, results, blocked, news_fn(s) if news_fn else None, nxt)
         out[s] = f
-    w = {"built": now.isoformat(timespec="minutes"), "last_close": max((x["date"] for x in out.values()), default=None), "for": nxt, "stocks": out}
+    last = max((x["date"] for x in out.values()), default=None)
+    out = {s: f for s, f in out.items() if f["date"] == last}           # a stock whose feed missed the last close would get a wrong band
+    for s, f in out.items():
+        f["judge"] = judge_watch(s, f, results, blocked, news_fn(s) if news_fn else None, nxt, today, c)
+    w = {"built": now.isoformat(timespec="minutes"), "last_close": last, "for": nxt, "stocks": out}
     WATCH.parent.mkdir(parents=True, exist_ok=True); WATCH.write_text(json.dumps(w, indent=1))
     return w
 
 
-def _next_session(now: datetime) -> str:
+def _holidays(cfg: dict | None) -> list[str]:
+    return list(((cfg or {}).get("market") or {}).get("holidays") or [])
+
+
+def _next_session(now: datetime, cfg: dict | None = None) -> str:
+    """Next NSE session after `now` (weekends and the holidays in config.toml [market] skipped)."""
     import numpy as np
-    return str(np.busday_offset(now.date(), 1, roll="forward"))
+    return str(np.busday_offset(now.date(), 1, roll="forward", holidays=_holidays(cfg)))
 
 
 # ---------------------------------------------------------------- judge and CEO (coded rules, no AI)
-def judge_watch(sym: str, f: dict, results: dict, blocked: dict, news: dict | None, session: str) -> dict:
+def judge_watch(sym: str, f: dict, results: dict, blocked: dict, news: dict | None, session: str, today: str = "", c: dict | None = None) -> dict:
     """Evening judge. Points are information (the rule itself is the back-tested evidence); hard rejects are risk controls."""
-    pts, rules, hard = 0, [], []
+    c = c or DEFAULTS; pts, rules, hard = 0, [], []
     def add(n, why):
         nonlocal pts; pts += n; rules.append({"points": n, "rule": why})
-    if f["ext50"] > 0.25: add(2, f"{f['ext50'] * 100:.0f}% above the 50-day average (strongest back-tested condition)")
-    if f["ret5"] > 0.20: add(2, f"up {f['ret5'] * 100:.0f}% in 5 sessions")
+    if f["ext50"] > c["ext50"]: add(2, f"{f['ext50'] * 100:.0f}% above the 50-day average (strongest back-tested condition)")
+    if f["ret5"] > c["ret5"]: add(2, f"up {f['ret5'] * 100:.0f}% in 5 sessions")
     if f.get("bo20"): add(1, "20-day high on heavy volume")
     rd = results.get(sym)
-    if rd and rd <= session: hard.append(f"company results on {rd}")
+    if rd and today <= rd <= session: hard.append(f"company results on {rd}")     # results already out are part of the run-up, not a risk
     if sym in blocked: hard.append(f"{blocked[sym]} (NSE surveillance)")
     flags = [x for x in ((news or {}).get("neg_flags") or []) if x in SEVERE]
     if flags: hard.append("serious headline flags: " + ", ".join(flags))
-    if f["stop_dist"] / f["close"] * 100 > 8.0: hard.append(f"stop {f['stop_dist'] / f['close'] * 100:.1f}% away: too volatile for an intraday idea")
+    if f["stop_dist"] / f["close"] * 100 > c["max_stop_pct"]: hard.append(f"stop {f['stop_dist'] / f['close'] * 100:.1f}% away: too volatile for an intraday idea")
     return {"score": pts, "rules": rules, "rejected_because": hard, "verdict": "REJECT" if hard else "APPROVE", "by": "coded intraday judge"}
 
 
@@ -156,7 +177,7 @@ def judge(cand: dict) -> dict:
     return j
 
 
-def ceo(cands: list[dict], room: int) -> list[dict]:
+def ceo(cands: list[dict], room: int, limit: int = 3) -> list[dict]:
     """Posts the approved candidates with the biggest 5-day run-up first (the back-tested order), up to today's free slots."""
     ok = sorted([x for x in cands if x["judge"]["verdict"] == "APPROVE"], key=lambda x: -x["facts"]["ret5"])
     out = []
@@ -165,7 +186,7 @@ def ceo(cands: list[dict], room: int) -> list[dict]:
         x["ceo"] = {"decision": "POST" if post else "DECLINE", "conviction": "high" if x["judge"]["score"] >= 4 else "normal",
                     "memo": (f"Exhaustion fade: {'; '.join(x['facts']['why'])}; opened {x['gap_pct']:+.1f}% above yesterday's close. "
                              f"Short at {x['entry_price']:.2f}, stop {x['stop']:.2f} (1 ATR), target {x['target']:.2f} (2R), out by 15:15.")
-                    if post else f"Daily limit reached ({room} intraday ideas a day); ranked lower on the 5-day run-up."}
+                    if post else f"Daily limit reached ({limit} intraday ideas a day); ranked lower on the 5-day run-up."}
         out.append(x)
     for x in cands:
         if x["judge"]["verdict"] != "APPROVE":
@@ -231,11 +252,13 @@ def scan(cfg: dict, pub: dict, now: datetime, bars: dict | None = None, prev_ses
     if not st or not w.get("last_close") or w["last_close"] >= today or (prev and w["last_close"] != prev):   # built from the last close before today
         day["scanned"] = now.isoformat(timespec="minutes"); day["note"] = "no conditional ideas were published for today"; return []
     bars = bars if bars is not None else many_5m(list(st))
-    ea = hm(c["entry_at"]); cands = []
+    ea = hm(c["entry_at"]); cands = []; missing = []
     for s, f in st.items():
         bb = [x for x in (bars.get(s) or []) if x["t"].date() == now.date()]
         e = next((k for k, x in enumerate(bb) if x["t"].time() == ea), None)
-        if not bb or bb[0]["t"].time() != dtime(9, 15) or e is None: continue     # need the 9:15 candle and the 9:20 candle's open
+        if not bb or bb[0]["t"].time() != dtime(9, 15) or e is None:     # need the 9:15 candle and the 9:20 candle's open
+            if f["judge"]["verdict"] == "APPROVE": missing.append(s)
+            continue
         o0 = bb[0]["o"]
         if not f["trigger_lo"] <= o0 <= f["trigger_hi"]: continue
         entry = bb[e]["o"]
@@ -243,8 +266,12 @@ def scan(cfg: dict, pub: dict, now: datetime, bars: dict | None = None, prev_ses
                 "stop": tick(entry + f["stop_dist"]), "target": tick(entry - f["target_dist"])}
         cand["judge"] = judge(cand)
         cands.append(cand)
+    if missing and now.time() < WAIT_UNTIL:          # data not there yet (an early run, or the feed failed): the next run tries again
+        day["waiting"] = sorted(missing); return []
+    if missing: day["note"] = "no five-minute data by 10:00 for " + ", ".join(sorted(missing))
+    day.pop("waiting", None)
     room = max(0, c["max_per_day"] - sum(1 for x in b["live"] + b["closed"] if x.get("date") == today))
-    decided = ceo(cands, room); posted = []
+    decided = ceo(cands, room, c["max_per_day"]); posted = []
     for x in decided:
         if x["ceo"]["decision"] != "POST": continue
         idea = {"id": f"{x['sym']}-{today}-i", "sym": x["sym"], "term": "intraday", "side": "short", "view": "Bearish view (intraday short)",
@@ -284,14 +311,16 @@ def monitor(cfg: dict, pub: dict, now: datetime, bars: dict | None = None) -> li
     for i in list(b["live"]):
         bb = bars.get(i["sym"]) or []
         if i["date"] < now.date().isoformat(): bb = []                        # yesterday's idea (a run was missed): today's candles do not apply
-        if bb: i["price_now"] = round(bb[-1]["c"], 2); i["pnl_now_pct"] = net_pct(i["entry_price"], bb[-1]["c"], c)[0]
+        if bb: i["price_now"] = round(bb[-1]["c"], 2); i["pnl_now_pct"] = net_pct(i["entry_price"], bb[-1]["c"], c)[0]; i["price_at"] = bb[-1]["t"].strftime("%H:%M")
         sig = walk(i, bb, square) if bb else None
         if not sig and (now.time() >= square or i["date"] < now.date().isoformat()):
-            px = bb[-1]["c"] if bb else i.get("price_now") or i["entry_price"]      # no 15:15 candle seen: last price
-            sig = ("Squared off at 15:15", px, None)
+            if bb: sig = ("Squared off at 15:15", bb[-1]["c"], None)                 # no 15:15 candle yet: last price
+            elif i["date"] == now.date().isoformat() and now.time() < dtime(16, 30): continue   # no data now: a later run retries
+            elif i.get("price_at"): sig = (f"Squared off at 15:15 (last price seen {i['price_at']})", i["price_now"], None)
+            else: sig = ("No price data after the entry: result not counted", None, None)
         if not sig: continue
-        g, n = net_pct(i["entry_price"], sig[1], c)
-        closed = {**i, "status": "closed", "exit_price": round(sig[1], 2), "exit_time": sig[2].strftime("%H:%M") if sig[2] else now.strftime("%H:%M"),
+        g, n = net_pct(i["entry_price"], sig[1], c) if sig[1] is not None else (None, None)
+        closed = {**i, "status": "closed", "exit_price": round(sig[1], 2) if sig[1] is not None else None, "exit_time": sig[2].strftime("%H:%M") if sig[2] else min(now.strftime("%H:%M"), "15:15") if i["date"] == now.date().isoformat() else "15:15",
                   "reason": sig[0], "ret_pct": g, "net_pct": n, "closed_by": "CEO (coded rule)"}
         b["live"] = [x for x in b["live"] if x is not i]; b["closed"].insert(0, closed); done.append(closed)
         pub.setdefault("recent_alerts", []).insert(0, {"type": "exit", "sym": i["sym"], "date": now.date().isoformat(), "time": now.strftime("%I:%M %p"),
