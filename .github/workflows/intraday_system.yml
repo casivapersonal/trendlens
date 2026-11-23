@@ -1,0 +1,51 @@
+name: Intraday gap rebound + TrendLens conditions (both periods)
+# Run by hand. Measures a fixed list of rules (gap rebound x the judge / scanner / exit conditions TrendLens already uses)
+# on 2014-2021 and 2022-2026 separately (pipeline/intraday_system_test.py). Uses saved data; no download, no secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      hist_run:
+        description: "run ID with history-5min-data (2014-2021)"
+        required: true
+        default: "45143637613"
+      new_run:
+        description: "run ID with hf-5min-data (2022-2026)"
+        required: true
+        default: "45141143038"
+      index_run:
+        description: "run ID with upstox-5min-data (NIFTY 50 for 2022-2026)"
+        required: true
+        default: "45138986135"
+permissions:
+  contents: read
+  actions: read
+jobs:
+  system:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q pandas numpy requests
+      - uses: actions/download-artifact@v4
+        with: { name: history-5min-data, path: hist_data, run-id: "${{ github.event.inputs.hist_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: hf-5min-data, path: new_data, run-id: "${{ github.event.inputs.new_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: upstox-5min-data, path: index_data, run-id: "${{ github.event.inputs.index_run }}", github-token: "${{ github.token }}" }
+      - run: if [ ! -f new_data/NIFTY50.csv.gz ]; then cp index_data/NIFTY50.csv.gz new_data/; fi; rm -rf index_data
+      - name: Measure on 2014-2021
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/intraday_system_test.py --data hist_data --label 2014-2021 --out sys_results/old
+      - name: Measure on 2022-2026
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/intraday_system_test.py --data new_data --label 2022-2026 --out sys_results/new
+      - name: Compare (only rules that made money in both periods count)
+        run: python pipeline/intraday_system_test.py --compare sys_results/old sys_results/new --out sys_results/compare
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intraday-system-results
+          path: sys_results
+          retention-days: 30
