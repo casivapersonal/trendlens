@@ -1,0 +1,36 @@
+name: Intraday research on NIFTY 500 2022-2026 (Hugging Face minute data)
+# Run by hand. Builds 5-minute files for every NIFTY 500 stock from the public Hugging Face dataset
+# bsakash137/indian-stock-market-minute-data (Upstox 1-minute candles from 2022) and runs the same intraday research. No secrets.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  hf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q pandas numpy pyarrow
+      - name: Download and convert (one 1.4 GB shard at a time)
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/hf_convert.py --out intraday_data --work /tmp/hf
+      - name: Intraday research (every setup, every year, after costs)
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/intraday_research.py --data intraday_data --out intraday_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hf-intraday-results
+          path: intraday_results
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hf-5min-data
+          path: intraday_data
+          retention-days: 7
