@@ -56,14 +56,25 @@ def chunks(start, end, days=95):
 
 
 ERRORS = {}
+PACE = {"gap": 1.2, "ok": 0, "last": 0.0}      # seconds between requests; adapts to Angel One's rate limit
+
+
+def _wait():
+    d = PACE["last"] + PACE["gap"] - time.time()
+    if d > 0: time.sleep(d)
+    PACE["last"] = time.time()
 
 
 def candles(api, token, a, b, exch="NSE"):
     p = {"exchange": exch, "symboltoken": token, "interval": "FIVE_MINUTE", "fromdate": a.strftime("%Y-%m-%d 09:15"), "todate": b.strftime("%Y-%m-%d 15:30")}
-    for k in range(5):
+    for k in range(8):
+        _wait()
         try:
             r = api.getCandleData(p)
-            if r and r.get("status"): return r.get("data") or []
+            if r and r.get("status"):
+                PACE["ok"] += 1
+                if PACE["ok"] % 100 == 0 and PACE["gap"] > 0.7: PACE["gap"] = round(PACE["gap"] * 0.92, 2)   # speed up slowly while it works
+                return r.get("data") or []
             msg = str((r or {}).get("message", "")) + " " + str((r or {}).get("errorcode", ""))
         except Exception as e:
             msg = "error: " + str(e)[:150]
@@ -72,13 +83,19 @@ def candles(api, token, a, b, exch="NSE"):
         if "AB1004" in msg or "no data" in msg.lower(): return []
         if any(x in msg for x in ("AG8001", "AG8002", "AG8003", "AB1050", "AB1053", "Invalid Token", "Invalid API")):
             sys.exit("Angel One refused the request (" + msg + "): check the API key app type (Historical / Market Feeds) and the secrets")
-        time.sleep(3 + 4 * k)
+        if "access rate" in msg or "AB1021" in msg or "many" in msg.lower():
+            PACE["gap"] = min(6.0, round(PACE["gap"] * 1.4, 2)); PACE["ok"] = 0
+            if ERRORS[msg] % 20 == 1: print(f"  rate limit: slowing to one request every {PACE['gap']}s", flush=True)
+            time.sleep(10 + 10 * k)
+        else:
+            time.sleep(3 + 4 * k)
     return None
 
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--years", default="max", help="number of years, or max (Angel One has NSE 5-minute data from 2016)"); ap.add_argument("--stocks", type=int, default=200)
-    ap.add_argument("--out", default="intraday_data"); a = ap.parse_args()
+    ap.add_argument("--out", default="intraday_data"); ap.add_argument("--minutes", type=float, default=330, help="stop cleanly after this many minutes")
+    a = ap.parse_args(); t0 = time.time()
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     syms = [s.strip() for s in open(HERE / "nifty500.txt") if s.strip()]
     pick = liquid(syms, a.stocks); print("stocks picked by traded value:", len(pick), flush=True)
@@ -88,18 +105,20 @@ def main():
     start = dt.date(2016, 1, 1) if str(a.years).lower() == "max" else max(dt.date(2016, 1, 1), end - dt.timedelta(days=int(365 * float(a.years))))
     todo = [NIFTY_TOKEN] + list(tok.items()); failed = []
     for n, (s, t) in enumerate(todo, 1):
+        if (time.time() - t0) / 60 > a.minutes:
+            print(f"time limit reached after {n - 1} files: stopping cleanly (the most-traded stocks come first)", flush=True); break
         rows = []
         for x, y in chunks(start, end):
             d = candles(api, t, x, y)
             if d is None: failed.append(f"{s} {x}..{y}"); continue
-            rows += d; time.sleep(0.35)
+            rows += d
         if rows:
             with gzip.open(out / f"{s}.csv.gz", "wt") as f:
                 f.write("time,open,high,low,close,volume\n")
                 for r in sorted({r[0]: r for r in rows}.values()): f.write(",".join(str(v) for v in r[:6]) + "\n")
         print(f"{n}/{len(todo)} {s}: {len(rows)} bars ({time.strftime('%H:%M:%S')})", flush=True)
         if n == 1 and not rows: sys.exit("no bars for NIFTY 50: stopping (see the messages above)")
-    (out / "_info.json").write_text(json.dumps({"from": str(start), "to": str(end), "interval": "5 minute", "stocks": len(todo), "failed_chunks": failed}, indent=1))
+    (out / "_info.json").write_text(json.dumps({"from": str(start), "to": str(end), "interval": "5 minute", "stocks": len(todo), "files": len(list(out.glob("*.csv.gz"))), "failed_chunks": failed, "errors": ERRORS}, indent=1))
     print("done; failed chunks:", len(failed))
 
 
