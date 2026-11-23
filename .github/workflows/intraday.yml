@@ -1,6 +1,7 @@
 name: Intraday CEO
 on:
   schedule:
+    - cron: "50,55 3 * * 1-5"      # 09:20 and 09:25 IST: intraday segment entries (exhaustion fade)
     - cron: "*/5 4-9 * * 1-5"      # 09:30-15:25 IST, every 5 minutes
     - cron: "0 10 * * 1-5"         # 15:30 IST
   workflow_dispatch:
@@ -28,6 +29,11 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11", cache: "pip" }
       - run: pip install -q -r trading/requirements.txt -r pipeline/requirements.txt pywebpush
+      - name: Intraday segment (exhaustion fade) -> 9:20 entries, stop / target / 15:15 exits
+        continue-on-error: true
+        working-directory: trading
+        run: |
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then python -m arena intraday run --force; else python -m arena intraday run; fi
       - name: Live prices -> CEO entries and exits
         working-directory: trading
         run: |
