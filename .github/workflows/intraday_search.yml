@@ -1,0 +1,59 @@
+name: Intraday combination search (train / test)
+# Run by hand. Every strategy setting and every combination of up to 3 filters, chosen on one period and checked on the
+# other (pipeline/intraday_search.py). Uses data saved by earlier runs; no new download, no secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      hist_run:
+        description: "run ID with history-5min-data and history-intraday-results (2014-2021)"
+        required: true
+        default: "45143637613"
+      new_run:
+        description: "run ID with hf-5min-data (2022-2026)"
+        required: true
+        default: "45141143038"
+      new_trades_run:
+        description: "run ID with intraday-results-rerun (2022-2026 trade list)"
+        required: true
+        default: "45145506880"
+      index_run:
+        description: "run ID with upstox-5min-data (NIFTY 50 index for 2022-2026)"
+        required: true
+        default: "45138986135"
+permissions:
+  contents: read
+  actions: read
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q pandas numpy requests
+      - uses: actions/download-artifact@v4
+        with: { name: history-5min-data, path: hist_data, run-id: "${{ github.event.inputs.hist_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: history-intraday-results, path: hist_res, run-id: "${{ github.event.inputs.hist_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: hf-5min-data, path: new_data, run-id: "${{ github.event.inputs.new_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: intraday-results-rerun, path: new_res, run-id: "${{ github.event.inputs.new_trades_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: upstox-5min-data, path: index_data, run-id: "${{ github.event.inputs.index_run }}", github-token: "${{ github.token }}" }
+      - name: Add the NIFTY 50 index to the 2022-2026 data
+        run: if [ ! -f new_data/NIFTY50.csv.gz ]; then cp index_data/NIFTY50.csv.gz new_data/; fi; rm -rf index_data; ls hist_data | wc -l; ls new_data | wc -l
+      - name: Search on 2014-2021, check on 2022-2026 (all setups)
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/intraday_search.py --train hist_data --test new_data --train-trades hist_res/trades.csv.gz --test-trades new_res/trades.csv.gz --out search_results/train_old_test_new
+      - name: Reverse check - search on 2022-2026, check on 2014-2021 (gap fade settings)
+        if: always()
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/intraday_search.py --train new_data --test hist_data --out search_results/train_new_test_old
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: intraday-search-results
+          path: search_results
+          retention-days: 30
