@@ -26,6 +26,7 @@ jobs:
       - run: pip install -q smartapi-python pyotp logzero websocket-client requests yfinance pandas numpy
       - name: Download 5-minute bars
         env:
+          PYTHONUNBUFFERED: "1"
           ANGEL_API_KEY: ${{ secrets.ANGEL_API_KEY }}
           ANGEL_CLIENT_CODE: ${{ secrets.ANGEL_CLIENT_CODE }}
           ANGEL_PIN: ${{ secrets.ANGEL_PIN }}
