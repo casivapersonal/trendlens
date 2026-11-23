@@ -1,0 +1,33 @@
+name: Exhaustion gap fade - real-world check
+# Run by hand. F&O stocks only, 0.10% slippage, max 3 trades a day (pipeline/intraday_exhaustion_test.py), on the gap
+# events saved by the "Intraday gap rebound + TrendLens conditions" run. No download of prices, no secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      system_run:
+        description: "run ID with intraday-system-results"
+        required: true
+        default: "45151685813"
+permissions:
+  contents: read
+  actions: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q pandas numpy requests
+      - uses: actions/download-artifact@v4
+        with: { name: intraday-system-results, path: sys_results, run-id: "${{ github.event.inputs.system_run }}", github-token: "${{ github.token }}" }
+      - name: Real-world check
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/intraday_exhaustion_test.py --old sys_results/old/events.csv.gz --new sys_results/new/events.csv.gz --out exh_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exhaustion-results
+          path: exh_results
+          retention-days: 30
