@@ -1,0 +1,60 @@
+name: Intraday data download (Upstox)
+# Run by hand. Job 1 downloads 5-minute bars (market data only, no orders); job 2 runs the intraday research on them.
+# Uses Upstox's public historical API: no login and no secrets needed. Minute data starts January 2022.
+# Results ("intraday-results": summary, groups, trade list) and the raw data are attached to the run as Artifacts.
+on:
+  workflow_dispatch:
+    inputs:
+      from_date:
+        description: "first date to download (Upstox minute data starts 2022-01-01)"
+        required: false
+        default: "2022-01-01"
+      stocks:
+        description: "number of most-traded NIFTY 500 stocks"
+        required: false
+        default: "200"
+permissions:
+  contents: read
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q requests yfinance pandas numpy
+      - name: Download 5-minute bars from Upstox (stops cleanly before GitHub's 6-hour limit)
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/upstox_download.py --from-date "${{ github.event.inputs.from_date || '2022-01-01' }}" --stocks "${{ github.event.inputs.stocks || '200' }}" --out intraday_data --minutes 335
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: upstox-5min-data
+          path: intraday_data
+          retention-days: 7
+  research:
+    needs: download
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q pandas numpy
+      - uses: actions/download-artifact@v4
+        with:
+          name: upstox-5min-data
+          path: intraday_data
+      - name: Intraday research (every setup, every year, after costs)
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/intraday_research.py --data intraday_data --out intraday_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: upstox-intraday-results
+          path: intraday_results
+          retention-days: 30
