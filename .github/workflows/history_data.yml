@@ -1,0 +1,47 @@
+name: Intraday research on 2012-2021 history (community archive)
+# Run by hand. Clones the unofficial 1-minute archive github.com/gsidhu/nse-intraday-data (F&O stocks + NIFTY, 2012 to Jan 2023),
+# converts it to 5-minute bars (pipeline/history_convert.py) and runs the same intraday research. No secrets needed.
+on:
+  workflow_dispatch:
+    inputs:
+      from_year:
+        description: "first year"
+        required: false
+        default: "2012"
+      to_year:
+        description: "last year (Upstox covers 2022 onwards)"
+        required: false
+        default: "2021"
+permissions:
+  contents: read
+jobs:
+  history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q pandas numpy
+      - name: Clone the 1-minute archive
+        run: git clone --depth 1 https://github.com/gsidhu/nse-intraday-data.git ../nse-intraday-data && du -sh ../nse-intraday-data
+      - name: Convert to 5-minute bars
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/history_convert.py --src ../nse-intraday-data --out intraday_data --from-year "${{ github.event.inputs.from_year || '2012' }}" --to-year "${{ github.event.inputs.to_year || '2021' }}"
+      - name: Intraday research (every setup, every year, after costs)
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/intraday_research.py --data intraday_data --out intraday_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: history-intraday-results
+          path: intraday_results
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: history-5min-data
+          path: intraday_data
+          retention-days: 7
