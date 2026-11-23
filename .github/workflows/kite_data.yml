@@ -1,0 +1,63 @@
+name: Intraday data download (Zerodha Kite)
+# Run by hand. Job 1 downloads 5-minute bars (market data only, no orders); job 2 runs the intraday research on them.
+# Needs repository secrets KITE_API_KEY, KITE_API_SECRET and KITE_REQUEST_TOKEN (today's login; run right after adding it).
+# Results ("intraday-results": summary, groups, trade list) and the raw data are attached to the run as Artifacts.
+on:
+  workflow_dispatch:
+    inputs:
+      from_date:
+        description: "first date to download (Kite keeps several years of 5-minute data)"
+        required: false
+        default: "2015-02-01"
+      stocks:
+        description: "number of most-traded NIFTY 500 stocks"
+        required: false
+        default: "200"
+permissions:
+  contents: read
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q requests yfinance pandas numpy
+      - name: Download 5-minute bars from Kite (stops cleanly before GitHub's 6-hour limit)
+        env:
+          PYTHONUNBUFFERED: "1"
+          KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
+          KITE_API_SECRET: ${{ secrets.KITE_API_SECRET }}
+          KITE_REQUEST_TOKEN: ${{ secrets.KITE_REQUEST_TOKEN }}
+        run: python pipeline/kite_download.py --from-date "${{ github.event.inputs.from_date || '2015-02-01' }}" --stocks "${{ github.event.inputs.stocks || '200' }}" --out intraday_data --minutes 335
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kite-5min-data
+          path: intraday_data
+          retention-days: 7
+  research:
+    needs: download
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q pandas numpy
+      - uses: actions/download-artifact@v4
+        with:
+          name: kite-5min-data
+          path: intraday_data
+      - name: Intraday research (every setup, every year, after costs)
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python pipeline/intraday_research.py --data intraday_data --out intraday_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kite-intraday-results
+          path: intraday_results
+          retention-days: 30
