@@ -15,16 +15,20 @@ def redis(*cmd):
 d = json.load(open(sys.argv[1]))
 subs = redis("SMEMBERS", "trendlens:subs") or []
 sent = 0
-todo = [a for a in d.get("alerts_today", []) if not redis("SISMEMBER", "trendlens:notified", f'{a["type"]}:{a["sym"]}:{a["date"]}')]
+KEY = lambda a: f'{a["type"]}:{a["sym"]}:{a["date"]}' + (":intraday" if a.get("term") == "intraday" else "")   # intraday and swing alerts on one stock do not collide
+todo = [a for a in d.get("alerts_today", []) if not redis("SISMEMBER", "trendlens:notified", KEY(a))]
+watch = [a for a in todo if a["type"] == "watch"]; todo = [a for a in todo if a["type"] != "watch"]     # the evening watch list is always its own notification
 if len(todo) > 3:      # a batch from one CEO run: one notification, not ten
-    en = [a["sym"] for a in todo if a["type"] == "entry"]; ex = [a["sym"] for a in todo if a["type"] == "exit"]
+    lab = lambda a: a["sym"] + (" (intraday short)" if a.get("side") == "short" else "")
+    en = [lab(a) for a in todo if a["type"] == "entry"]; ex = [lab(a) for a in todo if a["type"] == "exit"]
     summary = {"type": "batch", "sym": f"{len(en)} new, {len(ex)} closed", "date": todo[0]["date"],
                "title": f"TrendLens: {len(en)} new idea{'s' if len(en) != 1 else ''}" + (f", {len(ex)} closed" if ex else ""),
                "body": ("New: " + ", ".join(en) + ". " if en else "") + ("Closed: " + ", ".join(ex) + "." if ex else "")}
-    for a in todo: redis("SADD", "trendlens:notified", f'{a["type"]}:{a["sym"]}:{a["date"]}')
+    for a in todo: redis("SADD", "trendlens:notified", KEY(a))
     todo = [summary]
+todo = watch + todo
 for a in todo:
-    key = f'{a["type"]}:{a["sym"]}:{a["date"]}'
+    key = KEY(a)
     if a["type"] == "batch":
         title, body = a["title"], a["body"]
     elif a["type"] == "watch":
@@ -39,7 +43,7 @@ for a in todo:
         body = f'Bullish view posted at about Rs {a["price"]:,.2f}.{lv} Approved by the CEO.'
     else:
         title = f'{"Intraday short closed" if a.get("term") == "intraday" else "Idea closed"}: {a["sym"]}'
-        body = f'{a.get("reason") or "Closed by the CEO"}. ' + ("Never entered, so no result." if a.get("ret_pct") is None else f'Result {a["ret_pct"]:+.2f}%.') + ' Moved to Closed ideas.'
+        body = f'{a.get("reason") or "Closed by the CEO"}. ' + (("No result counted." if a.get("term") == "intraday" else "Never entered, so no result.") if a.get("ret_pct") is None else (f'Result {a["ret_pct"]:+.2f}% after costs.' if a.get("term") == "intraday" else f'Result {a["ret_pct"]:+.2f}%.')) + ' Moved to Closed ideas.'
     payload = json.dumps({"title": title, "body": body, "tag": key, "url": SITE})
     for s in subs:
         try:
