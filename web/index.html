@@ -361,6 +361,7 @@ body:has(.ov[style*="flex"]) #gfab,body:has(.ov.show) #gfab{display:none}
     <label><input type="radio" name="term" value="all" checked> All</label>
     <label><input type="radio" name="term" value="short"> Short term</label>
     <label><input type="radio" name="term" value="medium"> Momentum (medium term)</label>
+    <label><input type="radio" name="term" value="intraday"> Intraday</label>
     <label id="legacyTerm"><input type="radio" name="term" value="momentum"> Earlier auto entries</label>
     <span class="sp"></span>
     <label style="cursor:default">⇅ <select id="isort"><option value="date">Date of posting</option><option value="pot">Potential left / Return</option><option value="chg">Change so far</option></select></label>
@@ -368,6 +369,7 @@ body:has(.ov[style*="flex"]) #gfab,body:has(.ov.show) #gfab{display:none}
   <div class="isearch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5f6b6a" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="iq" placeholder="Search idea" autocomplete="off"></div>
   <div id="cstats"></div>
   <div class="intra" id="intraday" style="display:none"></div>
+  <h3 id="swinghead" style="display:none;margin:18px 0 8px;font-size:16px">Momentum and short-term ideas</h3>
   <div class="igrid" id="igrid"></div>
 </section>
 <div class="ov" id="ov" role="dialog" aria-modal="true" aria-label="Idea details"><div class="modal" id="modal"></div></div>
@@ -926,6 +928,7 @@ function cardHTML(o){
 }
 function ideaList(){
   let L=IDEAS.filter(o=>o.seg===IS.seg&&(IS.tab==='live')===(o.status==='live'));
+  if(IS.term==='intraday')return[];
   if(IS.term!=='all')L=L.filter(o=>o.term===IS.term);
   const q=IS.q.trim().toLowerCase();if(q)L=L.filter(o=>o.label.toLowerCase().includes(q)||o.x.name.toLowerCase().includes(q));
   const key=o=>IS.sort==='pot'?(o.potLeft??o.ret):(o.chgSoFar??o.ret);
@@ -933,8 +936,8 @@ function ideaList(){
   return L;
 }
 function renderIdeas(){
-  const inSeg=IDEAS.filter(o=>o.seg===IS.seg),nl=inSeg.filter(o=>o.status==='live').length;
-  $('#ibar').innerHTML=`<button data-t="live" class="${IS.tab==='live'?'on':''}">Live ideas<span>${nl}</span></button><button data-t="closed" class="${IS.tab==='closed'?'on':''}">Closed ideas<span>${inSeg.length-nl}</span></button>`;
+  const inSeg=IDEAS.filter(o=>o.seg===IS.seg),nl=inSeg.filter(o=>o.status==='live').length,il=IS.seg==='MOM'?intraLive().length:0,ic=IS.seg==='MOM'?intraClosed().length:0;
+  $('#ibar').innerHTML=`<button data-t="live" class="${IS.tab==='live'?'on':''}">Live ideas<span>${nl+il}</span></button><button data-t="closed" class="${IS.tab==='closed'?'on':''}">Closed ideas<span>${inSeg.length-nl+ic}</span></button>`;
   $('#segs').style.display=SEGS.length>1?'':'none';
   $('#segs').innerHTML=SEGS.map(([k,l])=>`<button data-g="${k}" class="${IS.seg===k?'on':''}">${l}${k==='MOM'?'<span class="real-tag">Real</span>':'<span class="demo-tag">Demo</span>'}</button>`).join('');
   document.querySelector('.irow').style.display='';
@@ -949,6 +952,9 @@ const netRet=r=>r==null||isNaN(r)?r:((1+r/100)*(1-COST_SELL/100)/(1+COST_BUY/100
     $('#cstats').innerHTML=`<div class="cstats"><div class="stat"><div class="k">Closed ideas</div><div class="v">${L.length}</div></div><div class="stat"><div class="k">Targets hit</div><div class="v">${hit} <small style="font-size:12px;color:var(--muted)">(${(hit/L.length*100).toFixed(0)}%)</small></div></div>
     <div class="stat"><div class="k">Profitable</div><div class="v">${(win/L.length*100).toFixed(0)}%</div></div><div class="stat"><div class="k">Avg return per idea</div><div class="v ${avg>=0?'up':'dn'}">${pct(avg)}</div></div></div>`}
   else $('#cstats').innerHTML='';
+  try{renderIntraday()}catch(e){}
+  const sh=document.getElementById('swinghead');if(sh)sh.style.display=IS.seg==='MOM'&&IS.term==='all'&&intraBook()?'':'none';
+  if(IS.term==='intraday'){$('#cstats').innerHTML='';$('#igrid').innerHTML='';return}
   $('#igrid').innerHTML=L.length?L.map(cardHTML).join(''):`<div class="card empty" style="grid-column:1/-1">${!MOM?'Loading real prices…':MOM.error?'Could not load real prices. Reload the page to try again.':IDEAS.some(o=>o.seg===IS.seg&&(o.status==='live')===(IS.tab==='live'))?'<b>No ideas match this filter.</b><br>Clear the search or choose "All".':IS.tab==='live'?'<b>No live ideas right now.</b><br>Ideas appear here after the CEO agent approves them, with a pop-up and a notification.':'<b>No closed ideas yet.</b><br>Ideas move here when the CEO closes them, with the share of profitable ideas shown above.'}</div>`;
 }
 
@@ -1254,7 +1260,7 @@ function liveHTML(){
   const st=LIVE.ok===null?'<span class="dot off"></span>Connecting to live prices…':LIVE.ok?`<span class="dot ${marketOpen()?'on':'off'}"></span>${marketOpen()?'Live prices':'Market closed · last prices'} · updated ${LIVE.at.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Kolkata'})} IST, refreshes every minute`:'<span class="dot off"></span>Live prices run on your deployed site (not in this preview). Showing the last screener update.';
   const nb=window.Notification&&Notification.permission!=='granted'&&LIVE.ok?' <button class="linkbtn" data-live="notify">Turn on browser notifications</button>':'';
   const intra=LIVE.log.length?LIVE.log.slice(0,12).map(a=>`<span class="alert ${a.lvl==='green'?'entry':a.lvl==='red'?'exit':'warnx'}">${a.time} · <b>${a.sym}</b> ${a.t}</span>`).join(''):'<span class="hint" style="margin:0">No intraday moves to flag yet.</span>';
-  const rec=(MOM.recent_alerts||[]).slice(0,14).map(a=>`<span class="alert ${a.type}">${fD(new Date(a.date+'T00:00:00'))} · ${a.type==='entry'?'▲ Posted':'▼ Closed'} <b>${a.sym}</b> ${a.type==='entry'?`${a.rank?'#'+a.rank+' ':''}at ${fmt(a.price,'IN')}`:pct(a.ret_pct)}</span>`).join('');
+  const rec=(MOM.recent_alerts||[]).slice(0,14).map(a=>`<span class="alert ${a.type}">${fD(new Date(a.date+'T00:00:00'))} · ${a.type==='watch'?`◆ Intraday setups for ${EH(a.for||'next session')}: <b>${(a.list||[]).map(EH).join(', ')}</b>`:a.type==='entry'&&a.side==='short'?`▼ Intraday short <b>${a.sym}</b> at ${fmt(a.price,'IN')}`:a.type==='entry'?`▲ Posted <b>${a.sym}</b> ${a.rank?'#'+a.rank+' ':''}at ${fmt(a.price,'IN')}`:`${a.term==='intraday'?'▼ Intraday short closed':'▼ Closed'} <b>${a.sym}</b> ${a.ret_pct==null?'no result':pct(a.ret_pct)}`}</span>`).join('');
   return`<div class="livebar">${st}${nb}</div>
   <div class="altitle">Intraday alerts <span class="hint" style="display:inline;margin:0">· sharp moves, new 20-day lows, breaks below the 50-day average (informational; ideas are posted and closed by the CEO agent)</span></div><div class="alerts">${intra}</div>
   <div class="altitle">Recently posted and closed ideas</div><div class="alerts">${rec}</div>`;
@@ -1294,7 +1300,7 @@ function queueNewAlerts(){
   const seen=seenSet(),first=store.get('tl_first_visit',null);
   if(!first)store.set('tl_first_visit',MOM.asof);
   const since=first||MOM.asof;
-  for(const a of (MOM.recent_alerts||[]).slice().reverse()){const k=a.type+a.sym+a.date;if(seen.has(k)||a.date<since)continue;POP.q.push(a)}
+  for(const a of (MOM.recent_alerts||[]).slice().reverse()){const k=a.type+a.sym+a.date+(a.term==='intraday'?'i':'');if(seen.has(k)||a.date<since)continue;POP.q.push(a)}
   if(POP.q.length>2){const wt=POP.q.filter(x=>x.type==='watch');POP.q=[...wt,{type:'summary',items:POP.q.filter(x=>x.type!=='watch')}].filter(x=>x.type!=='summary'||x.items.length)}   // one pop-up for a batch, not one per idea
   showNextPop();
 }
@@ -1302,9 +1308,9 @@ function showNextPop(){
   if(POP.showing||!POP.q.length)return;const a=POP.q.shift();POP.showing=true;
   if(a.type==='summary'){const en=a.items.filter(x=>x.type==='entry'),ex=a.items.filter(x=>x.type==='exit');
     const el=document.createElement('div');el.className='apop';el.setAttribute('role','alertdialog');
-    el.innerHTML=`<div class="h">${en.length?`<span class="tagE">▲ ${en.length} new idea${en.length>1?'s':''}</span>`:''}${ex.length?`<span class="tagX">▼ ${ex.length} closed</span>`:''}</div><p>${en.length?'Posted by the CEO: <b>'+en.map(x=>x.sym).join(', ')+'</b>. ':''}${ex.length?'Closed: '+ex.map(x=>`${x.sym} (${x.ret_pct==null?'not entered':pct(x.ret_pct)})`).join(', ')+'.':''}</p><div class="row"><button class="bigbtn out" data-pop="dismiss">Dismiss</button><button class="bigbtn pri" data-pop="view">View ideas</button></div>`;
+    el.innerHTML=`<div class="h">${en.length?`<span class="tagE">▲ ${en.length} new idea${en.length>1?'s':''}</span>`:''}${ex.length?`<span class="tagX">▼ ${ex.length} closed</span>`:''}</div><p>${en.length?'Posted by the CEO: <b>'+en.map(x=>x.sym+(x.side==='short'?' (intraday short)':'')).join(', ')+'</b>. ':''}${ex.length?'Closed: '+ex.map(x=>`${x.sym} (${x.ret_pct==null?'not entered':pct(x.ret_pct)})`).join(', ')+'.':''}</p><div class="row"><button class="bigbtn out" data-pop="dismiss">Dismiss</button><button class="bigbtn pri" data-pop="view">View ideas</button></div>`;
     document.body.appendChild(el);
-    el.addEventListener('click',e=>{const b=e.target.closest('[data-pop]');if(!b)return;const st=seenSet();a.items.forEach(x=>st.add(x.type+x.sym+x.date));store.set('tl_seen_alerts',[...st].slice(-500));el.remove();POP.showing=false;
+    el.addEventListener('click',e=>{const b=e.target.closest('[data-pop]');if(!b)return;const st=seenSet();a.items.forEach(x=>st.add(x.type+x.sym+x.date+(x.term==='intraday'?'i':'')));store.set('tl_seen_alerts',[...st].slice(-500));el.remove();POP.showing=false;
       if(b.dataset.pop==='view'){IS.tab=en.length?'live':'closed';setView('ideas')}showNextPop()});
     return}
   const o=IDEAS.find(z=>z.seg==='MOM'&&z.label===a.sym&&(a.type==='entry'?z.status==='live':z.status!=='live'));
@@ -1312,45 +1318,57 @@ function showNextPop(){
   const body=a.type==='watch'?`Conditional intraday shorts for ${a.for||'the next session'}: <b>${(a.list||[]).map(EH).join(', ')}</b>. Each triggers only if it opens inside its band; see the Intraday panel.`
     :a.type==='entry'&&a.side==='short'?`Triggered: intraday short at ${fmt(a.price,'IN')} (9:20 open), stop-loss ${fmt(a.stop,'IN')}, target ${fmt(a.target,'IN')}, closed by 3:15 PM. Approved by the CEO.`
     :a.type==='entry'?`Approved by the CEO: bullish view at ${fmt(a.price,'IN')}${a.stop?`, stop-loss ${fmt(a.stop,'IN')}, target ${fmt(a.target,'IN')}`:''}. Added to <b>Live ideas</b>.`
-    :`${a.reason||'Closed by the CEO'}. ${a.ret_pct==null?'Never entered, so no result.':`Result <b class="${a.ret_pct>=0?'up':'dn'}">${pct(a.ret_pct)}</b>.`} Moved to <b>Closed ideas</b>.`;
+    :`${a.reason||'Closed by the CEO'}. ${a.ret_pct==null?(a.term==='intraday'?'No result counted.':'Never entered, so no result.'):`Result <b class="${a.ret_pct>=0?'up':'dn'}">${pct(a.ret_pct)}</b>${a.term==='intraday'?' after costs':''}.`} Moved to <b>Closed ideas</b>.`;
   const el=document.createElement('div');el.className='apop';el.setAttribute('role','alertdialog');
-  el.innerHTML=`<div class="h"><span class="${a.type==='entry'||a.type==='watch'?'tagE':'tagX'}">${a.type==='watch'?'◆ Intraday setups':a.type==='entry'&&a.side==='short'?'▼ Intraday short':a.type==='entry'?'▲ New idea':'▼ Idea closed'}</span>${a.sym}</div><p>${body}${prov?'<br><span style="color:var(--muted);font-size:12.5px">Confirmed after the 3:30 PM close.</span>':''}</p>
+  el.innerHTML=`<div class="h"><span class="${a.type==='entry'||a.type==='watch'?'tagE':'tagX'}">${a.type==='watch'?'◆ Intraday setups':a.type==='entry'&&a.side==='short'?'▼ Intraday short':a.type==='entry'?'▲ New idea':a.term==='intraday'?'▼ Intraday short closed':'▼ Idea closed'}</span>${a.sym}</div><p>${body}${prov?'<br><span style="color:var(--muted);font-size:12.5px">Confirmed after the 3:30 PM close.</span>':''}</p>
   <div class="row"><button class="bigbtn out" data-pop="dismiss">Dismiss</button><button class="bigbtn pri" data-pop="view">View idea</button></div>`;
   document.body.appendChild(el);
-  try{if(Notification.permission==='granted'&&document.hidden)new Notification(`TrendLens · ${a.type==='entry'?'New idea':'Idea closed'}: ${a.sym}`,{body:el.querySelector('p').innerText})}catch(e){}
-  const done=()=>{const s=seenSet();s.add(a.type+a.sym+a.date);store.set('tl_seen_alerts',[...s].slice(-500));el.remove();POP.showing=false;showNextPop()};
+  try{if(Notification.permission==='granted'&&document.hidden)new Notification(`TrendLens · ${a.type==='watch'?'Intraday setups':a.type==='entry'&&a.side==='short'?'Intraday short':a.type==='entry'?'New idea':a.term==='intraday'?'Intraday short closed':'Idea closed'}: ${a.sym}`,{body:el.querySelector('p').innerText})}catch(e){}
+  const done=()=>{const s=seenSet();s.add(a.type+a.sym+a.date+(a.term==='intraday'?'i':''));store.set('tl_seen_alerts',[...s].slice(-500));el.remove();POP.showing=false;showNextPop()};
   el.addEventListener('click',e=>{const b=e.target.closest('[data-pop]');if(!b)return;
-    if(b.dataset.pop==='view'){IS.tab=a.type==='entry'?'live':'closed';setView('ideas');if(o)setTimeout(()=>openAbout(o),50)}
+    if(b.dataset.pop==='view'){IS.tab=a.type==='entry'||a.type==='watch'?'live':'closed';if(a.term==='intraday'){IS.seg='MOM';IS.term='intraday';const r=document.querySelector('input[name=term][value=intraday]');if(r)r.checked=true}setView('ideas');if(o&&a.term!=='intraday')setTimeout(()=>openAbout(o),50)}
     done()});
 }
 
 /* ============================================================
    Intraday segment: exhaustion fade (short), from picks.json "intraday"
    ============================================================ */
+function intraBook(){return MOM&&!MOM.error&&MOM.intraday||null}
+function intraLive(){const b=intraBook();return b?(b.live||[]).filter(i=>i.date===istDate()):[]}
+function intraClosed(){const b=intraBook();return b?(b.closed||[]):[]}
 function renderIntraday(){
-  const el=document.getElementById('intraday');const b=MOM&&!MOM.error&&MOM.intraday;if(!el||!b){if(el)el.style.display='none';return}
+  const el=document.getElementById('intraday');const b=intraBook();
+  const show=b&&IS.seg==='MOM'&&(IS.term==='all'||IS.term==='intraday');
+  if(!el)return;if(!show){el.style.display='none';el.innerHTML='';return}
   el.style.display='';const R=b.rules||{},bt=R.backtest||{},st=b.stats||{},w=b.watch||{};const today=istDate();
+  const q=IS.q.trim().toLowerCase(),mq=x=>!q||String(x.sym).toLowerCase().includes(q);
   const rs=x=>x==null?'—':'₹'+fmtN(x);const day=(b.days||{})[today]||{};
-  const live=(b.live||[]).map(i=>`<tr><td><b>${EH(i.sym)}</b><div class="k">${EH((i.why||[]).join('; '))}</div></td><td><span class="pill">Short</span><div class="k">opened ${pct(i.gap_pct)} · 9:20 entry</div></td>
-    <td>${rs(i.entry_price)}</td><td>${rs(i.stop)}</td><td>${rs(i.target)}</td><td>${rs(i.price_now)}<div class="k ${i.pnl_now_pct>=0?'up':'dn'}">${pct(i.pnl_now_pct)} before costs</div></td></tr>`).join('');
-  const ok=(w.stocks||[]).filter(x=>x.verdict==='APPROVE'),no=(w.stocks||[]).filter(x=>x.verdict!=='APPROVE');
-  const watch=ok.map(x=>`<tr><td><b>${EH(x.sym)}</b><div class="k">${EH(x.why.join('; '))}</div></td><td>${rs(x.trigger_lo)} – ${rs(x.trigger_hi)}<div class="k">9:15 open inside this band (prev close ${rs(x.prev_close)})</div></td>
-    <td>entry + ₹${fmtN(x.stop_dist)}</td><td>entry − ₹${fmtN(x.target_dist)}</td><td>${x.score} pts</td></tr>`).join('');
-  const closed=(b.closed||[]).slice(0,15).map(c=>`<tr><td><b>${EH(c.sym)}</b><div class="k">${EH(c.date)}</div></td><td>${rs(c.entry_price)} → ${rs(c.exit_price)}</td><td>${EH(c.reason)}<div class="k">${EH(c.exit_time||'')}</div></td>
-    <td class="${c.net_pct>=0?'up':'dn'}"><b>${pct(c.net_pct)}</b><div class="k">after costs</div></td></tr>`).join('');
   const bt1=bt['2014-2021']||{},bt2=bt['2022-2026']||{};
-  el.innerHTML=`<h3>Intraday · ${EH(R.name||'Exhaustion fade (intraday short)')}</h3>
-  <div class="sub">F&amp;O stocks that ran up hard and then open 1.5–8% higher tend to fall back during the day. Setups are published after the close as conditional ideas; if the stock opens inside its trigger band, the view is a short at the 9:20 open, stop 1 × daily ATR above, target 2 × that below, closed by 3:15 PM at the latest. Up to ${R.max_per_day||3} a day, chosen by the CEO (biggest 5-day run-up first).</div>
-  <div class="grid"><div><span class="k">Back-test 2014–21 (F&amp;O)</span><b class="up">${pct(bt1.net_pct)}</b><span class="k">a trade, ${bt1.trades||'—'} trades, ${bt1.years_positive||'—'} years positive</span></div>
-  <div><span class="k">Back-test 2022–26 (F&amp;O)</span><b class="up">${pct(bt2.net_pct)}</b><span class="k">a trade, ${bt2.trades||'—'} trades, ${bt2.years_positive||'—'} years positive</span></div>
-  <div><span class="k">Live record (after costs)</span><b class="${(st.avg_net_pct||0)>=0?'up':'dn'}">${st.trades?pct(st.avg_net_pct):'—'}</b><span class="k">${st.trades?`a trade, ${st.trades} trades, ${st.win_pct}% profitable`:'no closed trades yet'}</span></div></div>
-  ${live?`<h4 style="margin:10px 0 4px">Live today</h4><table><thead><tr><th>Stock</th><th>View</th><th>Entry</th><th>Stop-loss</th><th>Target</th><th>Now</th></tr></thead><tbody>${live}</tbody></table>`:''}
+  const head=t=>`<h3>${t}</h3>`;
+  if(IS.tab==='live'){
+    const live=intraLive().filter(mq).map(i=>`<tr><td><b>${EH(i.sym)}</b><div class="k">${EH((i.why||[]).join('; '))}</div></td><td><span class="pill">Short</span><div class="k">opened ${pct(i.gap_pct)} · 9:20 entry</div></td>
+    <td>${rs(i.entry_price)}</td><td>${rs(i.stop)}</td><td>${rs(i.target)}</td><td>${rs(i.price_now)}<div class="k ${i.pnl_now_pct>=0?'up':'dn'}">${pct(i.pnl_now_pct)} before costs${i.price_at?' · '+EH(i.price_at):''}</div></td></tr>`).join('');
+    const ok=(w.stocks||[]).filter(x=>x.verdict==='APPROVE'&&mq(x)),no=(w.stocks||[]).filter(x=>x.verdict!=='APPROVE'&&mq(x));
+    const watch=ok.map(x=>`<tr><td><b>${EH(x.sym)}</b><div class="k">${EH((x.why||[]).join('; '))}</div></td><td>${rs(x.trigger_lo)} – ${rs(x.trigger_hi)}<div class="k">9:15 open inside this band (prev close ${rs(x.prev_close)})</div></td>
+    <td>entry + ₹${fmtN(x.stop_dist)}</td><td>entry − ₹${fmtN(x.target_dist)}</td><td>${x.score} pts</td></tr>`).join('');
+    el.innerHTML=`${head('Intraday ideas · live today')}
+  <div class="sub">${EH(R.name||'Exhaustion fade (intraday short)')}: F&amp;O stocks that ran up hard and then open 1.5–8% higher tend to fall back during the day. Setups are published after the close as conditional ideas; if the stock opens inside its trigger band, the view is a short at the 9:20 open, stop 1 × daily ATR above, target 2 × that below, closed by 3:15 PM at the latest. Up to ${R.max_per_day||3} a day, chosen by the CEO (biggest 5-day run-up first).</div>
+  ${live?`<table><thead><tr><th>Stock</th><th>View</th><th>Entry</th><th>Stop-loss</th><th>Target</th><th>Now</th></tr></thead><tbody>${live}</tbody></table>`:`<div class="k">No intraday idea is live right now.${day.waiting?' Waiting for the first five-minute candles of '+EH(day.waiting.join(', '))+'.':''}</div>`}
   ${day.note?`<div class="k" style="margin-top:6px">${EH(day.note)}</div>`:''}
   <h4 style="margin:12px 0 4px">Conditional setups for ${EH(w.for||'the next session')}</h4>
-  ${watch?`<table><thead><tr><th>Stock</th><th>Trigger band (9:15 open)</th><th>Stop-loss</th><th>Target</th><th>Judge</th></tr></thead><tbody>${watch}</tbody></table>`:'<div class="k">No stock qualifies after this close.</div>'}
+  ${watch?`<table><thead><tr><th>Stock</th><th>Trigger band (9:15 open)</th><th>Stop-loss</th><th>Target</th><th>Judge</th></tr></thead><tbody>${watch}</tbody></table>`:'<div class="k">No stock qualifies after the last close.</div>'}
   ${no.length?`<details><summary>Declined by the judge (${no.length})</summary><div class="k">${no.map(x=>EH(x.sym)+': '+EH((x.rejected_because||[]).join('; '))).join('<br>')}</div></details>`:''}
-  ${closed?`<details><summary>Closed intraday ideas (${(b.closed||[]).length})</summary><table><thead><tr><th>Stock</th><th>Short → covered</th><th>Exit</th><th>Result</th></tr></thead><tbody>${closed}</tbody></table></details>`:''}
-  <div class="k" style="margin-top:8px">Short selling is intraday only (positions must be closed the same day). Costs used in results: intraday brokerage, STT, exchange, GST, stamp and 0.10% slippage each side. Back-tests use today's F&amp;O list for 2022–26 and an unofficial archive for 2014–21; past results do not guarantee future ones. Analysis, not investment advice.</div>`;
+  <div class="k" style="margin-top:8px">Short selling is intraday only (positions must be closed the same day). Analysis, not investment advice.</div>`;
+    return}
+  const C=intraClosed().filter(mq);
+  const closed=C.slice(0,50).map(c=>`<tr><td><b>${EH(c.sym)}</b><div class="k">${EH(c.date)}</div></td><td>${rs(c.entry_price)} → ${rs(c.exit_price)}</td><td>${EH(c.reason)}<div class="k">${EH(c.exit_time||'')}</div></td>
+    <td class="${c.net_pct==null?'':c.net_pct>=0?'up':'dn'}"><b>${c.net_pct==null?'not counted':pct(c.net_pct)}</b><div class="k">${c.net_pct==null?'no price data':'after costs'}</div></td></tr>`).join('');
+  el.innerHTML=`${head('Intraday ideas · closed')}
+  <div class="grid"><div><span class="k">Live record (after costs)</span><b class="${(st.avg_net_pct||0)>=0?'up':'dn'}">${st.trades?pct(st.avg_net_pct):'—'}</b><span class="k">${st.trades?`a trade, ${st.trades} trades, ${st.win_pct}% profitable`:'no closed trades yet'}</span></div>
+  <div><span class="k">Back-test 2014–21 (F&amp;O)</span><b class="up">${pct(bt1.net_pct)}</b><span class="k">a trade, ${bt1.trades||'—'} trades, ${bt1.years_positive||'—'} years positive</span></div>
+  <div><span class="k">Back-test 2022–26 (F&amp;O)</span><b class="up">${pct(bt2.net_pct)}</b><span class="k">a trade, ${bt2.trades||'—'} trades, ${bt2.years_positive||'—'} years positive</span></div></div>
+  ${closed?`<table><thead><tr><th>Stock</th><th>Short → covered</th><th>Exit</th><th>Result</th></tr></thead><tbody>${closed}</tbody></table>`:'<div class="k">No closed intraday ideas yet. They move here when the CEO closes them (stop, target or 3:15 PM).</div>'}
+  <div class="k" style="margin-top:8px">Costs used in results: intraday brokerage, STT, exchange, GST, stamp and 0.10% slippage each side. Back-tests use today's F&amp;O list for 2022–26 and an unofficial archive for 2014–21; past results do not guarantee future ones. Analysis, not investment advice.</div>`;
 }
 function fmtISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 (async()=>{try{const r=await fetch('picks.json',{cache:'no-store'});if(!r.ok)throw 0;MOM=await r.json();buildMomentum()}catch(e){MOM={error:true}}
