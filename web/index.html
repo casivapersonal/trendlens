@@ -319,6 +319,14 @@ body:has(.ov[style*="flex"]) #gfab,body:has(.ov.show) #gfab{display:none}
 #gin{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;font-size:14px;background:#fff;color:var(--ink)}
 #gform button{background:var(--brand);color:#fff;border:0;border-radius:10px;padding:0 14px;font-weight:600;cursor:pointer}
 @media (max-width:600px){#gpanel{right:0;bottom:0;width:100vw;height:82vh;border-radius:16px 16px 0 0}}
+.intra{border:1px solid #e4e1d8;border-radius:10px;background:#fff;padding:14px 16px;margin:12px 0}
+.intra h3{margin:0 0 4px;font-size:16px}.intra .sub{color:var(--muted);font-size:12.5px;margin-bottom:10px}
+.intra table{width:100%;border-collapse:collapse;font-size:13px}.intra th{text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;padding:4px 6px;border-bottom:1px solid #eee}
+.intra td{padding:6px;border-bottom:1px solid #f2f0ea;vertical-align:top}.intra .k{font-size:11.5px;color:var(--muted)}
+.intra .pill{display:inline-block;font-size:11px;font-weight:700;border-radius:5px;padding:1px 6px;background:var(--red-soft);color:var(--red)}
+.intra .pill.gray{background:var(--gray-soft);color:#5f6b6a}.intra .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:8px 0}
+.intra .grid div{background:var(--gray-soft);border-radius:8px;padding:8px 10px}.intra .grid b{display:block;font-size:17px}
+.intra details summary{cursor:pointer;font-weight:600;color:var(--brand);font-size:13px;margin-top:8px}
 </style>
 </head>
 <body class="v-ideas">
@@ -359,6 +367,7 @@ body:has(.ov[style*="flex"]) #gfab,body:has(.ov.show) #gfab{display:none}
   </div>
   <div class="isearch"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#5f6b6a" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="iq" placeholder="Search idea" autocomplete="off"></div>
   <div id="cstats"></div>
+  <div class="intra" id="intraday" style="display:none"></div>
   <div class="igrid" id="igrid"></div>
 </section>
 <div class="ov" id="ov" role="dialog" aria-modal="true" aria-label="Idea details"><div class="modal" id="modal"></div></div>
@@ -1208,7 +1217,7 @@ function istNow(){return new Date(Date.now()+(330+new Date().getTimezoneOffset()
 function istDate(){const d=istNow();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function marketOpen(){const d=istNow(),m=d.getHours()*60+d.getMinutes();return d.getDay()>0&&d.getDay()<6&&m>=555&&m<=935}
 async function refreshPicksFile(){try{const r=await fetch('picks.json',{cache:'no-store'});if(!r.ok)return;const j=await r.json();if(j.updated===MOM.updated)return;
-  for(let k=IDEAS.length-1;k>=0;k--)if(IDEAS[k].seg==='MOM')IDEAS.splice(k,1);MOM=j;buildMomentum();await pollQuotes();queueNewAlerts()}catch(e){}}
+  for(let k=IDEAS.length-1;k>=0;k--)if(IDEAS[k].seg==='MOM')IDEAS.splice(k,1);MOM=j;buildMomentum();try{renderIntraday()}catch(e){}await pollQuotes();queueNewAlerts()}catch(e){}}
 async function pollQuotes(){
   const live=IDEAS.filter(o=>o.seg==='MOM'&&o.status==='live');
   const syms=[...new Set(live.map(o=>o.x.sym))].concat(['NIFTY 50','NIFTY BANK']);
@@ -1286,12 +1295,12 @@ function queueNewAlerts(){
   if(!first)store.set('tl_first_visit',MOM.asof);
   const since=first||MOM.asof;
   for(const a of (MOM.recent_alerts||[]).slice().reverse()){const k=a.type+a.sym+a.date;if(seen.has(k)||a.date<since)continue;POP.q.push(a)}
-  if(POP.q.length>2)POP.q=[{type:'summary',items:POP.q.splice(0)}];   // one pop-up for a batch, not one per idea
+  if(POP.q.length>2){const wt=POP.q.filter(x=>x.type==='watch');POP.q=[...wt,{type:'summary',items:POP.q.filter(x=>x.type!=='watch')}].filter(x=>x.type!=='summary'||x.items.length)}   // one pop-up for a batch, not one per idea
   showNextPop();
 }
 function showNextPop(){
   if(POP.showing||!POP.q.length)return;const a=POP.q.shift();POP.showing=true;
-  if(a.type==='summary'){const en=a.items.filter(x=>x.type==='entry'),ex=a.items.filter(x=>x.type!=='entry');
+  if(a.type==='summary'){const en=a.items.filter(x=>x.type==='entry'),ex=a.items.filter(x=>x.type==='exit');
     const el=document.createElement('div');el.className='apop';el.setAttribute('role','alertdialog');
     el.innerHTML=`<div class="h">${en.length?`<span class="tagE">▲ ${en.length} new idea${en.length>1?'s':''}</span>`:''}${ex.length?`<span class="tagX">▼ ${ex.length} closed</span>`:''}</div><p>${en.length?'Posted by the CEO: <b>'+en.map(x=>x.sym).join(', ')+'</b>. ':''}${ex.length?'Closed: '+ex.map(x=>`${x.sym} (${x.ret_pct==null?'not entered':pct(x.ret_pct)})`).join(', ')+'.':''}</p><div class="row"><button class="bigbtn out" data-pop="dismiss">Dismiss</button><button class="bigbtn pri" data-pop="view">View ideas</button></div>`;
     document.body.appendChild(el);
@@ -1299,11 +1308,13 @@ function showNextPop(){
       if(b.dataset.pop==='view'){IS.tab=en.length?'live':'closed';setView('ideas')}showNextPop()});
     return}
   const o=IDEAS.find(z=>z.seg==='MOM'&&z.label===a.sym&&(a.type==='entry'?z.status==='live':z.status!=='live'));
-  const prov=MOM.provisional&&a.date===MOM.asof;
-  const body=a.type==='entry'?`Approved by the CEO: bullish view at ${fmt(a.price,'IN')}${a.stop?`, stop-loss ${fmt(a.stop,'IN')}, target ${fmt(a.target,'IN')}`:''}. Added to <b>Live ideas</b>.`
+  const prov=MOM.provisional&&a.date===MOM.asof&&a.term!=='intraday';
+  const body=a.type==='watch'?`Conditional intraday shorts for ${a.for||'the next session'}: <b>${(a.list||[]).map(EH).join(', ')}</b>. Each triggers only if it opens inside its band; see the Intraday panel.`
+    :a.type==='entry'&&a.side==='short'?`Triggered: intraday short at ${fmt(a.price,'IN')} (9:20 open), stop-loss ${fmt(a.stop,'IN')}, target ${fmt(a.target,'IN')}, closed by 3:15 PM. Approved by the CEO.`
+    :a.type==='entry'?`Approved by the CEO: bullish view at ${fmt(a.price,'IN')}${a.stop?`, stop-loss ${fmt(a.stop,'IN')}, target ${fmt(a.target,'IN')}`:''}. Added to <b>Live ideas</b>.`
     :`${a.reason||'Closed by the CEO'}. ${a.ret_pct==null?'Never entered, so no result.':`Result <b class="${a.ret_pct>=0?'up':'dn'}">${pct(a.ret_pct)}</b>.`} Moved to <b>Closed ideas</b>.`;
   const el=document.createElement('div');el.className='apop';el.setAttribute('role','alertdialog');
-  el.innerHTML=`<div class="h"><span class="${a.type==='entry'?'tagE':'tagX'}">${a.type==='entry'?'▲ New idea':'▼ Idea closed'}</span>${a.sym}</div><p>${body}${prov?'<br><span style="color:var(--muted);font-size:12.5px">Confirmed after the 3:30 PM close.</span>':''}</p>
+  el.innerHTML=`<div class="h"><span class="${a.type==='entry'||a.type==='watch'?'tagE':'tagX'}">${a.type==='watch'?'◆ Intraday setups':a.type==='entry'&&a.side==='short'?'▼ Intraday short':a.type==='entry'?'▲ New idea':'▼ Idea closed'}</span>${a.sym}</div><p>${body}${prov?'<br><span style="color:var(--muted);font-size:12.5px">Confirmed after the 3:30 PM close.</span>':''}</p>
   <div class="row"><button class="bigbtn out" data-pop="dismiss">Dismiss</button><button class="bigbtn pri" data-pop="view">View idea</button></div>`;
   document.body.appendChild(el);
   try{if(Notification.permission==='granted'&&document.hidden)new Notification(`TrendLens · ${a.type==='entry'?'New idea':'Idea closed'}: ${a.sym}`,{body:el.querySelector('p').innerText})}catch(e){}
@@ -1312,8 +1323,38 @@ function showNextPop(){
     if(b.dataset.pop==='view'){IS.tab=a.type==='entry'?'live':'closed';setView('ideas');if(o)setTimeout(()=>openAbout(o),50)}
     done()});
 }
+
+/* ============================================================
+   Intraday segment: exhaustion fade (short), from picks.json "intraday"
+   ============================================================ */
+function renderIntraday(){
+  const el=document.getElementById('intraday');const b=MOM&&!MOM.error&&MOM.intraday;if(!el||!b){if(el)el.style.display='none';return}
+  el.style.display='';const R=b.rules||{},bt=R.backtest||{},st=b.stats||{},w=b.watch||{};const today=istDate();
+  const rs=x=>x==null?'—':'₹'+fmtN(x);const day=(b.days||{})[today]||{};
+  const live=(b.live||[]).map(i=>`<tr><td><b>${EH(i.sym)}</b><div class="k">${EH((i.why||[]).join('; '))}</div></td><td><span class="pill">Short</span><div class="k">opened ${pct(i.gap_pct)} · 9:20 entry</div></td>
+    <td>${rs(i.entry_price)}</td><td>${rs(i.stop)}</td><td>${rs(i.target)}</td><td>${rs(i.price_now)}<div class="k ${i.pnl_now_pct>=0?'up':'dn'}">${pct(i.pnl_now_pct)} before costs</div></td></tr>`).join('');
+  const ok=(w.stocks||[]).filter(x=>x.verdict==='APPROVE'),no=(w.stocks||[]).filter(x=>x.verdict!=='APPROVE');
+  const watch=ok.map(x=>`<tr><td><b>${EH(x.sym)}</b><div class="k">${EH(x.why.join('; '))}</div></td><td>${rs(x.trigger_lo)} – ${rs(x.trigger_hi)}<div class="k">9:15 open inside this band (prev close ${rs(x.prev_close)})</div></td>
+    <td>entry + ₹${fmtN(x.stop_dist)}</td><td>entry − ₹${fmtN(x.target_dist)}</td><td>${x.score} pts</td></tr>`).join('');
+  const closed=(b.closed||[]).slice(0,15).map(c=>`<tr><td><b>${EH(c.sym)}</b><div class="k">${EH(c.date)}</div></td><td>${rs(c.entry_price)} → ${rs(c.exit_price)}</td><td>${EH(c.reason)}<div class="k">${EH(c.exit_time||'')}</div></td>
+    <td class="${c.net_pct>=0?'up':'dn'}"><b>${pct(c.net_pct)}</b><div class="k">after costs</div></td></tr>`).join('');
+  const bt1=bt['2014-2021']||{},bt2=bt['2022-2026']||{};
+  el.innerHTML=`<h3>Intraday · ${EH(R.name||'Exhaustion fade (intraday short)')}</h3>
+  <div class="sub">F&amp;O stocks that ran up hard and then open 1.5–8% higher tend to fall back during the day. Setups are published after the close as conditional ideas; if the stock opens inside its trigger band, the view is a short at the 9:20 open, stop 1 × daily ATR above, target 2 × that below, closed by 3:15 PM at the latest. Up to ${R.max_per_day||3} a day, chosen by the CEO (biggest 5-day run-up first).</div>
+  <div class="grid"><div><span class="k">Back-test 2014–21 (F&amp;O)</span><b class="up">${pct(bt1.net_pct)}</b><span class="k">a trade, ${bt1.trades||'—'} trades, ${bt1.years_positive||'—'} years positive</span></div>
+  <div><span class="k">Back-test 2022–26 (F&amp;O)</span><b class="up">${pct(bt2.net_pct)}</b><span class="k">a trade, ${bt2.trades||'—'} trades, ${bt2.years_positive||'—'} years positive</span></div>
+  <div><span class="k">Live record (after costs)</span><b class="${(st.avg_net_pct||0)>=0?'up':'dn'}">${st.trades?pct(st.avg_net_pct):'—'}</b><span class="k">${st.trades?`a trade, ${st.trades} trades, ${st.win_pct}% profitable`:'no closed trades yet'}</span></div></div>
+  ${live?`<h4 style="margin:10px 0 4px">Live today</h4><table><thead><tr><th>Stock</th><th>View</th><th>Entry</th><th>Stop-loss</th><th>Target</th><th>Now</th></tr></thead><tbody>${live}</tbody></table>`:''}
+  ${day.note?`<div class="k" style="margin-top:6px">${EH(day.note)}</div>`:''}
+  <h4 style="margin:12px 0 4px">Conditional setups for ${EH(w.for||'the next session')}</h4>
+  ${watch?`<table><thead><tr><th>Stock</th><th>Trigger band (9:15 open)</th><th>Stop-loss</th><th>Target</th><th>Judge</th></tr></thead><tbody>${watch}</tbody></table>`:'<div class="k">No stock qualifies after this close.</div>'}
+  ${no.length?`<details><summary>Declined by the judge (${no.length})</summary><div class="k">${no.map(x=>EH(x.sym)+': '+EH((x.rejected_because||[]).join('; '))).join('<br>')}</div></details>`:''}
+  ${closed?`<details><summary>Closed intraday ideas (${(b.closed||[]).length})</summary><table><thead><tr><th>Stock</th><th>Short → covered</th><th>Exit</th><th>Result</th></tr></thead><tbody>${closed}</tbody></table></details>`:''}
+  <div class="k" style="margin-top:8px">Short selling is intraday only (positions must be closed the same day). Costs used in results: intraday brokerage, STT, exchange, GST, stamp and 0.10% slippage each side. Back-tests use today's F&amp;O list for 2022–26 and an unofficial archive for 2014–21; past results do not guarantee future ones. Analysis, not investment advice.</div>`;
+}
 function fmtISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 (async()=>{try{const r=await fetch('picks.json',{cache:'no-store'});if(!r.ok)throw 0;MOM=await r.json();buildMomentum()}catch(e){MOM={error:true}}
+  try{renderIntraday()}catch(e){}
   if(document.body.classList.contains('v-ideas'))renderIdeas();else renderAll();
   initPush();
   if(MOM&&!MOM.error){queueNewAlerts();pollQuotes();setInterval(()=>{if(marketOpen())pollQuotes()},60000);setInterval(refreshPicksFile,5*60000)}})();
