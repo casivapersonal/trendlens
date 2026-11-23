@@ -391,11 +391,19 @@ def cmd_ideas(a, cfg):
 def cmd_intraday(a, cfg):
     """Intraday segment (exhaustion fade, short). prep = after the close, build tomorrow's watch list from daily bars;
     run = every 5 minutes in market hours: the 9:20 scan (judge -> CEO -> post) and stop / target / 15:15 exits."""
+    import datetime as _dt
     from . import ideas, intraday_ideas as ii
     now = now_ist(); c = ii.conf(cfg)
     if not c["enabled"]: print("intraday segment is switched off ([intraday] enabled = false)"); return
+    holidays = set(ii._holidays(cfg))
+    if now.weekday() >= 5 or now.date().isoformat() in holidays:
+        if not a.force: print("Not a trading day: nothing to do."); return
     if a.action == "prep":
         from .feeds import make_live_feed
+        pub = ideas.public()
+        for x in ii.monitor(cfg, pub, now):           # anything a late or skipped 15:15 run left open: closed at the 15:15 candle
+            print(f"CLOSED  {x['sym']:<12} {x['reason']} at {x['exit_price']}  net {x['net_pct']}")
+        ideas._publish(pub, now)
         fno = sorted(ii.fno_list())
         if not fno: print("no F&O list: nothing prepared"); return
         frames = _history(make_live_feed(cfg), fno, "1y")
@@ -411,14 +419,15 @@ def cmd_intraday(a, cfg):
         for s, f in sorted(w["stocks"].items(), key=lambda x: -x[1]["ret5"]):
             print(f"  {f['judge']['verdict']:<8} {s:<14} opens {f['trigger_lo']}-{f['trigger_hi']}: {'; '.join(f['why'])} {'; '.join(f['judge']['rejected_because'])}")
         return
-    if not market_open_ist(now) and not a.force:
-        print("Market is closed: intraday ideas are checked 09:20-15:30 IST."); return
+    if not (_dt.time(9, 15) <= now.time() <= _dt.time(16, 0)) and not a.force:      # until 16:00 so a late run still books the 15:15 exit
+        print("Outside 09:15-16:00 IST: intraday ideas are not checked now."); return
     pub = ideas.public()
     posted = ii.scan(cfg, pub, now)
     for x in posted: print(f"POSTED  {x['sym']:<12} short {x['entry_price']} stop {x['stop']} target {x['target']}  ({x['ceo']['memo']})")
     day = ii.book(pub)["days"].get(now.date().isoformat(), {})
+    if day.get("waiting"): print("waiting for the 9:15 / 9:20 candles of: " + ", ".join(day["waiting"]))
     for x in day.get("candidates", []) if posted else []: print(f"  {x['decision']:<8} {x['sym']:<12} gap {x['gap_pct']:+.1f}%  score {x['score']}")
-    for x in ii.monitor(cfg, pub, now): print(f"CLOSED  {x['sym']:<12} {x['reason']} at {x['exit_price']}  net {x['net_pct']:+.2f}%")
+    for x in ii.monitor(cfg, pub, now): print(f"CLOSED  {x['sym']:<12} {x['reason']} at {x['exit_price']}  net {x['net_pct']}")
     ideas._publish(pub, now)
     b = pub["intraday"]; print(f"intraday live {len(b['live'])}, closed {len(b['closed'])}, stats {b['stats']}")
 
