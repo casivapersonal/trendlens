@@ -137,9 +137,10 @@ def _combo_eval(job):
     idx = np.ones(len(ids), dtype=bool)
     out = []
     uy = np.unique(years)
+    vconf = _S["vconf"]
     def score(sel, label):
         x = X[sel]; n = np.sum(~np.isnan(x), axis=0)
-        ok = n >= min_n
+        ok = (n >= min_n) & (vconf >= needs_bar(label))          # no peeking: filter info must be known at entry
         if not ok.any(): return False
         mean = np.nanmean(np.where(ok, x, np.nan), axis=0) if ok.any() else None
         sd = np.nanstd(x, axis=0)
@@ -176,9 +177,21 @@ def _combo_eval(job):
     return out
 
 
+def needs_bar(label):
+    """Latest five-minute bar a filter combination looks at ('(c3)' = needs bar 3 closed); 0 = known at the open."""
+    import re
+    return max([int(x) for x in re.findall(r"\(c(\d)\)", label)] or [0])
+
+
+def var_conf(vnames):
+    """Bars already closed at entry for each setting ('confirm 2 bar' -> 2); settings without it count as unlimited."""
+    import re
+    return np.array([int(re.search(r"confirm (\d)", v).group(1)) if re.search(r"confirm (\d)", v) else 99 for v in vnames])
+
+
 def search(X, F, vnames, bases, min_n):
     M = masks_for(F)
-    _S.update(X=X, years=F.year.values, M=M, names=sorted(M), min_n=min_n, vnames=vnames)
+    _S.update(X=X, years=F.year.values, M=M, names=sorted(M), min_n=min_n, vnames=vnames, vconf=var_conf(vnames))
     rows = []
     for part in R._pool_map(_combo_eval, bases): rows += part
     return pd.DataFrame(rows, columns=["base", "filters", "setting", "n", "mean", "se", "years_pos", "years"])
