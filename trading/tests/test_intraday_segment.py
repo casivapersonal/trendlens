@@ -103,6 +103,12 @@ class ScanAndCeo(unittest.TestCase):
         self.assertTrue(ch["RUN"]["triggered"]); self.assertAlmostEqual(ch["RUN"]["gap_pct"], 3.0, delta=0.05)
         self.assertFalse(ch["EXT"]["triggered"]); self.assertAlmostEqual(ch["EXT"]["gap_pct"], 0.0, delta=0.05)     # shown as "Not triggered"
 
+    def test_nse_holiday_list_is_merged_into_the_config(self):
+        from arena.config import nse_holidays
+        p = Path(self.tmp.name) / "h.csv"; p.write_text("DATE,DESCRIPTION\n2026-11-24,Guru Nanak\n")
+        self.assertEqual(nse_holidays(p), ["2026-11-24"]); self.assertEqual(nse_holidays(Path(self.tmp.name) / "none.csv"), [])
+        self.assertIn("2026-12-25", CFG["market"]["holidays"])           # from the repo's nse/holidays.csv
+
     def test_results_already_out_do_not_block(self):
         self.setUp(results={"RUN": "2026-10-30"})
         self.assertEqual(self.w["stocks"]["RUN"]["judge"]["verdict"], "APPROVE")
