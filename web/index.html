@@ -893,7 +893,7 @@ const ICON={
 const money=(o,v)=>fmt(v,o.m);
 const mono=o=>{const t=o.label.replace(/[^A-Z]/g,'').slice(0,2)||'TL';return`<div class="mono" style="background:${PAL[hashStr(o.x.sym)%PAL.length]}">${t}</div>`};
 function perfHTML(o){
-  if(o.cond)return`<div class="perf"><span>Conditional: posted only if the 9:15 open on ${fD(new Date(o.forDay+'T00:00:00'))} is inside the entry range</span></div>`;
+  if(o.cond)return`<div class="perf"><span>${condStatus(o)}</span></div>`;
   if(o.term==='intraday'&&o.status!=='live'){const[sl,sc]=STATUS[o.status];return`<div class="perf ${o.ret<0?'bad':''}"><span>Result: <span class="box ${o.ret==null?'':o.ret>=0?'up':'dn'}">${o.ret==null?'not counted':pct(o.ret)}</span> <small style="color:var(--muted)">after costs</small></span><span class="sep"></span><span><span class="chip ${sc}">${sl}</span> ${EH(o.intra.exit_time||'')}</span></div>`}
   if(o.status==='live'&&o.term==='momentum')return`<div class="perf ${o.chgSoFar<0?'bad':''}"><span>Change so far: <span class="box ${o.chgSoFar>=0?'up':'dn'}">${pct(o.chgSoFar)}</span></span><span class="sep"></span><span>${o.n500!=null?'NIFTY 500':'NIFTY 50'} same period: <b class="${(o.n500!=null?o.n500:o.nifty)>=0?'up':'dn'}">${pct(o.n500!=null?o.n500:o.nifty)}</b></span></div>`;
   if(o.status==='live')return`<div class="perf ${o.chgSoFar<0?'bad':''}"><span>Change so far: <span class="box ${o.chgSoFar>0?'up':o.chgSoFar<0?'dn':''}">${pct(o.chgSoFar)}</span></span><span class="sep"></span><span>${o.term==='medium'?'To reference objective':'Potential left'}: <b class="${o.potLeft>=0?'up':'dn'}">${pct(o.potLeft)}</b></span></div>`;
@@ -1237,7 +1237,8 @@ function buildMomentum(){
         else{o.status=/Target/.test(e.reason||'')?'target':/Stop/.test(e.reason||'')?'stop':'squared';o.exitI=i;o.exitPx=e.exit_price;o.ret=e.net_pct;o.reason=e.reason}}
       IDEAS.push(o)};
     (ib.live||[]).filter(e=>e.date===istDate()).forEach(e=>mkI(e,'live'));(ib.closed||[]).slice(0,60).forEach(e=>mkI(e,'closed'));
-    (((ib.watch||{}).stocks)||[]).filter(e=>e.verdict==='APPROVE').forEach(e=>mkI(e,'watch'))}
+    const postedT=new Set((ib.live||[]).concat(ib.closed||[]).filter(e=>e.date===(ib.watch||{}).for).map(e=>e.sym));
+    (((ib.watch||{}).stocks)||[]).filter(e=>e.verdict==='APPROVE'&&!postedT.has(e.sym)).forEach(e=>mkI(e,'watch'))}
   IDX.REAL=['NIFTY 50','NIFTY BANK'].map(k=>({n:k,px:by[k].px,chg:by[k].chg,score:by[k].score}));
   const curP=IDEAS.filter(o=>o.seg==='MOM'&&o.status==='live'&&o.term!=='intraday');
   IDX.REAL.push({n:'LIVE IDEAS · TODAY',px:null,chg:curP.length?curP.reduce((s,o)=>s+o.x.chg,0)/curP.length:0,score:curP.length?curP.reduce((s,o)=>s+o.x.score,0)/curP.length:0});
@@ -1387,6 +1388,19 @@ function renderIntraday(){
   <div><span class="k">Back-test 2022–26 (F&amp;O)</span><b class="up">${pct(bt2.net_pct)}</b><span class="k">a trade, ${bt2.trades||'—'} trades, after costs</span></div></div>
   ${C.length?grid(C):'<div class="k">No closed intraday ideas yet.</div>'}`;
 }
+function condStatus(o){ // what happened to a conditional intraday setup on its day
+  const day=((MOM.intraday||{}).days||{})[o.forDay]||{},c=(day.checked||{})[o.label],dc=(day.candidates||[]).find(x=>x.sym===o.label);
+  const hm=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Kolkata'});
+  const band=`${fmtN(o.lo)}–${fmtN(o.hi)}`,today=istDate()===o.forDay;
+  if(c&&!c.triggered)return`<b>Not triggered:</b> opened at ${fmtN(c.open)} (${c.gap_pct>0?'+':''}${c.gap_pct.toFixed(1)}%), outside ${band}. No trade today.`;
+  if(c&&c.triggered&&dc&&dc.decision!=='POST')return`<b>Triggered but not posted:</b> opened ${c.gap_pct>0?'+':''}${c.gap_pct.toFixed(1)}%. ${EH(dc.memo||'')}`;
+  if(c&&c.triggered)return`<b>Triggered:</b> opened ${c.gap_pct>0?'+':''}${c.gap_pct.toFixed(1)}%. Short posted at the 9:20 open.`;
+  if((day.waiting||[]).includes(o.label))return`<b>Checking:</b> waiting for the 9:15 and 9:20 five-minute candles (checked until 10:00).`;
+  if(day.holiday)return`<b>Market holiday:</b> NSE was closed, so this setup could not trigger.`;
+  if(day.scanned)return`<b>Not checked:</b> ${EH(day.note||'no five-minute data for this stock')}.`;
+  if(today&&hm>='09:15'&&hm<'15:15')return`<b>Checking:</b> the 9:20 check has not reported yet; the open is compared with ${band} once the 9:15 and 9:20 candles are in.`;
+  if(today&&hm>='15:15')return`<b>Not checked:</b> no result was recorded for today.`;
+  return`Conditional: posted only if the 9:15 open on ${fD(new Date(o.forDay+'T00:00:00'))} is inside ${band}`}
 function fmtISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 (async()=>{try{const r=await fetch('picks.json',{cache:'no-store'});if(!r.ok)throw 0;MOM=await r.json();buildMomentum()}catch(e){MOM={error:true}}
   try{renderIntraday()}catch(e){}
