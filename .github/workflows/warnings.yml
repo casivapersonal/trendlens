@@ -1,10 +1,6 @@
 name: Live screener
 on:
-  schedule:
-    # Every 10 minutes while NSE is open (09:15-15:30 IST = 03:45-10:00 UTC), Mon-Fri
-    - cron: "45,55 3 * * 1-5"
-    - cron: "*/10 4-9 * * 1-5"
-    - cron: "0 10 * * 1-5"
+  # No schedule since 24 Nov 2026: market_loop.yml runs the screener every 10 minutes from 09:15. Kept for manual runs.
   workflow_dispatch: {}
 permissions:
   contents: write
