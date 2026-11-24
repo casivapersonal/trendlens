@@ -35,7 +35,10 @@ for e in state["live"]:
     if day <= -5: warn.append((s, "fall", f"Down {day:.1f}% today at Rs {p:,.2f}"))
     if day >= 5: warn.append((s, "rise", f"Up {day:.1f}% today at Rs {p:,.2f}"))
     if p < min(c[-20:]): warn.append((s, "low20", f"New 20-day low at Rs {p:,.2f}"))
-    if e.get("stop") and p <= e["stop"]: warn.append((s, "stop", f"Price Rs {p:,.2f} is at or below the stop-loss Rs {e['stop']:,.2f}: the decision-maker will review at the close"))
+    if e.get("stop") and p <= e["stop"]:
+        if e.get("stop_rule") == "close" and e.get("term") != "medium":   # bull flags (Nov 2026): exit only on a close below the stop
+            warn.append((s, "stop", f"Price Rs {p:,.2f} is below the stop-loss Rs {e['stop']:,.2f}: exit at the next open only if it closes below the stop (emergency stop Rs {e.get('hard_stop') or 0:,.2f} sells at once)"))
+        else: warn.append((s, "stop", f"Price Rs {p:,.2f} is at or below the stop-loss Rs {e['stop']:,.2f}: stop-loss reached, the CEO closes the idea after the close"))
     s50 = sum(c[-50:]) / 50
     if p < s50 <= c[-1]: warn.append((s, "sma50", f"Fell below its 50-day average (Rs {s50:,.2f}), now Rs {p:,.2f}"))
     if len(c) >= 200:
