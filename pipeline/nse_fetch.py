@@ -1,5 +1,5 @@
-"""Refreshes the NSE watch lists every morning (audit fix #14): ASM and GSM surveillance lists and the board-meeting /
-results calendar, written to ../nse/*_auto.csv where core.load_nse reads them. NSE's site needs a browser-like session;
+"""Refreshes the NSE watch lists every morning (audit fix #14): ASM and GSM surveillance lists, the board-meeting /
+results calendar and the trading-holiday list (nse/holidays.csv, read by trading/arena/config.py), written to ../nse/*_auto.csv where core.load_nse reads them. NSE's site needs a browser-like session;
 if NSE refuses (it sometimes blocks cloud servers), the previous files are kept and the run says so. Hand-uploaded CSVs in
 nse/ keep working alongside these."""
 import csv, datetime as dt, os, sys, time
@@ -64,6 +64,16 @@ def main():
             purpose = " ".join(str(r.get(k) or "") for k in ("purpose", "bm_purpose", "bm_desc", "desc"))
             if sym and date: d.append((sym, date, purpose.strip() or "Results"))
         if d: write("results_auto.csv", ["SYMBOL", "DATE", "PURPOSE"], d); ok += 1
+    j = get(s, "https://www.nseindia.com/api/holiday-master?type=trading")
+    if isinstance(j, dict) and j.get("CM"):          # equity segment; kept across years (the API returns the current year only)
+        old = {}
+        try:
+            with open(os.path.join(OUT, "holidays.csv"), newline="") as f: old = {r["DATE"]: r["DESCRIPTION"] for r in csv.DictReader(f)}
+        except Exception: pass
+        for r in j["CM"]:
+            try: old[dt.datetime.strptime(r["tradingDate"], "%d-%b-%Y").date().isoformat()] = (r.get("description") or "").strip()
+            except Exception: pass
+        if old: write("holidays.csv", ["DATE", "DESCRIPTION"], sorted(old.items())); ok += 1
     if ok:
         with open(os.path.join(OUT, "asof.txt"), "w") as f: f.write(dt.date.today().isoformat())
     if not ok:
