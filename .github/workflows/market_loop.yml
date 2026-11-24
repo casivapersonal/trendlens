@@ -29,7 +29,7 @@ jobs:
         id: gate
         run: |
           d=$(TZ=Asia/Kolkata date +%u); hm=$(TZ=Asia/Kolkata date +%H%M); today=$(TZ=Asia/Kolkata date +%F)
-          if grep -E '^holidays *=' trading/config.toml | grep -q "\"$today\""; then
+          if grep -q "^$today," nse/holidays.csv 2>/dev/null || grep -E '^holidays *=' trading/config.toml | grep -q "\"$today\""; then
             echo "NSE holiday $today: one pass so the site says so"; echo "holiday=1" >> "$GITHUB_OUTPUT"
           elif [ "$d" -le 5 ] && [ $((10#$hm)) -lt 1535 ]; then echo "go=1" >> "$GITHUB_OUTPUT"; else echo "Outside market hours ($hm IST): nothing to do"; fi
       - uses: actions/setup-python@v5
