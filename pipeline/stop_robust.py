@@ -13,6 +13,7 @@ import backtest as B, core  # noqa: E402
 
 PERIODS = (("2011-2019", "2011-01-01", "2019-12-31"), ("2020-2026", "2020-01-01", "2026-12-31"))
 EXTRAS = (0.0, 0.005, 0.01)
+MODES = (("close_open", None), ("hybrid", 1.5), ("hybrid2.0", 2.0), ("hybrid2.5", 2.5), ("hybrid3.0", 3.0))   # emergency stop at k x the risk below the fill
 
 
 def flags(idx, syms, P, R, bench, k=1.5):
@@ -25,8 +26,8 @@ def flags(idx, syms, P, R, bench, k=1.5):
         fc, ec = fill * (1 + B.SLIP), ex * (1 - B.SLIP - extra)
         return (ec * (1 - B.cost("SELL", 100000, ec)) - fc * (1 + B.cost("BUY", 100000, fc))) / (fill - stop)
 
-    def walk(o, h, l, c, f0, fill, stop, tgt, mode):            # -> (price, kind)
-        hard = fill - 1.5 * (fill - stop)
+    def walk(o, h, l, c, f0, fill, stop, tgt, mode, hard_k=1.5):            # -> (price, kind)
+        hard = fill - hard_k * (fill - stop)
         for u in range(f0, min(f0 + 15, len(idx))):
             oo = fill if u == f0 else o[u]
             if oo != oo: continue
@@ -61,8 +62,8 @@ def flags(idx, syms, P, R, bench, k=1.5):
             if fill is None or fill <= stop or (tgt - fill) / (fill - stop) < 2.0: continue
             row = {"sym": sym, "day": idx[t]}
             ex, _ = walk(o, h, l, c, f0, fill, stop, tgt, "touch"); row["live"] = net(fill, ex, stop)
-            for mode in ("close_open", "hybrid"):
-                ex, kind = walk(o, h, l, c, f0, fill, stop, tgt, mode)
+            for mode, hk in MODES:
+                ex, kind = walk(o, h, l, c, f0, fill, stop, tgt, "hybrid" if hk else mode, hk or 1.5)
                 for e in EXTRAS:
                     row[f"{mode}_{e}"] = net(fill, ex, stop, e if kind == "stop" else 0.0)
             rows.append(row)
@@ -89,13 +90,15 @@ if __name__ == "__main__":
     res = {}
     L = ["# Bull-flag close-based stop: robustness", "", "Gain vs the live touch stop, net R a trade, same trades. t = naive / clustered by week / clustered by month.", "",
          "| rule, extra slippage on its stop exits | 2011-2019 | 2020-2026 |", "|---|---|---|"]
-    for mode in ("close_open", "hybrid"):
+    for mode, _ in MODES:
         for e in EXTRAS:
             v = f"{mode}_{e}"; cells = []
             for name, s, t in PERIODS:
                 g = D[(D.day >= s) & (D.day <= t)]; d = g[v] - g["live"]
                 wk = clustered(d, g.day.dt.to_period("W")); mo = clustered(d, g.day.dt.to_period("M"))
                 res.setdefault(v, {})[name] = {"week": wk, "month": mo, "avg_R_rule": round(float(g[v].mean()), 3), "avg_R_live": round(float(g["live"].mean()), 3)}
-                cells.append(f"{wk['avg_R']:+.3f} (t {wk['t_naive']} / {wk['t_clustered']} / {mo['t_clustered']}); rule {g[v].mean():+.3f} vs live {g['live'].mean():+.3f}")
+                x = g[v]; tail = f"worst {x.min():.2f}R, {100 * (x < -1.5).mean():.1f}% < -1.5R, {100 * (x < -2.5).mean():.1f}% < -2.5R (live {g['live'].min():.2f}R, {100 * (g['live'] < -1.5).mean():.1f}%)"
+                res[v][name]["tail"] = tail
+                cells.append(f"{wk['avg_R']:+.3f} (t {wk['t_naive']} / {wk['t_clustered']} / {mo['t_clustered']}); rule {g[v].mean():+.3f} vs live {g['live'].mean():+.3f}; {tail}")
             L.append(f"| {mode}, +{e * 100:.1f}% | {cells[0]} | {cells[1]} |")
     (out / "robust_summary.json").write_text(json.dumps(res, indent=1)); (out / "robust_summary.md").write_text("\n".join(L)); print("\n".join(L), flush=True)
