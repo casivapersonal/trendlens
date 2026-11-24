@@ -83,6 +83,13 @@ It uses `core.momentum_score`, the same function as the live ranking. Known bias
 Momentum back-test with the live rules (stop + caps), after costs: 2011-19 21.2% a year (max fall -28.1%), 2020-26 45.4% (-37.9%);
 NIFTY 500 price index 7.9% and 13.8%.
 
+## Stop rule study (Nov 2026)
+
+- **Bull flags (live).** `short_stop_mode = "close"`: the stop (1.5 ATR below the signal close) no longer exits on a touch. A day that CLOSES below it exits at the next session's open (the 16:15 run flags it "awaiting" until that open exists). Emergency stop `short_hard_stop_r = 3.0`: a touch 3x the risk below the fill sells at once (intraday monitor too). Target and 15-session time exit unchanged. Ideas posted before the change keep `stop_rule = "touch"`.
+- **Evidence** (`pipeline/stop_final_check.py`, `pipeline/stop_robust.py`; same signals, after costs, gain vs the touch stop): with 0.5% extra slippage on the new rule's stop exits, +0.048R a trade in 2011-19 and +0.090R in 2020-26 (month-clustered t 2.4 and 3.6). Emergency stop at 1.5R or 2R failed 2011-19; no emergency stop gave +0.054 / +0.095 but a worst trade of -6.1R (3R cuts 2020-26 worst to -3.9R). 1.25 / 1.75 ATR stops no better. Independent review: no look-ahead; random-walk data shows no gain, so the edge comes from intraday dips that recover by the close. Caveats: today's NIFTY 500 list (survivorship), losses beyond 1.5R are more common (about 7-9% of trades vs 1%), so a position about 25% smaller is suggested.
+- **Momentum: unchanged** (6 ATR from the fill, exit on a touch). Close-based versions gained 0.1-1.7 CAGR points: within noise; "sell at the close" can't be followed by hand.
+- **Rejected:** bull-flag breakout entry (worse in both periods), skipping stretched momentum buys (lower returns), other bull-flag exit times (about 0.2%, too small), combinations.
+
 ## Intraday segment: exhaustion fade (Nov 2026)
 Code: `trading/arena/intraday_ideas.py`, `python -m arena intraday prep|run`, settings in `config.toml [intraday]`, tests in `trading/tests/test_intraday_segment.py`.
 - **Rule.** F&O stocks, price >= Rs 20, 20-day traded value >= Rs 5 Cr. Setup at the close: > 25% above the 50-day average, or up > 20% in 5 sessions, or a 20-day high on 1.5x the 50-day volume. Trigger: the 9:15 open is 1.5-8% above the previous close. Short at the open of the 9:20 candle; stop = entry + 1 x daily ATR(14); target = entry - 2 x ATR; whatever is open is squared off at 15:15. At most 3 a day, biggest 5-day run-up first.
