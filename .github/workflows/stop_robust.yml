@@ -1,0 +1,24 @@
+name: Close-based stop - robustness
+# Run by hand (pipeline/stop_robust.py). Extra slippage and clustered errors. No secrets.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q -r trading/requirements.txt -r pipeline/requirements.txt
+      - name: Stop check
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/stop_robust.py --out robust_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: robust-results
+          path: robust_results
+          retention-days: 30
