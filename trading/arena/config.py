@@ -33,7 +33,18 @@ def load_config(path: str | Path | None = None) -> dict:
     for k, v in cfg.get("paths", {}).items():  # paths are relative to the project folder
         if not Path(v).is_absolute():
             cfg["paths"][k] = str(ROOT / v)
+    m = cfg.setdefault("market", {})                # NSE's own holiday list (nse/holidays.csv, refreshed by pipeline/nse_fetch.py) + config.toml
+    m["holidays"] = sorted(set(m.get("holidays") or []) | set(nse_holidays()))
     return apply_profile(cfg)
+
+
+def nse_holidays(path: Path = ROOT.parent / "nse" / "holidays.csv") -> list[str]:
+    """Trading holidays (YYYY-MM-DD) from NSE's holiday master, saved by pipeline/nse_fetch.py. Missing file = none."""
+    try:
+        import csv
+        with open(path, newline="") as f: return [r["DATE"] for r in csv.DictReader(f) if r.get("DATE")]
+    except Exception:
+        return []
 
 
 # Strategy profiles. "balanced" uses config.toml as written; others override it.
