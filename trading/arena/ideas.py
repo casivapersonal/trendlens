@@ -1,6 +1,8 @@
 """Ideas pipeline, one store: web/picks.json (what the website's Trade Ideas tab reads).
 scan -> committee -> coded judge -> PENDING (trading/ideas/pending.json) -> decision-maker approves -> LIVE idea
 -> monitor flags exit signals (stop, target, time, faded momentum rank) -> decision-maker closes -> CLOSED idea.
+Stops (Nov 2026 study, pipeline/stop_final_check.py + stop_robust.py): momentum ideas exit on a touch of the stop; bull-flag ideas
+(stop_rule "close") exit at the next open after a CLOSE below the stop, plus an emergency stop short_hard_stop_r x the risk below the fill.
 Nothing is posted and nothing is closed without the decision-maker, unless auto_close is switched on. No real-time loop.
 Wording is a "Bullish view", never buy or sell."""
 from __future__ import annotations
@@ -125,7 +127,16 @@ def _fill_checks(i: dict, fill: float, cfg: dict) -> str | None:
     rr = (tg - fill) / (fill - st)
     i["r_at_fill"] = round(rr, 2)
     if rr < cfg["ideas"].get("min_rr", 2.0): return f"Not entered: at the fill price {fill:.2f} reward-to-risk is {rr:.1f} (below {cfg['ideas'].get('min_rr', 2.0)})"
+    if i.get("stop_rule") == "close": i["hard_stop"] = tick(fill - cfg["ideas"].get("short_hard_stop_r", 3.0) * (fill - st))
     return None
+
+
+def _hard_stop(i: dict, cfg: dict) -> float | None:
+    """Emergency stop of a close-rule idea: short_hard_stop_r x the risk below the fill (sold on a touch, even inside the day)."""
+    if i.get("stop_rule") != "close" or not i.get("stop") or not i.get("filled"): return None
+    if not i.get("hard_stop"):
+        f = i["filled"]["price"]; i["hard_stop"] = tick(f - cfg["ideas"].get("short_hard_stop_r", 3.0) * (f - i["stop"]))
+    return i["hard_stop"]
 
 
 def _locked(r) -> bool:
@@ -183,7 +194,8 @@ def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | 
         out.append({"id": f"{s}-{pdate}-{term[0]}", "sym": s, "name": (committee._funds().get("stocks", {}).get(s) or {}).get("name") or s,
                     "view": "Bullish view", "term": term, "entry_date": pdate, "entry_time": entry_time, "entry_price": round(m["close"], 2),
                     "entry_rank": ranks.get(s), "mom_pct": round(moms[s] * 100, 1) if s in moms else None,
-                    "fill_rule": fill_rule, "breakout_level": bo_level, "results_date": rdate, "warnings": v.get("warnings", []),
+                    "fill_rule": fill_rule, "breakout_level": bo_level,
+                    "stop_rule": "close" if term == "short" and cfg["ideas"].get("short_stop_mode", "touch") == "close" else "touch", "results_date": rdate, "warnings": v.get("warnings", []),
                     **{k: lv[k] for k in ("entry_lo", "entry_hi", "stop", "target", "days", "r")},
                     # the back-tested rank rule reaches the CEO even when the untested judge points only reach WATCH
                     "status": ("awaiting decision" if v["verdict"] == "APPROVE" or (term == "medium" and v["verdict"] == "WATCH") else "watch") if risk["verdict"] == "PASS" else "watch",
@@ -306,11 +318,29 @@ def monitor(cfg: dict, frames: dict, now: datetime, public_path: Path | None = N
         stop, tgt = i.get("stop"), i.get("target")
         fdate = date.fromisoformat(i["filled"]["date"]); held_bars = after[[x.date() >= fdate for x in after.index]]
         win = held_bars if momentum or not i.get("days") else held_bars.iloc[:i["days"]]
-        awaiting = None
+        awaiting = None; await_note = None
+        by_close = not momentum and i.get("stop_rule") == "close"            # Nov 2026: bull flags exit at the next open after a CLOSE below the stop
+        hard = _hard_stop(i, cfg) if by_close else None
+        later = lambda ts: [(t2, r2) for t2, r2 in held_bars[[x > ts for x in held_bars.index]].iterrows() if not _locked(r2)]
         for n, (ts, r) in enumerate(win.iterrows()):
             o, h, l = float(r["open"]), float(r["high"]), float(r["low"])
             if n == 0 and rule: o = i["filled"]["price"]                                 # the entry bar starts at the fill
             if not momentum and tgt and o >= tgt: sig = ("Target hit", o, ts); break      # gap up through the target fills at the open
+            if by_close:
+                if hard and (o <= hard or l <= hard):                                       # emergency stop: sold on a touch
+                    if _locked(r):
+                        nxt = later(ts)
+                        if nxt: sig = ("Stop-loss hit", float(nxt[0][1]["open"]), nxt[0][0], "emergency stop (locked at the lower circuit: exited at the next tradable price)")
+                        else: awaiting, await_note = ts, "emergency stop reached at the lower circuit: exit at the next tradable price"
+                        break
+                    sig = ("Stop-loss hit", o if o <= hard else hard, ts, f"emergency stop {hard:,.2f} ({cfg['ideas'].get('short_hard_stop_r', 3.0):g}x the risk below the entry) reached"); break
+                if tgt and h >= tgt: sig = ("Target hit", max(o, tgt), ts); break
+                if stop and float(r["close"]) <= stop:                                          # closed below the stop: sell at the next open
+                    nxt = later(ts)
+                    if nxt: sig = ("Stop-loss hit", float(nxt[0][1]["open"]), nxt[0][0], f"closed below the stop on {ts.date().isoformat()}: exited at the next open")
+                    else: awaiting, await_note = ts, "closed below the stop: exit at the next session's open"
+                    break
+                continue
             if stop and (o <= stop or l <= stop):
                 if _locked(r):                                                 # audit fix #15: locked at the lower circuit, no sale possible
                     nxt = [(t2, r2) for t2, r2 in held_bars[[x > ts for x in held_bars.index]].iterrows() if not _locked(r2)]
@@ -324,6 +354,8 @@ def monitor(cfg: dict, frames: dict, now: datetime, public_path: Path | None = N
         # audit fix #11: no "protect the gain" advice on momentum ideas (not part of the tested rule); a tip only on setups
         i["stop_advice"] = None if (sig or momentum or awaiting is not None) else review.one_r_advice({**i, "entry_price": i["filled"]["price"]}, float(win["high"].max()) if len(win) else None)
         if awaiting is not None:
+            if await_note:
+                flag(i, {"reason": "Stop-loss hit", "price": round(float(d.loc[awaiting, "close"]), 2), "date": awaiting.date().isoformat(), "awaiting": True, "note": await_note}); continue
             flag(i, {"reason": "Stop-loss hit (locked at the lower circuit: exit at the next tradable price)", "price": stop, "date": awaiting.date().isoformat(), "awaiting": True}); continue
         if not sig and not momentum and i.get("days") and held >= i["days"]: sig = ("Time up", float(win["close"].iloc[-1]), win.index[-1])
         if not sig and i.get("rank_exit"): sig = (i["rank_exit"]["reason"], last, d.index[-1])
@@ -379,6 +411,17 @@ def monitor_live(cfg: dict, prices: dict, now: datetime, public_path: Path | Non
         stop, tgt = i.get("stop"), i.get("target")
         if i.get("filled") is None: continue
         sig = None
+        if i.get("stop_rule") == "close" and i.get("term") != "medium":
+            # Nov 2026: no exit on a touch of the stop; only the emergency stop sells inside the day. The 16:15 run checks the close.
+            hard = _hard_stop(i, cfg); i["below_stop"] = bool(stop and p <= stop)
+            if hard and p <= hard:
+                i["exit_signal"] = {"reason": "Stop-loss hit", "price": round(min(float(p), hard), 2), "date": now.date().isoformat(), "time": hm,
+                                    "note": f"emergency stop {hard:,.2f} reached"}
+                signals.append({"id": i.get("id", i["sym"]), **i["exit_signal"]})
+            elif tgt and p >= tgt:
+                i["exit_signal"] = {"reason": "Target hit", "price": round(float(tgt), 2), "date": now.date().isoformat(), "time": hm}
+                signals.append({"id": i.get("id", i["sym"]), **i["exit_signal"]})
+            i["entry_state"] = review.entry_state(i, float(p)); continue
         if stop and p <= stop and _at_circuit(float(p), (prev_close or {}).get(i["sym"])):
             # audit fix #15: possibly locked at the lower circuit; the 16:15 daily check decides the real exit (next tradable price)
             i["exit_signal"] = {"reason": "Stop-loss hit (price at the lower circuit band: exit confirmed after the close)", "price": round(float(p), 2),
