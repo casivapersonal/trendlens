@@ -1,9 +1,7 @@
 name: Intraday CEO
 on:
-  schedule:
-    - cron: "50,55 3 * * 1-5"      # 09:20 and 09:25 IST: intraday segment entries (exhaustion fade)
-    - cron: "*/5 4-9 * * 1-5"      # 09:30-15:25 IST, every 5 minutes
-    - cron: "0 10 * * 1-5"         # 15:30 IST
+  # No schedule since 24 Nov 2026: market_loop.yml runs these steps every 5 minutes from 09:15 (GitHub skipped most 5-minute
+  # schedules). Kept for manual runs.
   workflow_dispatch:
     inputs:
       force:
