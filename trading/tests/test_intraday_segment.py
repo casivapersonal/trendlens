@@ -97,6 +97,12 @@ class ScanAndCeo(unittest.TestCase):
         self.assertEqual(self.scan(pub, (10, 1), {}, fill=False), [])                               # after 10:00: given up, with a note
         self.assertIn("no five-minute data", pub["intraday"]["days"][DAY.date().isoformat()]["note"])
 
+    def test_each_watched_stock_records_whether_it_triggered(self):
+        pub = {}; self.scan(pub, (9, 26), {"RUN": self.bars_gap("RUN", 3)})
+        ch = pub["intraday"]["days"][DAY.date().isoformat()]["checked"]
+        self.assertTrue(ch["RUN"]["triggered"]); self.assertAlmostEqual(ch["RUN"]["gap_pct"], 3.0, delta=0.05)
+        self.assertFalse(ch["EXT"]["triggered"]); self.assertAlmostEqual(ch["EXT"]["gap_pct"], 0.0, delta=0.05)     # shown as "Not triggered"
+
     def test_results_already_out_do_not_block(self):
         self.setUp(results={"RUN": "2026-10-30"})
         self.assertEqual(self.w["stocks"]["RUN"]["judge"]["verdict"], "APPROVE")
