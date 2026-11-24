@@ -38,11 +38,11 @@ def cost_pct(kind: str, slip: float) -> float:
 
 
 # ------------------------------------------------------------------ data
-def hf_minutes(fno: set, work: Path, shards: int = 10) -> Path:
+def hf_minutes(fno: set, work: Path, shards=range(10)) -> Path:
     """1-minute candles for the F&O stocks, one parquet per symbol in work/min (09:15-15:29 IST)."""
     import pyarrow.parquet as pq
     parts = work / "parts"; parts.mkdir(parents=True, exist_ok=True); dest = work / "min"; dest.mkdir(exist_ok=True)
-    for f in range(shards):
+    for f in shards:
         p = work / "shard.parquet"; t0 = time.time()
         subprocess.run(["curl", "-sSfL", "--retry", "5", "--retry-delay", "10", "-o", str(p), HF + f"minute/train-{f:05d}.parquet"], check=True)
         t = pq.read_table(p, filters=[("symbol", "in", sorted(fno))], columns=["symbol", "timestamp", "open", "high", "low", "close", "volume"]).to_pandas()
@@ -161,31 +161,43 @@ def run(files, label, five=False):
     return pd.DataFrame(ev)
 
 
-def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--old"); ap.add_argument("--work", default="/tmp/fut"); ap.add_argument("--out", default="futures_results")
-    ap.add_argument("--shards", type=int, default=10); a = ap.parse_args()
-    out = Path(a.out); out.mkdir(parents=True, exist_ok=True); work = Path(a.work); work.mkdir(parents=True, exist_ok=True)
-    from intraday_exhaustion_test import fno_list
-    fno, src = fno_list(); print("F&O stocks:", len(fno), src, flush=True)
-    res = {"fno_source": src, "fno_count": len(fno), "costs_pct_round_trip": {k: {s: round(cost_pct(k, s), 4) for s in SLIPS} for k in ("futures", "cash")}}
-    mdir = hf_minutes(fno, work, a.shards)
-    files = sorted(mdir.glob("*.parquet"))
-    E1 = run(files, "2022-26 1-minute"); E1.to_csv(out / "events_2022_1min.csv.gz", index=False)
-    res["2022-2026 (1-minute)"] = table(E1, "2022-26 1-minute")
-    E5 = run(files, "2022-26 5-minute", five=True)
-    res["2022-2026 (5-minute, same data)"] = table(E5, "2022-26 5-minute")
-    if a.old:
-        olds = sorted(Path(a.old).glob("*.csv.gz"))
-        E0 = run([f for f in olds if f.name.split(".")[0] in fno or True], "2014-21 5-minute"); E0.to_csv(out / "events_2014_5min.csv.gz", index=False)
-        res["2014-2021 (5-minute)"] = table(E0, "2014-21 5-minute")
+def report(res, out):
     (out / "futures_summary.json").write_text(json.dumps(res, indent=1, default=str))
-    L = ["# Exhaustion short as stock futures", "", f"F&O list: {len(fno)} from {src}. Costs round trip (% of contract value): {json.dumps(res['costs_pct_round_trip'])}", ""]
+    L = ["# Exhaustion short as stock futures", "", f"F&O list: {res.get('fno_count')} from {res.get('fno_source')}. Costs round trip (% of contract value): {json.dumps(res['costs_pct_round_trip'])}", ""]
     for per in [k for k in res if k[:2] == "20"]:
         L += [f"## {per}", "", "| variant | trades | net %/trade | avg R | win % | t (by day) | years + | worst trade % | max drawdown (20% each) |", "|---|---|---|---|---|---|---|---|---|"]
         for k, v in res[per].items():
             L.append(f"| {k} | {v['trades']} | {v['net_pct']} | {v['avg_R']} | {v['win_pct']} | {v['t_by_day']} | {v['years_pos']} | {v['worst_trade_pct']} | {v['max_drawdown_pct_20pct_each']} |")
         L.append("")
     (out / "futures_summary.md").write_text("\n".join(L)); print("\n".join(L), flush=True)
+
+
+def main():
+    """Parallel: each part job builds its shard of 1-minute files and its slice of the 2014-21 files and writes events;
+    --collect reads every part's events and writes the summary."""
+    ap = argparse.ArgumentParser(); ap.add_argument("--old"); ap.add_argument("--work", default="/tmp/fut"); ap.add_argument("--out", default="futures_results")
+    ap.add_argument("--shards", default="0,1,2,3,4,5,6,7,8,9"); ap.add_argument("--part", type=int, default=0); ap.add_argument("--parts", type=int, default=1)
+    ap.add_argument("--collect"); a = ap.parse_args()
+    out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    from intraday_exhaustion_test import fno_list
+    fno, src = fno_list(); print("F&O stocks:", len(fno), src, flush=True)
+    res = {"fno_source": src, "fno_count": len(fno), "costs_pct_round_trip": {k: {s: round(cost_pct(k, s), 4) for s in SLIPS} for k in ("futures", "cash")}}
+    names = {"2022-2026 (1-minute)": "events_2022_1min", "2022-2026 (5-minute, same data)": "events_2022_5min", "2014-2021 (5-minute)": "events_2014_5min"}
+    if a.collect:
+        for label, nm in names.items():
+            fs = sorted(Path(a.collect).rglob(f"{nm}*.csv.gz"))
+            E = pd.concat([pd.read_csv(f, parse_dates=["day"]) for f in fs if f.stat().st_size > 40], ignore_index=True) if fs else pd.DataFrame()
+            if len(E): res[label] = table(E, label)
+        report(res, out); return
+    work = Path(a.work); work.mkdir(parents=True, exist_ok=True)
+    tag = f"_p{a.part}"
+    mdir = hf_minutes(fno, work, [int(x) for x in a.shards.split(",") if x != ""])
+    files = sorted(mdir.glob("*.parquet"))
+    run(files, "2022-26 1-minute").to_csv(out / f"events_2022_1min{tag}.csv.gz", index=False)
+    run(files, "2022-26 5-minute", five=True).to_csv(out / f"events_2022_5min{tag}.csv.gz", index=False)
+    if a.old:
+        olds = sorted(Path(a.old).glob("*.csv.gz"))[a.part::a.parts]
+        run(olds, "2014-21 5-minute").to_csv(out / f"events_2014_5min{tag}.csv.gz", index=False)
 
 
 if __name__ == "__main__":
