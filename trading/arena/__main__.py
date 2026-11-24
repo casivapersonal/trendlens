@@ -332,8 +332,8 @@ def cmd_ideas(a, cfg):
     elif a.action == "intraday":
         # every 5 minutes in market hours: live prices -> entries filled, stop / target exits closed
         import datetime as _dt, time as _t
-        if not (market_open_ist(now) and now.time() >= _dt.time(9, 30)) and not a.force:
-            print("Market is closed: the intraday CEO runs 09:30-15:30 IST (opening-auction prices are skipped)."); return
+        if not (market_open_ist(now) and now.time() >= _dt.time(9, 15)) and not a.force:
+            print("Market is closed: the intraday CEO runs 09:15-15:30 IST."); return
         from . import universe as uni
         sys.path.insert(0, str(uni.REPO / "pipeline")); import core
         h = json.loads((uni.REPO / "web" / "history.json").read_text())
@@ -396,8 +396,13 @@ def cmd_intraday(a, cfg):
     now = now_ist(); c = ii.conf(cfg)
     if not c["enabled"]: print("intraday segment is switched off ([intraday] enabled = false)"); return
     holidays = set(ii._holidays(cfg))
-    if now.weekday() >= 5 or now.date().isoformat() in holidays:
-        if not a.force: print("Not a trading day: nothing to do."); return
+    if (now.weekday() >= 5 or now.date().isoformat() in holidays) and a.action != "prep" and not a.force:
+        if now.date().isoformat() in holidays and now.weekday() < 5:        # say so on the site instead of leaving the setups unanswered
+            pub = ideas.public(); day = ii.book(pub)["days"].setdefault(now.date().isoformat(), {"scanned": None, "candidates": []})
+            if not day.get("scanned"):
+                day.pop("waiting", None); day.update(scanned=now.isoformat(timespec="minutes"), holiday=True, note="NSE holiday: the market is closed today, so no setup could trigger")
+                ideas._publish(pub, now)
+        print("Not a trading day: nothing to do."); return
     if a.action == "prep":
         from .feeds import make_live_feed
         pub = ideas.public()
