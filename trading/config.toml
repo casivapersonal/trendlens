@@ -112,6 +112,9 @@ results_skip = true            # setup ideas are skipped when company results fa
 entry_atr = 0.4                # entry range = close +/- this x ATR
 short_days = 15                # trading days
 short_stop_atr = 1.5
+short_stop_mode = "close"      # Nov 2026: bull flags exit at the next open after a CLOSE below the stop (not on a touch). Tested after costs, same trades:
+                               # +0.05R (2011-19) and +0.10R (2020-26) a trade with 0.5% extra slippage; "touch" = the old rule
+short_hard_stop_r = 3.0        # emergency stop for "close" mode: sold on a touch 3x the risk below the fill (kept 95% of the gain; 1.5R and 2R failed)
 slippage_pct = 0.1             # per side, deducted on the Scorecard with Indian delivery charges
 short_r = 2.5                  # target = r x stop distance
 medium_days = 60
