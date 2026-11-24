@@ -1,0 +1,41 @@
+name: Futures study (1-minute data, widely used rules)
+# Run by hand. 1) the intraday exhaustion short as stock futures (hold same day / 1 / 2 sessions) on 1-minute data 2022-26 and
+# 5-minute 2014-21 (pipeline/futures_study.py); 2) widely used intraday and swing futures rules, long and short, both periods
+# (pipeline/futures_rules.py). Futures costs (STT 0.05% on the sell since 1 Apr 2026). No secrets.
+on:
+  workflow_dispatch:
+    inputs:
+      hist_run:
+        description: "run ID with history-5min-data (2014-2021)"
+        required: true
+        default: "45143637613"
+permissions:
+  contents: read
+  actions: read
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q -r trading/requirements.txt -r pipeline/requirements.txt pyarrow
+      - uses: actions/download-artifact@v4
+        with: { name: history-5min-data, path: hist_data, run-id: "${{ github.event.inputs.hist_run }}", github-token: "${{ github.token }}" }
+      - name: Exhaustion short as futures (builds the 1-minute files)
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/futures_study.py --old hist_data --work /tmp/fut --out futures_results
+      - name: Widely used futures rules
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/futures_rules.py --old hist_data --minutes /tmp/fut/min --out rules_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: futures-results
+          path: |
+            futures_results/*.md
+            futures_results/*.json
+            rules_results/*.md
+            rules_results/*.json
+          retention-days: 30
