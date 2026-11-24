@@ -14,7 +14,7 @@ watchlist_mode = "scan"
 watchlist = ["RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK", "SBIN", "BHARTIARTL", "ITC", "LT", "AXISBANK"]
 # NSE trading holidays (YYYY-MM-DD). Weekends are skipped automatically.
 # Copy the current list from the NSE website before you start a challenge.
-holidays = []
+holidays = ["2026-11-24", "2026-12-25"]   # Guru Nanak Jayanti, Christmas (NSE 2026 list); add next year's list in December
 
 [strategy]
 # "balanced" uses the numbers below. "aggressive" = up to 3 concentrated positions of 35% each, 6% daily loss
