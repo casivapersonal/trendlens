@@ -260,6 +260,8 @@ def scan(cfg: dict, pub: dict, now: datetime, bars: dict | None = None, prev_ses
             if f["judge"]["verdict"] == "APPROVE": missing.append(s)
             continue
         o0 = bb[0]["o"]
+        day.setdefault("checked", {})[s] = {"open": round(o0, 2), "gap_pct": round((o0 / f["close"] - 1) * 100, 2),
+                                            "triggered": f["trigger_lo"] <= o0 <= f["trigger_hi"]}       # shown on the site's conditional card
         if not f["trigger_lo"] <= o0 <= f["trigger_hi"]: continue
         entry = bb[e]["o"]
         cand = {"sym": s, "facts": f, "gap_pct": round((o0 / f["close"] - 1) * 100, 2), "c1_red": bb[0]["c"] < o0, "entry_price": round(entry, 2),
