@@ -1,0 +1,70 @@
+name: Market hours loop
+# One long run per trading day that checks every 5 minutes from 09:15 to 15:35 IST: intraday ideas (9:20 entries, stop / target / 15:15),
+# live prices for momentum and bull-flag ideas, and the live screener (every 10 minutes). It replaces the 5-minute schedules of
+# intraday.yml and warnings.yml, which GitHub often skipped (23 Nov: 6 of about 75 runs fired; 24 Nov: none before 9:30).
+# Many start times below: whichever fires first runs the day; later triggers wait in the queue and exit at once after 15:35.
+# A run stops itself after 5h50m (GitHub's 6-hour limit); the next queued trigger carries on.
+on:
+  schedule:
+    - cron: "2,12,22,32,42,52 3-9 * * 1-5"     # 08:32-15:22 IST, every 10 minutes: start (or restart) attempts
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: market-loop
+  cancel-in-progress: false
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+      SITE_URL: ${{ secrets.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip outside market days and hours
+        id: gate
+        run: |
+          d=$(TZ=Asia/Kolkata date +%u); hm=$(TZ=Asia/Kolkata date +%H%M); today=$(TZ=Asia/Kolkata date +%F)
+          if grep -E '^holidays *=' trading/config.toml | grep -q "\"$today\""; then
+            echo "NSE holiday $today: one pass so the site says so"; echo "holiday=1" >> "$GITHUB_OUTPUT"
+          elif [ "$d" -le 5 ] && [ $((10#$hm)) -lt 1535 ]; then echo "go=1" >> "$GITHUB_OUTPUT"; else echo "Outside market hours ($hm IST): nothing to do"; fi
+      - uses: actions/setup-python@v5
+        if: steps.gate.outputs.go == '1' || steps.gate.outputs.holiday == '1'
+        with: { python-version: "3.11", cache: "pip" }
+      - if: steps.gate.outputs.go == '1' || steps.gate.outputs.holiday == '1'
+        run: pip install -q -r trading/requirements.txt -r pipeline/requirements.txt pywebpush
+      - name: Holiday note
+        if: steps.gate.outputs.holiday == '1'
+        run: |
+          (cd trading && python -m arena intraday run) || true
+          git config user.name "trendlens-bot"; git config user.email "trendlens-bot@users.noreply.github.com"
+          git add web/picks.json; git diff --cached --quiet || (git commit -qm "Holiday note" && (git push -q || (git pull -q --rebase && git push -q)))
+      - name: Every 5 minutes until 15:35 IST
+        if: steps.gate.outputs.go == '1'
+        run: |
+          git config user.name "trendlens-bot"; git config user.email "trendlens-bot@users.noreply.github.com"
+          started=$(date +%s); end=$(TZ=Asia/Kolkata date -d "15:35" +%s)
+          while :; do
+            now=$(date +%s)
+            if [ "$now" -ge "$end" ] || [ $((now - started)) -ge 21000 ]; then echo "loop done"; break; fi
+            hm=$((10#$(TZ=Asia/Kolkata date +%H%M)))
+            if [ "$hm" -ge 915 ]; then
+              echo "::group::cycle $(TZ=Asia/Kolkata date +%H:%M) IST"
+              git fetch -q origin main && git reset -q --hard origin/main
+              (cd trading && python -m arena intraday run) || echo "intraday step failed"
+              (cd trading && python -m arena ideas intraday) || echo "live-prices step failed"
+              if [ $(( 10#$(TZ=Asia/Kolkata date +%M) % 10 )) -lt 5 ]; then (cd pipeline && python live_screen.py ../web/picks.json ../web/history.json) || echo "screener failed"; fi
+              if [ -n "$VAPID_PRIVATE_KEY" ] && [ -n "$UPSTASH_REDIS_REST_URL" ]; then (cd pipeline && python notify.py ../web/picks.json) || true; fi
+              for f in web/picks.json trading/ideas/pending.json; do [ -f "$f" ] && git add "$f"; done
+              if ! git diff --cached --quiet; then
+                git commit -qm "Market loop $(TZ=Asia/Kolkata date +%H:%M) IST"
+                git push -q || { git pull -q --rebase && git push -q; } || echo "push failed: the next cycle redoes it"
+              fi
+              echo "::endgroup::"
+            fi
+            s=$(( 300 - $(date +%s) % 300 + 25 )); sleep "$s"      # about 25 s after each 5-minute mark (the candle is complete)
+          done
