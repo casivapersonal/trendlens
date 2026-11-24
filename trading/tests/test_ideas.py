@@ -120,7 +120,25 @@ class Flow(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             idea, pp, pu = self._live(t); p = idea["entry_price"]
             g = ideas.monitor(self.cfg, {"AAA": self._after([(p, idea["target"] * 1.1, idea["stop"] * 0.99, p)])}, NOW, pu)
-            self.assertEqual(g[0]["reason"], "Stop-loss hit")
+            self.assertEqual(g[0]["reason"], "Target hit")          # Nov 2026 close rule: a dip below the stop that recovers is not a stop
+    def test_close_rule_exits_at_next_open_and_emergency_stop(self):
+        with tempfile.TemporaryDirectory() as t:
+            idea, pp, pu = self._live(t); p = idea["entry_price"]; st = idea["stop"]
+            self.assertEqual(idea["stop_rule"], "close")
+            g = ideas.monitor(self.cfg, {"AAA": self._after([(p, p * 1.01, st * 0.995, st * 0.995)])}, NOW, pu)     # closed below the stop, no next bar yet
+            self.assertTrue(g[0]["awaiting"]); self.assertEqual(g[0]["reason"], "Stop-loss hit")
+            from arena import ceo
+            self.assertEqual(ceo.decide_exits(self.cfg, NOW, ideas, pu), [])                                   # waits for the next open
+            g = ideas.monitor(self.cfg, {"AAA": self._after([(p, p * 1.01, st * 0.995, st * 0.995), (st * 0.99, st, st * 0.98, st * 0.985)])}, NOW, pu)
+            self.assertEqual(g[0]["reason"], "Stop-loss hit"); self.assertEqual(g[0]["price"], round(st * 0.99, 2)); self.assertFalse(g[0].get("awaiting"))
+            self.assertIn("next open", g[0]["note"])
+        with tempfile.TemporaryDirectory() as t:
+            idea, pp, pu = self._live(t); p = idea["entry_price"]
+            ideas.monitor(self.cfg, {"AAA": self._after([(p, p * 1.01, p * 0.995, p)])}, NOW, pu)
+            live = ideas.public(pu)["live"][0]; f = live["filled"]["price"]; hard = live["hard_stop"]
+            self.assertAlmostEqual(hard, f - 3.0 * (f - live["stop"]), delta=0.05)
+            g = ideas.monitor(self.cfg, {"AAA": self._after([(p, p * 1.01, p * 0.995, p), (p, p, hard * 0.99, p)])}, NOW, pu)   # touch of the emergency stop
+            self.assertEqual((g[0]["reason"], g[0]["price"]), ("Stop-loss hit", hard)); self.assertIn("emergency", g[0]["note"])
     def test_time_up_and_auto_close_switch(self):
         with tempfile.TemporaryDirectory() as t:
             idea, pp, pu = self._live(t); p = idea["entry_price"]
@@ -224,7 +242,10 @@ class Intraday(Flow):
             self.assertEqual(ideas.monitor_live(self.cfg, {"AAA": idea["entry_hi"] * 1.05}, NOW, pu), [])   # above the range: not entered
             self.assertIsNone(ideas.public(pu)["live"][0]["filled"])
             ideas.monitor_live(self.cfg, {"AAA": mid}, NOW, pu); self.assertEqual(ideas.public(pu)["live"][0]["filled"]["price"], round(mid, 2))
-            g = ideas.monitor_live(self.cfg, {"AAA": idea["stop"] * 0.98}, NOW, pu)
-            self.assertEqual(g[0]["reason"], "Stop-loss hit"); self.assertEqual(g[0]["price"], round(idea["stop"] * 0.98, 2))
+            self.assertEqual(ideas.monitor_live(self.cfg, {"AAA": idea["stop"] * 0.98}, NOW, pu), [])        # Nov 2026 close rule: a touch is not an exit
+            self.assertTrue(ideas.public(pu)["live"][0]["below_stop"])
+            hard = ideas.public(pu)["live"][0]["hard_stop"]
+            g = ideas.monitor_live(self.cfg, {"AAA": hard * 0.99}, NOW, pu)                                   # the emergency stop sells inside the day
+            self.assertEqual(g[0]["reason"], "Stop-loss hit"); self.assertEqual(g[0]["price"], round(hard * 0.99, 2))
             done = ceo.decide_exits(self.cfg, NOW, ideas, pu); self.assertEqual(done[0]["reason"], "Stop-loss hit")
             self.assertLess(ideas.public(pu)["closed"][0]["ret_pct"], 0)
