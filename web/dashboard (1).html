@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrendLens · Expectation vs actual</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--bg:#fbfaf7;--card:#fff;--ink:#10201f;--muted:#5f6b6a;--line:#e4e8e6;--grid:#eceeed;--brand:#0b6e6e;--brand-soft:#e8f2f1;
+  --pos3:#184f95;--pos2:#2a78d6;--pos1:#86b6ef;--mid:#c9c8c2;--neg1:#f0a3a2;--neg2:#e34948;--neg3:#a8282a;--track:#e9e7e1}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+header h1{font-size:20px;margin:0}
+header .sub{color:var(--muted);font-size:13px}
+header a{margin-left:auto;color:var(--brand);font-weight:600;text-decoration:none}
+.lead{color:#24302f;font-size:14px;line-height:1.55;margin:8px 0 16px;max-width:820px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;padding:7px 12px;border-radius:8px;font:600 13px inherit;font-family:inherit;color:var(--muted);cursor:pointer;min-height:34px}
+.seg button.on{background:var(--brand-soft);color:var(--brand)}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.tile .k{font-size:12.5px;color:var(--muted);font-weight:600}
+.tile .v{font-size:28px;font-weight:700;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.tile .s{font-size:12px;color:var(--muted);line-height:1.4}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.card h2{font-size:15px;margin:0 0 2px}
+.card .hint{font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.45}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend i.dot{border-radius:50%}
+svg text{font-family:inherit}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
+th.num,td.num{text-align:right}
+td{padding:8px;border-bottom:1px solid var(--grid);white-space:nowrap}
+tr:hover td{background:#faf9f6}
+.tw{overflow-x:auto}
+.chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600;border:1px solid var(--line);color:var(--ink);background:#fff}
+.chip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:0}
+.up{color:#1c5cab}.dn{color:#b42424}
+.tip{position:fixed;pointer-events:none;background:#10201f;color:#fff;font-size:12px;line-height:1.5;padding:8px 10px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.18);display:none;z-index:9;max-width:260px}
+.mbar{display:flex;gap:2px;height:34px}.mseg{border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;min-width:18px;overflow:hidden}
+#range svg{min-width:560px}#range{overflow-x:auto}
+.empty{color:var(--muted);text-align:center;padding:28px 8px}
+.note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:10px}
+@media(max-width:900px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body data-palette="#2a78d6,#e34948">
+<div class="wrap">
+  <header><h1>Expectation vs actual</h1><span class="sub" id="asof">Loading…</span><a href="/">← TrendLens</a></header>
+  <p class="lead" id="lead">How each idea is doing against what the CEO expected when it was posted: the target (the reference objective for momentum ideas) above, the stop-loss below.</p>
+  <div class="filters">
+    <div class="seg" id="fStatus"><button data-v="all" class="on">All ideas</button><button data-v="live">Live</button><button data-v="closed">Closed</button></div>
+    <div class="seg" id="fTerm"><button data-v="all" class="on">All terms</button><button data-v="medium">Momentum (medium)</button><button data-v="short">Short term</button><button data-v="intraday">Intraday</button></div>
+  </div>
+  <div class="tiles" id="tiles"></div>
+  <div class="card"><h2>Outcome mix</h2><p class="hint">Each idea placed by how far it has moved from its entry toward its target (or toward its stop-loss).</p><div id="mix"></div></div>
+  <div class="grid2">
+    <div class="card"><h2>Each idea: expected range vs actual</h2><p class="hint">Grey track = the expectation, from stop-loss (left) to target (right). Dot = result now (live) or at exit (closed). Thin line = the best and worst it traded since entry.</p><div id="range"></div></div>
+    <div class="card"><h2>How far off: distribution</h2><p class="hint">Progress toward the target: 100% = target reached, 0% = flat, −100% = stop-loss reached.</p><div id="hist"></div></div>
+  </div>
+  <div class="card"><h2>Calibration</h2><p class="hint">Does higher conviction or a higher judge score actually do better? Ideas never entered are left out.</p><div class="tw" id="calib"></div></div>
+  <div class="card"><h2>Every idea</h2><p class="hint">Click a column to sort. Deviation = actual return minus the expected move to target, in percentage points.</p><div class="tw" id="detail"></div>
+    <p class="note">Entry = the price at which the idea was posted (the same entry price shown on the Trade Ideas page). Expected move = target ÷ entry − 1 (reference objective for momentum ideas, which are not closed there). Best / worst = highest high and lowest low since entry, from daily bars. Figures update when the page loads; live prices refresh every minute in market hours.</p></div>
+</div>
+<div class="tip" id="tip"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pc=(x,d=1)=>x==null||!isFinite(x)?'—':(x>0?'+':'')+x.toFixed(d)+'%';
+const pp=(x,d=1)=>x==null||!isFinite(x)?'—':(x>0?'+':'')+x.toFixed(d)+' pts';
+const rs=x=>x==null?'—':'₹'+Number(x).toLocaleString('en-IN',{maximumFractionDigits:2});
+const CLS={met:['Met target','var(--pos3)'],ahead:['Ahead (over halfway)','var(--pos2)'],track:['On track','var(--pos1)'],lag:['Lagging','var(--neg1)'],risk:['At risk / missed','var(--neg2)'],ne:['Not entered','var(--mid)']};
+const ORDER=['met','ahead','track','lag','risk','ne'];
+let P=null,ROWS=[],F={status:'all',term:'all'},SORT={k:'progress',d:-1};
+
+function sessionsBetween(bars,a,b){if(!bars)return null;return bars.filter(r=>r[0]>a&&r[0]<=b).length}
+function build(){
+  const out=[];
+// audit fix #16: results after Indian delivery costs on a Rs 1 lakh idea, zero-brokerage delivery account: STT 0.1% each side, exchange 0.00297%, SEBI, stamp 0.015% (buy),
+// GST 18% on exchange + SEBI, DP charge Rs 15.93 on the sale, and 0.1% slippage each side (about 0.44% a round trip)
+const COST_BUY=0.1+0.00297+0.0001+0.015+0.18*(0.00297+0.0001)+0.1, COST_SELL=0.1+0.00297+0.0001+0.18*(0.00297+0.0001)+15.93/1e5*100+0.1;
+const netRet=r=>r==null||isNaN(r)?r:((1+r/100)*(1-COST_SELL/100)/(1+COST_BUY/100)-1)*100;
+  const add=(e,st)=>{
+    const bars=(P.bars||{})[e.sym];
+    const fill=e.entry_price;   // entry = the price the idea was posted at
+    const notEntered=st==='closed'?!!e.not_entered||e.close_kind==='not_entered':(!!e.fill_rule&&!e.filled);
+    const expT=e.target?(e.target/fill-1)*100:null, expS=e.stop?(e.stop/fill-1)*100:null;
+    const now=st==='live'?(e.price_now||e.entry_price):e.exit_price;
+    const actual=notEntered?null:netRet((now/fill-1)*100);   // net of costs
+    let progress=null;
+    if(actual!=null){progress=actual>=0?(expT?actual/expT*100:null):(expS?-(actual/expS)*100:null)}
+    const from=e.entry_date,to=st==='closed'?e.exit_date:'9999';
+    let best=null,worst=null;
+    if(bars&&!notEntered){const seg=bars.filter(r=>r[0]>=from&&r[0]<=to&&r[0]>e.entry_date);if(seg.length){best=(Math.max(...seg.map(r=>r[2]))/fill-1)*100;worst=(Math.min(...seg.map(r=>r[3]))/fill-1)*100}}
+    if(actual!=null){best=best==null?Math.max(actual,0):Math.max(best,actual);worst=worst==null?Math.min(actual,0):Math.min(worst,actual)}
+    let cls;
+    if(notEntered)cls='ne';
+    else if(st==='closed')cls=e.close_kind==='target'||progress>=100?'met':progress>=50?'ahead':progress>=0?'track':progress>-50?'lag':'risk';
+    else cls=progress>=100?'met':progress>=50?'ahead':progress>=0?'track':progress>-50?'lag':'risk';
+    const held=st==='closed'?sessionsBetween(bars,e.entry_date,e.exit_date):(e.days_held??sessionsBetween(bars,e.entry_date,'9999'));
+    out.push({sym:e.sym,name:e.name||e.sym,st,term:e.term||'momentum',conv:(e.ceo&&e.ceo.conviction)||'—',score:e.judge?e.judge.score:null,posted:e.posted||e.entry_date,
+      fill,entry:e.entry_price,target:e.target,stop:e.stop,expT,expS,actual,progress,dev:actual!=null&&expT!=null?actual-expT:null,best,worst,cls,held,expDays:e.term==='short'?e.days:null,
+      reason:st==='closed'?e.reason:(e.exit_signal?e.exit_signal.reason:null),nifty:e.n500_pct!=null?e.n500_pct:e.nifty_pct,nifty50:e.nifty_pct});   // benchmark: NIFTY 500 (audit fix #17)
+  };
+  (P.live||[]).forEach(e=>add(e,'live'));(P.closed||[]).forEach(e=>add(e,'closed'));
+  const ib=P.intraday||{},today=new Date(Date.now()+19800e3).toISOString().slice(0,10);   // intraday shorts: results after intraday costs, from the CEO's own records
+  const addI=(e,st)=>{const fill=e.entry_price,expT=e.target?-(e.target/fill-1)*100:null,expS=e.stop?-(e.stop/fill-1)*100:null;
+    const actual=st==='closed'?e.net_pct:(e.price_now!=null?-(e.price_now/fill-1)*100:null);
+    let progress=null;if(actual!=null)progress=actual>=0?(expT?actual/expT*100:null):(expS?-(actual/expS)*100:null);
+    const cls=actual==null?'ne':st==='closed'&&/Target/.test(e.reason||'')||progress>=100?'met':progress>=50?'ahead':progress>=0?'track':progress>-50?'lag':'risk';
+    out.push({sym:e.sym,name:e.sym,st,term:'intraday',conv:(e.ceo&&e.ceo.conviction)||'—',score:e.judge?e.judge.score:null,posted:e.date,fill,entry:fill,target:e.target,stop:e.stop,expT,expS,actual,progress,
+      dev:actual!=null&&expT!=null?actual-expT:null,best:actual!=null?Math.max(actual,0):null,worst:actual!=null?Math.min(actual,0):null,cls,held:0,expDays:null,reason:st==='closed'?e.reason:null,nifty:null,nifty50:null})};
+  (ib.live||[]).filter(e=>e.date===today).forEach(e=>addI(e,'live'));(ib.closed||[]).forEach(e=>addI(e,'closed'));
+  ROWS=out;
+}
+const view=()=>ROWS.filter(r=>(F.status==='all'||r.st===F.status)&&(F.term==='all'||r.term===F.term));
+
+function tiles(V){
+  const E=V.filter(r=>r.cls!=='ne'),inl=E.filter(r=>r.progress!=null&&r.progress>=0),C=E.filter(r=>r.st==='closed'),L=E.filter(r=>r.st==='live');
+  const avg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
+  const XS=E.filter(r=>r.actual!=null&&r.nifty!=null),XN=XS.length,exc=XN?avg(XS.map(r=>r.actual-r.nifty)):null;
+  const tax=E.some(r=>r.actual!=null)?avg(E.filter(r=>r.actual!=null).map(r=>r.actual>0?r.actual*0.8:r.actual)):null;
+  const devC=avg(C.map(r=>r.dev).filter(x=>x!=null)),prog=avg(E.map(r=>r.progress).filter(x=>x!=null)),win=C.length?C.filter(r=>r.actual>0).length/C.length*100:null;
+  const t=(k,v,s)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+  $('#tiles').innerHTML=
+    t('In line with expectation',E.length?Math.round(inl.length/E.length*100)+'%':'—',E.length?`${inl.length} of ${E.length} entered ideas are at or above entry, moving toward target`:'No entered ideas yet')+
+    t('Average progress to target',prog==null?'—':Math.round(prog)+'%',`100% = target reached · ${L.length} live, ${C.length} closed`)+
+    t('Closed ideas: average deviation',devC==null?'—':pp(devC),C.length?`actual result minus the expected move, over ${C.length} closed`:'No closed ideas yet')+
+    t('Closed ideas that made money',win==null?'—':Math.round(win)+'%',C.length?`${C.filter(r=>r.actual>0).length} of ${C.length}`:'Builds up as ideas close')+
+    t('Versus NIFTY 500 (equal weight)',exc==null?'—':pp(exc),exc==null?'NIFTY 500 over the same holding periods; builds up as ideas trade':`average idea after costs minus NIFTY 500 (price index; NIFTY 50 for ideas without a NIFTY 500 level) over the same days, ${XN} ideas`)+
+    t('After tax (20% short-term gains)',tax==null?'—':pc(tax),tax==null?'Builds up as ideas trade':`average result if gains are taxed at 20% (held under a year); before tax ${pc(avg(E.map(r=>r.actual).filter(x=>x!=null)))}`);
+}
+
+function mix(V){
+  if(!V.length){$('#mix').innerHTML='<div class="empty">No ideas match these filters.</div>';return}
+  const n={};ORDER.forEach(k=>n[k]=V.filter(r=>r.cls===k).length);
+  const bar=ORDER.filter(k=>n[k]).map(k=>`<div class="mseg" style="flex:${n[k]};background:${CLS[k][1]};color:${k==='met'||k==='ahead'||k==='risk'?'#fff':'#10201f'}" data-tip="${esc(CLS[k][0])}: ${n[k]} idea${n[k]>1?'s':''} (${Math.round(n[k]/V.length*100)}%)">${n[k]}</div>`).join('');
+  $('#mix').innerHTML=`<div class="mbar" role="img" aria-label="Outcome mix">${bar}</div><div class="legend">${ORDER.filter(k=>n[k]).map(k=>`<span><i style="background:${CLS[k][1]}"></i>${CLS[k][0]} · ${n[k]}</span>`).join('')}</div>`;
+}
+
+function range(V){
+  const R=V.filter(r=>r.expT!=null&&r.expS!=null).sort((a,b)=>(b.progress??-999)-(a.progress??-999));
+  if(!R.length){$('#range').innerHTML='<div class="empty">No ideas with a stop-loss and target to compare.</div>';return}
+  const lo=Math.min(-5,...R.map(r=>Math.min(r.expS,r.worst??0,r.actual??0))),hi=Math.max(5,...R.map(r=>Math.max(r.expT,r.best??0,r.actual??0)));
+  const L=120,Rr=70,W=700,row=28,top=26,H=top+R.length*row+8,X=v=>L+(v-lo)/(hi-lo)*(W-L-Rr);
+  const step=(hi-lo)>80?20:(hi-lo)>40?10:5,ticks=[];for(let v=Math.ceil(lo/step)*step;v<=hi;v+=step)ticks.push(v);
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Expected range versus actual result per idea">`;
+  ticks.forEach(v=>{s+=`<line x1="${X(v)}" x2="${X(v)}" y1="${top-6}" y2="${H-4}" stroke="${v===0?'#9aa3a2':'var(--grid)'}" stroke-width="${v===0?1.25:1}"/><text x="${X(v)}" y="14" text-anchor="middle" font-size="11" fill="var(--muted)">${v>0?'+':''}${v}%</text>`});
+  R.forEach((r,i)=>{const y=top+i*row+row/2,a=r.actual,col=a==null?'var(--mid)':a>=0?'var(--pos2)':'var(--neg2)';
+    const tip=`${r.sym} · ${r.st}${r.st==='closed'&&r.reason?' ('+r.reason+')':''}<br>Expected: target ${pc(r.expT)}, stop ${pc(r.expS)}<br>Actual: ${r.cls==='ne'?'not entered':pc(a)} · progress ${r.progress==null?'—':Math.round(r.progress)+'%'}<br>Best ${pc(r.best)} · worst ${pc(r.worst)}`;
+    s+=`<g data-tip="${esc(tip)}"><rect x="0" y="${y-row/2}" width="${W}" height="${row}" fill="transparent"/>`+
+      `<text x="${L-10}" y="${y+4}" text-anchor="end" font-size="11.5" font-weight="600" fill="var(--ink)">${esc(r.sym)}</text>`+
+      `<rect x="${X(r.expS)}" y="${y-4}" width="${Math.max(X(r.expT)-X(r.expS),2)}" height="8" rx="4" fill="var(--track)"/>`+
+      `<line x1="${X(r.expT)}" x2="${X(r.expT)}" y1="${y-7}" y2="${y+7}" stroke="var(--pos3)" stroke-width="2"/><line x1="${X(r.expS)}" x2="${X(r.expS)}" y1="${y-7}" y2="${y+7}" stroke="var(--neg3)" stroke-width="2"/>`+
+      (r.best!=null&&r.worst!=null?`<line x1="${X(r.worst)}" x2="${X(r.best)}" y1="${y}" y2="${y}" stroke="${col}" stroke-width="1.5" opacity=".55"/>`:'')+
+      (a!=null?`<circle cx="${X(a)}" cy="${y}" r="5.5" fill="${col}" stroke="#fff" stroke-width="2"/>`:`<text x="${X(0)}" y="${y+4}" text-anchor="middle" font-size="11" fill="var(--muted)">not entered</text>`)+
+      `<text x="${W-Rr+10}" y="${y+4}" font-size="12" font-weight="600" class="${a>=0?'up':'dn'}" fill="${a==null?'var(--muted)':a>=0?'#1c5cab':'#b42424'}">${a==null?'—':pc(a)}</text></g>`});
+  s+='</svg>';
+  $('#range').innerHTML=s+`<div class="legend"><span><i style="background:var(--track)"></i>Expected range</span><span><i style="background:var(--pos3);width:3px"></i>Target</span><span><i style="background:var(--neg3);width:3px"></i>Stop-loss</span><span><i class="dot" style="background:var(--pos2)"></i>Gain</span><span><i class="dot" style="background:var(--neg2)"></i>Loss</span></div>`;
+}
+
+function hist(V){
+  const B=[['≤ −100%','past stop',x=>x<=-100,'var(--neg3)'],['−100…−50%','near stop',x=>x>-100&&x<=-50,'var(--neg2)'],['−50…0%','down',x=>x>-50&&x<0,'var(--neg1)'],['0…50%','up',x=>x>=0&&x<50,'var(--pos1)'],['50…100%','past half',x=>x>=50&&x<100,'var(--pos2)'],['≥ 100%','at target',x=>x>=100,'var(--pos3)']];
+  const E=V.filter(r=>r.progress!=null);
+  if(!E.length){$('#hist').innerHTML='<div class="empty">No entered ideas yet.</div>';return}
+  const c=B.map(b=>E.filter(r=>b[2](r.progress)).length),mx=Math.max(1,...c),W=420,H=300,bw=(W-20)/B.length,top=20,base=H-44;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Distribution of progress toward target">`;
+  s+=`<line x1="10" x2="${W-10}" y1="${base}" y2="${base}" stroke="#9aa3a2"/>`;
+  B.forEach((b,i)=>{const h=c[i]/mx*(base-top-14),x=10+i*bw+6,w=bw-12;
+    s+=`<g data-tip="${esc(b[0]+' ('+b[1]+'): '+c[i]+' idea'+(c[i]===1?'':'s'))}"><rect x="${x-4}" y="${top}" width="${w+8}" height="${base-top}" fill="transparent"/>`+(c[i]?`<path d="M${x} ${base}V${base-h+4}a4 4 0 0 1 4 -4h${w-8}a4 4 0 0 1 4 4V${base}z" fill="${b[3]}"/>`:'')+
+      `<text x="${x+w/2}" y="${base-h-6}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">${c[i]||''}</text>`+
+      `<text x="${x+w/2}" y="${base+16}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${b[0]}</text><text x="${x+w/2}" y="${base+30}" text-anchor="middle" font-size="10" fill="var(--muted)">${b[1]}</text></g>`});
+  $('#hist').innerHTML=s+'</svg>';
+}
+
+function calib(V){
+  const E=V.filter(r=>r.cls!=='ne');
+  if(!E.length){$('#calib').innerHTML='<div class="empty">No entered ideas yet.</div>';return}
+  const grp=(lab,keyf,order)=>{const g={};E.forEach(r=>{const k=keyf(r);(g[k]=g[k]||[]).push(r)});return (order||Object.keys(g)).filter(k=>g[k]).map(k=>{const a=g[k],avg=f=>{const v=a.map(f).filter(x=>x!=null);return v.length?v.reduce((s,x)=>s+x,0)/v.length:null};
+    return `<tr><td>${lab}</td><td>${esc(k)}</td><td class="num">${a.length}</td><td class="num">${Math.round(a.filter(r=>r.progress>=0).length/a.length*100)}%</td><td class="num">${a.filter(r=>r.cls==='met').length}</td><td class="num ${avg(r=>r.actual)>=0?'up':'dn'}">${pc(avg(r=>r.actual))}</td><td class="num">${pc(avg(r=>r.expT))}</td><td class="num">${avg(r=>r.progress)==null?'—':Math.round(avg(r=>r.progress))+'%'}</td><td class="num">${pp(avg(r=>r.dev))}</td><td class="num">${pp(avg(r=>r.nifty==null||r.actual==null?null:r.actual-r.nifty))}</td></tr>`}).join('')};
+  const sb=r=>r.score==null?'—':r.score>=10?'10+':r.score>=8?'8–9':r.score>=6?'6–7':'below 6';
+  $('#calib').innerHTML=`<table><thead><tr><th>Group</th><th>Value</th><th class="num">Ideas</th><th class="num">In line</th><th class="num">Met target</th><th class="num">Avg actual</th><th class="num">Avg expected</th><th class="num">Avg progress</th><th class="num">Avg deviation</th><th class="num">vs NIFTY</th></tr></thead><tbody>`+
+    grp('Conviction',r=>r.conv,['High','Medium','Low','—'])+grp('Term',r=>r.term==='medium'?'Momentum (medium)':r.term==='short'?'Short term':'Earlier auto entries')+grp('Judge score',sb,['10+','8–9','6–7','below 6','—'])+grp('Status',r=>r.st==='live'?'Live':'Closed',['Live','Closed'])+'</tbody></table>'+(()=>{const S=ROWS.filter(r=>r.term==='short'&&r.st==='closed'&&r.actual!=null);if(!S.length&&!ROWS.some(r=>r.term==='short'))return'';const Rm=S.map(r=>r.expS?r.actual/Math.abs(r.expS):null).filter(x=>x!=null),er=Rm.length?Rm.reduce((a,b)=>a+b,0)/Rm.length:null;return `<p class="note"><b>Short-term track review:</b> ${S.length} of 50 closed trades so far${er==null?'':`; average ${er>0?'+':''}${er.toFixed(2)}R per trade`}. The audit's rule: keep it only if it earns at least +0.2R per trade after 50 trades.</p>`})();
+}
+
+const COLS=[['sym','Stock'],['st','Status'],['term','Term'],['conv','Conviction'],['posted','Posted'],['entry','Entry',1],['expT','Expected to target',1],['expS','Stop-loss at',1],['actual','Actual',1],['progress','Progress',1],['dev','Deviation',1],['best','Best',1],['worst','Worst',1],['held','Sessions held',1],['cls','Outcome']];
+function detail(V){
+  if(!V.length){$('#detail').innerHTML='<div class="empty">No ideas match these filters.</div>';return}
+  const k=SORT.k,R=V.slice().sort((a,b)=>{const x=a[k],y=b[k];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (typeof x==='string'?x.localeCompare(y):x-y)*SORT.d});
+  const cell=(r,c)=>{const v=r[c];switch(c){case'sym':return `<b>${esc(v)}</b>`;case'st':return v==='live'?'Live':'Closed';case'term':return v==='medium'?'Momentum':v==='short'?'Short':v==='intraday'?'Intraday':'Auto';case'entry':return rs(v);case'expT':case'expS':case'best':case'worst':return pc(v);
+    case'actual':return `<span class="${v>=0?'up':'dn'}">${pc(v)}</span>`;case'progress':return v==null?'—':Math.round(v)+'%';case'dev':return pp(v);case'held':return v==null?'—':v+(r.expDays?' / '+r.expDays:'');case'cls':return `<span class="chip"><i style="background:${CLS[v][1]}"></i>${CLS[v][0]}</span>`;default:return esc(v)}};
+  $('#detail').innerHTML=`<table><thead><tr>${COLS.map(([c,l,n])=>`<th class="${n?'num':''}" data-k="${c}">${l}${SORT.k===c?(SORT.d<0?' ↓':' ↑'):''}</th>`).join('')}</tr></thead><tbody>${R.map(r=>`<tr>${COLS.map(([c,,n])=>`<td class="${n?'num':''}">${cell(r,c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+function render(){const V=view();tiles(V);mix(V);range(V);hist(V);calib(V);detail(V)}
+document.addEventListener('click',e=>{const b=e.target.closest('.seg button');if(b){const g=b.parentElement;g.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));F[g.id==='fStatus'?'status':'term']=b.dataset.v;render();return}
+  const th=e.target.closest('th[data-k]');if(th){const k=th.dataset.k;SORT=SORT.k===k?{k,d:-SORT.d}:{k,d:-1};detail(view())}});
+const tip=$('#tip');
+document.addEventListener('mousemove',e=>{const g=e.target.closest('[data-tip]');if(!g){tip.style.display='none';return}tip.innerHTML=g.getAttribute('data-tip');tip.style.display='block';const x=Math.min(e.clientX+14,innerWidth-tip.offsetWidth-8),y=Math.min(e.clientY+14,innerHeight-tip.offsetHeight-8);tip.style.left=x+'px';tip.style.top=y+'px'});
+document.addEventListener('touchstart',e=>{const g=e.target.closest('[data-tip]');if(!g){tip.style.display='none';return}const t=e.touches[0];tip.innerHTML=g.getAttribute('data-tip');tip.style.display='block';tip.style.left=Math.min(t.clientX+10,innerWidth-tip.offsetWidth-8)+'px';tip.style.top=Math.max(t.clientY-tip.offsetHeight-14,8)+'px'},{passive:true});
+
+async function livePrices(){
+  const syms=(P.live||[]).map(e=>e.sym);if(!syms.length)return;
+  const t=new Date(Date.now()+19800e3),m=t.getUTCHours()*60+t.getUTCMinutes(),open=t.getUTCDay()>=1&&t.getUTCDay()<=5&&m>=555&&m<=930;if(!open)return;
+  try{const r=await fetch('api/quotes?s='+encodeURIComponent(syms.join(',')),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
+    let ch=false;(P.live||[]).forEach(e=>{const q=j.quotes&&j.quotes[e.sym];if(q&&q.p){e.price_now=q.p;ch=true}});if(ch){build();render();$('#asof').textContent='Live prices · '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'})+' IST'}}catch(e){}
+}
+(async()=>{
+  try{const r=await fetch('picks.json',{cache:'no-store'});if(!r.ok)throw 0;P=await r.json()}catch(e){$('#asof').textContent='Could not load ideas. Reload to try again.';return}
+  $('#asof').textContent='Data as of '+(P.updated_ist||P.asof||'');
+  build();render();livePrices();setInterval(livePrices,60000);
+})();
+</script>
+</body>
+</html>
