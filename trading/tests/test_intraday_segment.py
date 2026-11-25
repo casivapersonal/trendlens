@@ -103,6 +103,14 @@ class ScanAndCeo(unittest.TestCase):
         self.assertTrue(ch["RUN"]["triggered"]); self.assertAlmostEqual(ch["RUN"]["gap_pct"], 3.0, delta=0.05)
         self.assertFalse(ch["EXT"]["triggered"]); self.assertAlmostEqual(ch["EXT"]["gap_pct"], 0.0, delta=0.05)     # shown as "Not triggered"
 
+    def test_a_stock_that_is_already_live_is_not_posted_again(self):
+        for book in ("main", "intraday"):
+            with self.subTest(book):
+                pub = {"live": [{"sym": "RUN", "term": "medium"}]} if book == "main" else {}
+                if book == "intraday": ii.book(pub)["live"].append({"sym": "RUN", "term": "intraday"})
+                self.assertEqual(self.scan(pub, (9, 26), {"RUN": self.bars_gap("RUN", 3)}), [])
+                self.assertEqual(pub["intraday"]["days"][DAY.date().isoformat()]["checked"]["RUN"]["skipped"], "already a live idea")
+
     def test_nse_holiday_list_is_merged_into_the_config(self):
         from arena.config import nse_holidays
         p = Path(self.tmp.name) / "h.csv"; p.write_text("DATE,DESCRIPTION\n2026-11-24,Guru Nanak\n")
