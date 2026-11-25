@@ -1,24 +1,24 @@
 {
- "built": "2026-11-24T17:04+05:30",
- "last_close": "2026-11-23",
+ "built": "2026-11-25T17:07+05:30",
+ "last_close": "2026-11-25",
  "for": "2026-11-26",
  "stocks": {
-  "EICHERMOT": {
-   "close": 8172.5,
-   "date": "2026-11-23",
-   "atr": 235.8929,
-   "sma50": 7385.14,
-   "ret5": 0.0755,
-   "ext50": 0.1066,
+  "AUBANK": {
+   "close": 1006.05,
+   "date": "2026-11-25",
+   "atr": 30.4286,
+   "sma50": 976.21,
+   "ret5": 0.013,
+   "ext50": 0.0306,
    "bo20": true,
-   "value_cr": 454.1,
+   "value_cr": 236.7,
    "why": [
     "closed at a 20-day high on heavy volume"
    ],
-   "trigger_lo": 8295.1,
-   "trigger_hi": 8826.3,
-   "stop_dist": 235.89,
-   "target_dist": 471.79,
+   "trigger_lo": 1021.15,
+   "trigger_hi": 1086.55,
+   "stop_dist": 30.43,
+   "target_dist": 60.86,
    "judge": {
     "score": 1,
     "rules": [
@@ -32,22 +32,428 @@
     "by": "coded intraday judge"
    }
   },
-  "PERSISTENT": {
-   "close": 6282.5,
-   "date": "2026-11-23",
-   "atr": 157.7143,
-   "sma50": 5721.44,
-   "ret5": 0.0508,
-   "ext50": 0.0981,
+  "BAJAJFINSV": {
+   "close": 1925.0,
+   "date": "2026-11-25",
+   "atr": 55.85,
+   "sma50": 1782.67,
+   "ret5": 0.029,
+   "ext50": 0.0798,
    "bo20": true,
-   "value_cr": 367.3,
+   "value_cr": 238.9,
    "why": [
     "closed at a 20-day high on heavy volume"
    ],
-   "trigger_lo": 6376.75,
-   "trigger_hi": 6785.1,
-   "stop_dist": 157.71,
-   "target_dist": 315.43,
+   "trigger_lo": 1953.85,
+   "trigger_hi": 2079.0,
+   "stop_dist": 55.85,
+   "target_dist": 111.7,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "COLPAL": {
+   "close": 1825.0,
+   "date": "2026-11-25",
+   "atr": 43.35,
+   "sma50": 1750.37,
+   "ret5": 0.0612,
+   "ext50": 0.0426,
+   "bo20": true,
+   "value_cr": 74.9,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 1852.35,
+   "trigger_hi": 1971.0,
+   "stop_dist": 43.35,
+   "target_dist": 86.7,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "DABUR": {
+   "close": 430.0,
+   "date": "2026-11-25",
+   "atr": 11.1786,
+   "sma50": 381.49,
+   "ret5": 0.1189,
+   "ext50": 0.1271,
+   "bo20": true,
+   "value_cr": 116.2,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 436.45,
+   "trigger_hi": 464.4,
+   "stop_dist": 11.18,
+   "target_dist": 22.36,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "DMART": {
+   "close": 3592.0,
+   "date": "2026-11-25",
+   "atr": 65.7571,
+   "sma50": 3499.95,
+   "ret5": 0.0352,
+   "ext50": 0.0263,
+   "bo20": true,
+   "value_cr": 162.5,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 3645.9,
+   "trigger_hi": 3879.35,
+   "stop_dist": 65.76,
+   "target_dist": 131.51,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "EICHERMOT": {
+   "close": 8336.0,
+   "date": "2026-11-25",
+   "atr": 229.2143,
+   "sma50": 7397.17,
+   "ret5": 0.0649,
+   "ext50": 0.1269,
+   "bo20": true,
+   "value_cr": 479.6,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 8461.05,
+   "trigger_hi": 9002.9,
+   "stop_dist": 229.21,
+   "target_dist": 458.43,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "GODREJCP": {
+   "close": 963.0,
+   "date": "2026-11-25",
+   "atr": 25.8393,
+   "sma50": 865.47,
+   "ret5": 0.0766,
+   "ext50": 0.1127,
+   "bo20": true,
+   "value_cr": 142.6,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 977.45,
+   "trigger_hi": 1040.05,
+   "stop_dist": 25.84,
+   "target_dist": 51.68,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "HEROMOTOCO": {
+   "close": 5751.5,
+   "date": "2026-11-25",
+   "atr": 140.6786,
+   "sma50": 5259.28,
+   "ret5": 0.0793,
+   "ext50": 0.0936,
+   "bo20": true,
+   "value_cr": 361.6,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 5837.75,
+   "trigger_hi": 6211.6,
+   "stop_dist": 140.68,
+   "target_dist": 281.36,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "HINDUNILVR": {
+   "close": 2141.8,
+   "date": "2026-11-25",
+   "atr": 47.4571,
+   "sma50": 1922.38,
+   "ret5": 0.0656,
+   "ext50": 0.1141,
+   "bo20": true,
+   "value_cr": 374.6,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 2173.95,
+   "trigger_hi": 2313.15,
+   "stop_dist": 47.46,
+   "target_dist": 94.91,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "ICICILIFE": {
+   "close": 474.0,
+   "date": "2026-11-25",
+   "atr": 15.1071,
+   "sma50": 449.81,
+   "ret5": 0.0459,
+   "ext50": 0.0538,
+   "bo20": true,
+   "value_cr": 88.9,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 481.1,
+   "trigger_hi": 511.9,
+   "stop_dist": 15.11,
+   "target_dist": 30.21,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "INDIGO": {
+   "close": 5720.0,
+   "date": "2026-11-25",
+   "atr": 164.3643,
+   "sma50": 5026.09,
+   "ret5": 0.0194,
+   "ext50": 0.1381,
+   "bo20": true,
+   "value_cr": 527.8,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 5805.8,
+   "trigger_hi": 6177.6,
+   "stop_dist": 164.36,
+   "target_dist": 328.73,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "ITC": {
+   "close": 309.25,
+   "date": "2026-11-25",
+   "atr": 7.4036,
+   "sma50": 270.99,
+   "ret5": 0.0544,
+   "ext50": 0.1412,
+   "bo20": true,
+   "value_cr": 690.2,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 313.9,
+   "trigger_hi": 334.0,
+   "stop_dist": 7.4,
+   "target_dist": 14.81,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "LTF": {
+   "close": 283.95,
+   "date": "2026-11-25",
+   "atr": 9.9543,
+   "sma50": 271.62,
+   "ret5": 0.013,
+   "ext50": 0.0454,
+   "bo20": true,
+   "value_cr": 123.2,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 288.2,
+   "trigger_hi": 306.65,
+   "stop_dist": 9.95,
+   "target_dist": 19.91,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "POLICYBZR": {
+   "close": 1123.8,
+   "date": "2026-11-25",
+   "atr": 54.8071,
+   "sma50": 1171.71,
+   "ret5": 0.0681,
+   "ext50": -0.0409,
+   "bo20": true,
+   "value_cr": 446.8,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 1140.65,
+   "trigger_hi": 1213.7,
+   "stop_dist": 54.81,
+   "target_dist": 109.61,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "TATACONSUM": {
+   "close": 1185.8,
+   "date": "2026-11-25",
+   "atr": 25.1357,
+   "sma50": 1019.01,
+   "ret5": 0.066,
+   "ext50": 0.1637,
+   "bo20": true,
+   "value_cr": 204.9,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 1203.6,
+   "trigger_hi": 1280.65,
+   "stop_dist": 25.14,
+   "target_dist": 50.27,
+   "judge": {
+    "score": 1,
+    "rules": [
+     {
+      "points": 1,
+      "rule": "20-day high on heavy volume"
+     }
+    ],
+    "rejected_because": [],
+    "verdict": "APPROVE",
+    "by": "coded intraday judge"
+   }
+  },
+  "TRENT": {
+   "close": 3319.6,
+   "date": "2026-11-25",
+   "atr": 85.15,
+   "sma50": 2920.32,
+   "ret5": 0.0451,
+   "ext50": 0.1367,
+   "bo20": true,
+   "value_cr": 328.4,
+   "why": [
+    "closed at a 20-day high on heavy volume"
+   ],
+   "trigger_lo": 3369.4,
+   "trigger_hi": 3585.15,
+   "stop_dist": 85.15,
+   "target_dist": 170.3,
    "judge": {
     "score": 1,
     "rules": [
