@@ -253,6 +253,7 @@ def scan(cfg: dict, pub: dict, now: datetime, bars: dict | None = None, prev_ses
         day["scanned"] = now.isoformat(timespec="minutes"); day["note"] = "no conditional ideas were published for today"; return []
     bars = bars if bars is not None else many_5m(list(st))
     ea = hm(c["entry_at"]); cands = []; missing = []
+    held = {i["sym"] for i in pub.get("live", [])} | {x["sym"] for x in b["live"]}      # a stock that already has a live idea (momentum, setup or intraday) is never posted again
     for s, f in st.items():
         bb = [x for x in (bars.get(s) or []) if x["t"].date() == now.date()]
         e = next((k for k, x in enumerate(bb) if x["t"].time() == ea), None)
@@ -263,6 +264,7 @@ def scan(cfg: dict, pub: dict, now: datetime, bars: dict | None = None, prev_ses
         day.setdefault("checked", {})[s] = {"open": round(o0, 2), "gap_pct": round((o0 / f["close"] - 1) * 100, 2),
                                             "triggered": f["trigger_lo"] <= o0 <= f["trigger_hi"]}       # shown on the site's conditional card
         if not f["trigger_lo"] <= o0 <= f["trigger_hi"]: continue
+        if s in held: day["checked"][s]["skipped"] = "already a live idea"; continue
         entry = bb[e]["o"]
         cand = {"sym": s, "facts": f, "gap_pct": round((o0 / f["close"] - 1) * 100, 2), "c1_red": bb[0]["c"] < o0, "entry_price": round(entry, 2),
                 "stop": tick(entry + f["stop_dist"]), "target": tick(entry - f["target_dist"])}
