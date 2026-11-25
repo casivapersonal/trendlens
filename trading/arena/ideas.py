@@ -220,7 +220,7 @@ def scan(cfg: dict, shortlister, committee, now: datetime, pending_path: Path | 
 
 
 # ---------------------------------------------------------------- decision-maker actions
-def approve(idea_id: str, by: str, now: datetime, pending_path: Path | None = None, public_path: Path | None = None, frames: dict | None = None, force: bool = False) -> dict:
+def approve(idea_id: str, by: str, now: datetime, pending_path: Path | None = None, public_path: Path | None = None, frames: dict | None = None, force: bool = False, open_px: float | None = None) -> dict:
     pen, pub = pending(pending_path), public(public_path)
     q = next((x for x in pen["queue"] if x["id"] == idea_id), None)
     if not q: raise KeyError(f"no pending idea {idea_id}")
@@ -229,6 +229,9 @@ def approve(idea_id: str, by: str, now: datetime, pending_path: Path | None = No
     idea = {**q, "status": "live", "posted": now.date().isoformat(), "approved_by": by, "approved_at": now.isoformat(timespec="minutes"),
             "nifty_entry": _nifty(pub), "n500_entry": _nifty(pub, "NIFTY 500"), "price_now": q["entry_price"], "rank_now": q.get("entry_rank"), "nifty_pct": 0.0,
             "results_date": q.get("results_date"), "surveillance": None, "days_held": 0, "exit_signal": None, "fill_rule": q.get("fill_rule") or "range", "filled": None}
+    if open_px is not None:          # posted at the open: the entry IS the opening price, filled the same moment (levels were re-checked by post_at_open)
+        o = round(float(open_px), 2)
+        idea.update(signal_close=q["entry_price"], entry_price=o, entry_time="at the open", price_now=o, filled={"price": o, "date": now.date().isoformat(), "time": now.strftime("%H:%M")})
     pen["queue"] = [x for x in pen["queue"] if x["id"] != idea_id]
     pub["live"].insert(0, idea)
     pub["recent_alerts"] = ([{"type": "entry", "sym": idea["sym"], "date": now.date().isoformat(), "time": now.strftime("%I:%M %p"), "price": idea["entry_price"],
@@ -236,6 +239,45 @@ def approve(idea_id: str, by: str, now: datetime, pending_path: Path | None = No
     if frames: update_bars(pub, frames)
     _publish(pub, now, public_path); _save(pending_path or PENDING, pen)
     return idea
+
+
+def post_at_open(cfg: dict, now: datetime, opens: dict, pending_path: Path | None = None, public_path: Path | None = None, frames: dict | None = None,
+                 prev_session: str | None = None, final: bool = False, by: str = "CEO") -> list[dict]:
+    """Morning step of the post_at_open rule. Ideas the CEO chose on last evening's scan wait as 'scheduled for open'. At the open each is
+    checked against TODAY'S OPENING PRICE: inside the entry range -> posted live, entry = the opening price, filled at once; outside the
+    range (above or below), or reward-to-risk too low at that price, or the book full -> NOT posted. `opens` = {sym: opening price or None}.
+    A symbol with no price yet stays scheduled until `final` (the cut-off time), then it is dropped. Returns one record per idea decided."""
+    ic = cfg["ideas"]; today = now.date().isoformat(); pen = pending(pending_path); out = []
+    for q in [x for x in pen["queue"] if x["status"] == "scheduled for open"]:
+        pub = public(public_path); o = opens.get(q["sym"]); lo, hi = q.get("entry_lo") or q["entry_price"], q.get("entry_hi") or q["entry_price"]
+        rec = {"date": today, "time": now.strftime("%H:%M"), "sym": q["sym"], "id": q["id"], "term": q["term"], "range": [lo, hi], "open": o}
+        mom = q.get("term") == "medium"; why = None
+        live = pub["live"]
+        if prev_session and q.get("entry_date") != prev_session: why = f"stale: the levels are from the close of {q.get('entry_date')}, not the last session ({prev_session})"
+        elif o is None:
+            if not final: continue                                   # no opening price yet: try again on the next run
+            why = "the opening price could not be read before the cut-off"
+        elif not lo <= o <= hi: why = f"opened at {o:.2f}, {'above' if o > hi else 'below'} the entry range {lo:.2f}-{hi:.2f}"
+        elif any(i["sym"] == q["sym"] for i in live): why = "already a live idea"
+        elif mom and sum(1 for i in live if i.get("term") == "medium") >= ic.get("max_live", 20): why = "the momentum book is full"
+        elif not mom and sum(1 for i in live if i.get("term") != "medium") >= cfg.get("ceo", {}).get("max_live_short", 4): why = "the setup book is full"
+        elif not mom and sum(1 for i in live + pub["closed"] if i.get("posted") == today and i.get("approved_by") == by and i.get("term") != "medium") >= ic.get("max_new_per_day", 4):
+            why = "the daily limit of new setup ideas is reached"
+        t = json.loads(json.dumps(q))
+        if why is None: why = _fill_checks(t, o, cfg)                 # momentum: stop and target re-anchored to the opening price; setups: reward-to-risk at that price
+        if why is None:
+            t["open_check"] = {"open": round(o, 2), "range": [lo, hi], "result": "inside the entry range at the open: posted"}
+            p2 = pending(pending_path); p2["queue"] = [t if x["id"] == q["id"] else x for x in p2["queue"]]; _save(pending_path or PENDING, p2)
+            try:
+                idea = approve(q["id"], by, now, pending_path, public_path, frames=frames, open_px=o)
+                rec.update(decision="POSTED", memo=f"{q['sym']} opened at {o:.2f}, inside the entry range {lo:.2f}-{hi:.2f}: posted, entry {o:.2f}, stop {idea['stop']}, target {idea['target']}.")
+            except Exception as e: why = str(e)
+        if why is not None:
+            rec.update(decision="NOT POSTED", memo=f"{q['sym']} not posted: {why}.")
+            p2 = pending(pending_path); p2["queue"] = [x for x in p2["queue"] if x["id"] != q["id"]]; _save(pending_path or PENDING, p2)
+        out.append(rec)
+    p = pending(pending_path); p["open_log"] = (p.get("open_log", []) + out)[-200:]; _save(pending_path or PENDING, p)
+    return out
 
 
 def reject(idea_id: str, pending_path: Path | None = None) -> None:

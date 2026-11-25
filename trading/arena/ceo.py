@@ -151,10 +151,14 @@ def decide_entries(cfg: dict, now, ideas_mod, frames_for=None, pending_path=None
         rec = {"date": today, "time": now.strftime("%I:%M %p"), "sym": q["sym"], "id": q["id"], **{k: v[k] for k in ("decision", "conviction", "memo")}}
         if v["decision"] == "POST":
             p = ideas_mod.pending(pending_path)
+            at_open = bool(cfg.get("ideas", {}).get("post_at_open"))
             for x in p["queue"]:
-                if x["id"] == q["id"]: x["ceo"] = v
+                if x["id"] == q["id"]:
+                    x["ceo"] = v
+                    if at_open: x["status"] = "scheduled for open"; rec["decision"] = "POST AT OPEN"; rec["memo"] += " Posted at the next open only if the opening price is inside the entry range."
             ideas_mod._save(pending_path or ideas_mod.PENDING, p)
-            ideas_mod.approve(q["id"], NAME, now, pending_path, public_path, frames=(frames_for([q["sym"]]) if frames_for else None))
+            if not at_open:
+                ideas_mod.approve(q["id"], NAME, now, pending_path, public_path, frames=(frames_for([q["sym"]]) if frames_for else None))
             ctx["live"] += 1; _count(ctx, q["sym"], q.get("term") == "medium", funds)
             if q.get("term") == "medium": ctx["momentum_live"] += 1
             else: ctx["short_live"] += 1; ctx["setups_today"] += 1

@@ -356,9 +356,26 @@ def cmd_ideas(a, cfg):
         if cfg.get("ceo", {}).get("enabled", True):
             from . import ceo
             for d in ceo.decide_exits(cfg, now, ideas): print("CEO CLOSED", d)
-        # audit fix #8: NEW momentum ideas are posted only by the 16:15 scan on closing prices (as back-tested), never on
-        # intraday prices; this run only marks entries and flags stop / target exits on live prices.
-        print("entries and exits checked; new ideas are chosen only by the 16:15 scan on closing prices")
+        # audit fix #8: NEW ideas are CHOSEN only by the evening scan on closing prices (as back-tested), never on intraday prices.
+        # Nov 2026: with post_at_open they are then POSTED by `ideas open` at the next opening price (only inside the entry range);
+        # this run only marks entries and flags stop / target exits on live prices.
+        print("entries and exits checked; new ideas are chosen only by the evening scan on closing prices and posted at the open")
+    elif a.action == "open":
+        # 09:15 onwards (market loop): post the ideas the CEO chose last evening if today's OPENING price is inside the entry range; outside = not posted
+        import datetime as _dt
+        from . import intraday_ideas as ii
+        if not cfg["ideas"].get("post_at_open"): print("post_at_open is off: ideas are posted by the 16:15 scan."); return
+        if not market_open_ist(now) and not a.force: print("Market is closed: the open check runs from 09:15 IST."); return
+        sched = [q for q in ideas.pending()["queue"] if q["status"] == "scheduled for open"]
+        if not sched: print("nothing scheduled for the open"); return
+        bars = ii.many_5m([q["sym"] for q in sched]); today_bars = {s: [x for x in bb if x["t"].date() == now.date()] for s, bb in bars.items()}
+        if not any(today_bars.values()): print("no 5-minute data for today yet (holiday or feed delay): the ideas stay scheduled"); return
+        opens = {s: bb[0]["o"] for s, bb in today_bars.items() if bb and bb[0]["t"].time() == _dt.time(9, 15)}
+        cut = cfg["ideas"].get("open_post_until", "10:00"); final = now.time() >= _dt.time(int(cut[:2]), int(cut[3:5]))
+        fe = None
+        from .feeds import make_live_feed
+        fe = make_live_feed(cfg)
+        for r in ideas.post_at_open(cfg, now, opens, frames=_history(fe, [q["sym"] for q in sched]), prev_session=ii._prev_session(now.date().isoformat()), final=final): print(r["decision"], r["memo"])
     elif a.action == "monitor":
         from .feeds import make_live_feed
         pub = ideas.public(); live = [i["sym"] for i in pub["live"]]
@@ -414,14 +431,11 @@ def cmd_intraday(a, cfg):
         frames = _history(make_live_feed(cfg), fno, "1y")
         from .committee import Committee
         w = ii.prep(cfg, frames, now, news_fn=Committee(cfg).news)
-        pub = ideas.public(); ii.watch_public(pub)
+        pub = ideas.public(); ii.book(pub).pop("watch", None)      # Nov 2026: tomorrow's conditional setups are NOT published; an intraday idea appears on the site only when it is posted at 9:20
         ib = pub["intraday"]                                  # daily bars for the cards, the About pop-up and the PDF (charts on the website)
-        need = {x["sym"] for x in ib["watch"]["stocks"]} | {i["sym"] for i in ib["live"]} | {x["sym"] for x in ib["closed"][:40]}
+        need = {i["sym"] for i in ib["live"]} | {x["sym"] for x in ib["closed"][:40]}
         ib["bars"] = {s: ideas.ohlc_rows(frames[s], 200) for s in sorted(need) if frames.get(s) is not None and not frames[s].empty}
-        ok = [x["sym"] for x in pub["intraday"]["watch"]["stocks"] if x["verdict"] == "APPROVE"]
-        if ok:
-            pub["recent_alerts"] = ([{"type": "watch", "sym": f"{len(ok)} intraday setup{'s' if len(ok) > 1 else ''}", "date": now.date().isoformat(),
-                                      "time": now.strftime("%I:%M %p"), "for": w["for"], "list": ok[:12], "term": "intraday"}] + pub.get("recent_alerts", []))[:60]
+        pub["recent_alerts"] = [x for x in pub.get("recent_alerts", []) if x.get("type") != "watch"]      # no evening "intraday setups" alert any more
         ideas._publish(pub, now)
         print(f"F&O stocks {len(fno)}, daily bars {len(frames)}, conditional ideas for {w['for']}: {len(w['stocks'])}")
         for s, f in sorted(w["stocks"].items(), key=lambda x: -x[1]["ret5"]):
@@ -480,7 +494,7 @@ def main(argv=None):
     sub.add_parser("check", help="test safety guard, market data and Claude setup")
     sub.add_parser("scan", help="scan the universe and print today's short list")
     ix = sub.add_parser("ideas", help="ideas pipeline: scan, pending, approve, reject, monitor, close")
-    ix.add_argument("action", choices=["scan", "intraday", "pending", "approve", "reject", "monitor", "close"]); ix.add_argument("target", nargs="?")
+    ix.add_argument("action", choices=["scan", "intraday", "open", "pending", "approve", "reject", "monitor", "close"]); ix.add_argument("target", nargs="?")
     ix.add_argument("--reason"); ix.add_argument("--price", type=float); ix.add_argument("--by"); ix.add_argument("--force", action="store_true", help="approve even if the risk check says BLOCK")
     it = sub.add_parser("intraday", help="intraday segment: prep (after the close) | run (every 5 minutes in market hours)")
     it.add_argument("action", choices=["prep", "run"]); it.add_argument("--force", action="store_true", help="run outside market hours (testing)")
