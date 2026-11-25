@@ -75,6 +75,14 @@ class OpenPost(unittest.TestCase):
             r = ideas.post_at_open(self.cfg, MORNING, {"AAA": q["entry_price"]}, pp, pu, prev_session="2026-11-23")
             self.assertEqual(r[0]["decision"], "NOT POSTED"); self.assertIn("stale", r[0]["memo"])
 
+    def test_a_stock_already_live_is_not_posted_again(self):
+        with tempfile.TemporaryDirectory() as t:
+            pp, pu, _ = self.scheduled(t); q = ideas.pending(pp)["queue"][0]
+            p = ideas.public(pu); p["live"].append({"sym": "AAA", "term": "short", "id": "old"}); pu.write_text(json.dumps(p))
+            r = ideas.post_at_open(self.cfg, MORNING, {"AAA": q["entry_price"]}, pp, pu, prev_session=PREV)
+            self.assertEqual(r[0]["decision"], "NOT POSTED"); self.assertIn("already a live idea", r[0]["memo"])
+            self.assertEqual(len(ideas.public(pu)["live"]), 1)
+
     def test_the_monitor_keeps_the_open_fill(self):
         with tempfile.TemporaryDirectory() as t:
             pp, pu, _ = self.scheduled(t); q = ideas.pending(pp)["queue"][0]; o = q["entry_price"]
