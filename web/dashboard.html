@@ -67,7 +67,7 @@ tr:hover td{background:#faf9f6}
   </div>
   <div class="card"><h2>Calibration</h2><p class="hint">Does higher conviction or a higher judge score actually do better? Ideas never entered are left out.</p><div class="tw" id="calib"></div></div>
   <div class="card"><h2>Every idea</h2><p class="hint">Click a column to sort. Deviation = actual return minus the expected move to target, in percentage points.</p><div class="tw" id="detail"></div>
-    <p class="note">Expected move = target ÷ entry − 1 (reference objective for momentum ideas, which are not closed there). Entry = the first price inside the entry range when known, else the posted price. Best / worst = highest high and lowest low since entry, from daily bars. Figures update when the page loads; live prices refresh every minute in market hours.</p></div>
+    <p class="note">Entry = the price at which the idea was posted (the same entry price shown on the Trade Ideas page). Expected move = target ÷ entry − 1 (reference objective for momentum ideas, which are not closed there). Best / worst = highest high and lowest low since entry, from daily bars. Figures update when the page loads; live prices refresh every minute in market hours.</p></div>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -89,14 +89,14 @@ const COST_BUY=0.1+0.00297+0.0001+0.015+0.18*(0.00297+0.0001)+0.1, COST_SELL=0.1
 const netRet=r=>r==null||isNaN(r)?r:((1+r/100)*(1-COST_SELL/100)/(1+COST_BUY/100)-1)*100;
   const add=(e,st)=>{
     const bars=(P.bars||{})[e.sym];
-    const fill=e.filled&&e.filled.price?e.filled.price:e.entry_price;
+    const fill=e.entry_price;   // entry = the price the idea was posted at
     const notEntered=st==='closed'?!!e.not_entered||e.close_kind==='not_entered':(!!e.fill_rule&&!e.filled);
     const expT=e.target?(e.target/fill-1)*100:null, expS=e.stop?(e.stop/fill-1)*100:null;
     const now=st==='live'?(e.price_now||e.entry_price):e.exit_price;
-    const actual=notEntered?null:netRet(st==='closed'?(e.ret_pct!=null?e.ret_pct:(now/fill-1)*100):(now/fill-1)*100);   // net of costs
+    const actual=notEntered?null:netRet((now/fill-1)*100);   // net of costs
     let progress=null;
     if(actual!=null){progress=actual>=0?(expT?actual/expT*100:null):(expS?-(actual/expS)*100:null)}
-    const from=(e.filled&&e.filled.date)||e.entry_date,to=st==='closed'?e.exit_date:'9999';
+    const from=e.entry_date,to=st==='closed'?e.exit_date:'9999';
     let best=null,worst=null;
     if(bars&&!notEntered){const seg=bars.filter(r=>r[0]>=from&&r[0]<=to&&r[0]>e.entry_date);if(seg.length){best=(Math.max(...seg.map(r=>r[2]))/fill-1)*100;worst=(Math.min(...seg.map(r=>r[3]))/fill-1)*100}}
     if(actual!=null){best=best==null?Math.max(actual,0):Math.max(best,actual);worst=worst==null?Math.min(actual,0):Math.min(worst,actual)}
@@ -190,11 +190,11 @@ function calib(V){
     grp('Conviction',r=>r.conv,['High','Medium','Low','—'])+grp('Term',r=>r.term==='medium'?'Momentum (medium)':r.term==='short'?'Short term':'Earlier auto entries')+grp('Judge score',sb,['10+','8–9','6–7','below 6','—'])+grp('Status',r=>r.st==='live'?'Live':'Closed',['Live','Closed'])+'</tbody></table>'+(()=>{const S=ROWS.filter(r=>r.term==='short'&&r.st==='closed'&&r.actual!=null);if(!S.length&&!ROWS.some(r=>r.term==='short'))return'';const Rm=S.map(r=>r.expS?r.actual/Math.abs(r.expS):null).filter(x=>x!=null),er=Rm.length?Rm.reduce((a,b)=>a+b,0)/Rm.length:null;return `<p class="note"><b>Short-term track review:</b> ${S.length} of 50 closed trades so far${er==null?'':`; average ${er>0?'+':''}${er.toFixed(2)}R per trade`}. The audit's rule: keep it only if it earns at least +0.2R per trade after 50 trades.</p>`})();
 }
 
-const COLS=[['sym','Stock'],['st','Status'],['term','Term'],['conv','Conviction'],['posted','Posted'],['fill','Entry',1],['expT','Expected to target',1],['expS','Stop-loss at',1],['actual','Actual',1],['progress','Progress',1],['dev','Deviation',1],['best','Best',1],['worst','Worst',1],['held','Sessions held',1],['cls','Outcome']];
+const COLS=[['sym','Stock'],['st','Status'],['term','Term'],['conv','Conviction'],['posted','Posted'],['entry','Entry',1],['expT','Expected to target',1],['expS','Stop-loss at',1],['actual','Actual',1],['progress','Progress',1],['dev','Deviation',1],['best','Best',1],['worst','Worst',1],['held','Sessions held',1],['cls','Outcome']];
 function detail(V){
   if(!V.length){$('#detail').innerHTML='<div class="empty">No ideas match these filters.</div>';return}
   const k=SORT.k,R=V.slice().sort((a,b)=>{const x=a[k],y=b[k];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (typeof x==='string'?x.localeCompare(y):x-y)*SORT.d});
-  const cell=(r,c)=>{const v=r[c];switch(c){case'sym':return `<b>${esc(v)}</b>`;case'st':return v==='live'?'Live':'Closed';case'term':return v==='medium'?'Momentum':v==='short'?'Short':v==='intraday'?'Intraday':'Auto';case'fill':return rs(v);case'expT':case'expS':case'best':case'worst':return pc(v);
+  const cell=(r,c)=>{const v=r[c];switch(c){case'sym':return `<b>${esc(v)}</b>`;case'st':return v==='live'?'Live':'Closed';case'term':return v==='medium'?'Momentum':v==='short'?'Short':v==='intraday'?'Intraday':'Auto';case'entry':return rs(v);case'expT':case'expS':case'best':case'worst':return pc(v);
     case'actual':return `<span class="${v>=0?'up':'dn'}">${pc(v)}</span>`;case'progress':return v==null?'—':Math.round(v)+'%';case'dev':return pp(v);case'held':return v==null?'—':v+(r.expDays?' / '+r.expDays:'');case'cls':return `<span class="chip"><i style="background:${CLS[v][1]}"></i>${CLS[v][0]}</span>`;default:return esc(v)}};
   $('#detail').innerHTML=`<table><thead><tr>${COLS.map(([c,l,n])=>`<th class="${n?'num':''}" data-k="${c}">${l}${SORT.k===c?(SORT.d<0?' ↓':' ↑'):''}</th>`).join('')}</tr></thead><tbody>${R.map(r=>`<tr>${COLS.map(([c,,n])=>`<td class="${n?'num':''}">${cell(r,c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 }
