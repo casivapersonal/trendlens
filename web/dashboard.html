@@ -67,7 +67,7 @@ tr:hover td{background:#faf9f6}
   </div>
   <div class="card"><h2>Calibration</h2><p class="hint">Does higher conviction or a higher judge score actually do better? Ideas never entered are left out.</p><div class="tw" id="calib"></div></div>
   <div class="card"><h2>Every idea</h2><p class="hint">Click a column to sort. Deviation = actual return minus the expected move to target, in percentage points.</p><div class="tw" id="detail"></div>
-    <p class="note">Entry = the price at which the idea was posted (the same entry price shown on the Trade Ideas page). Expected move = target ÷ entry − 1 (reference objective for momentum ideas, which are not closed there). Best / worst = highest high and lowest low since entry, from daily bars. Figures update when the page loads; live prices refresh every minute in market hours.</p></div>
+    <p class="note">Entry = the price at which the idea was posted (the same entry price shown on the Trade Ideas page). Expected move = target ÷ entry − 1 (reference objective for momentum ideas, which are not closed there). Best / worst = highest high and lowest low since entry, from daily bars. Progress is measured after costs (the expected move is reduced by the same charges as the actual result) and capped at ±100%. Figures update when the page loads; live prices refresh every minute in market hours.</p></div>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -95,7 +95,9 @@ const netRet=r=>r==null||isNaN(r)?r:((1+r/100)*(1-COST_SELL/100)/(1+COST_BUY/100
     const now=st==='live'?(e.price_now||e.entry_price):e.exit_price;
     const actual=notEntered?null:netRet((now/fill-1)*100);   // net of costs
     let progress=null;
-    if(actual!=null){progress=actual>=0?(expT?actual/expT*100:null):(expS?-(actual/expS)*100:null)}
+    if(actual!=null){const eT=expT==null?null:netRet(expT),eS=expS==null?null:netRet(expS);   // expected moves after the same costs as the actual result, so a target hit reads 100%
+      progress=actual>=0?(eT>0?actual/eT*100:null):(eS<0?-(actual/eS)*100:null);
+      if(progress!=null)progress=Math.max(-100,Math.min(100,progress))}   // capped at +/-100%: a gap through the stop or an overshoot must not skew the average
     const from=e.entry_date,to=st==='closed'?e.exit_date:'9999';
     let best=null,worst=null;
     if(bars&&!notEntered){const seg=bars.filter(r=>r[0]>=from&&r[0]<=to&&r[0]>e.entry_date);if(seg.length){best=(Math.max(...seg.map(r=>r[2]))/fill-1)*100;worst=(Math.min(...seg.map(r=>r[3]))/fill-1)*100}}
@@ -113,7 +115,7 @@ const netRet=r=>r==null||isNaN(r)?r:((1+r/100)*(1-COST_SELL/100)/(1+COST_BUY/100
   const ib=P.intraday||{},today=new Date(Date.now()+19800e3).toISOString().slice(0,10);   // intraday shorts: results after intraday costs, from the CEO's own records
   const addI=(e,st)=>{const fill=e.entry_price,expT=e.target?-(e.target/fill-1)*100:null,expS=e.stop?-(e.stop/fill-1)*100:null;
     const actual=st==='closed'?e.net_pct:(e.price_now!=null?-(e.price_now/fill-1)*100:null);
-    let progress=null;if(actual!=null)progress=actual>=0?(expT?actual/expT*100:null):(expS?-(actual/expS)*100:null);
+    let progress=null;if(actual!=null){progress=actual>=0?(expT?actual/expT*100:null):(expS?-(actual/expS)*100:null);if(progress!=null)progress=Math.max(-100,Math.min(100,progress))}
     const cls=actual==null?'ne':st==='closed'&&/Target/.test(e.reason||'')||progress>=100?'met':progress>=50?'ahead':progress>=0?'track':progress>-50?'lag':'risk';
     out.push({sym:e.sym,name:e.sym,st,term:'intraday',conv:(e.ceo&&e.ceo.conviction)||'—',score:e.judge?e.judge.score:null,posted:e.date,fill,entry:fill,target:e.target,stop:e.stop,expT,expS,actual,progress,
       dev:actual!=null&&expT!=null?actual-expT:null,best:actual!=null?Math.max(actual,0):null,worst:actual!=null?Math.min(actual,0):null,cls,held:0,expDays:null,reason:st==='closed'?e.reason:null,nifty:null,nifty50:null})};
@@ -128,10 +130,12 @@ function tiles(V){
   const XS=E.filter(r=>r.actual!=null&&r.nifty!=null),XN=XS.length,exc=XN?avg(XS.map(r=>r.actual-r.nifty)):null;
   const tax=E.some(r=>r.actual!=null)?avg(E.filter(r=>r.actual!=null).map(r=>r.actual>0?r.actual*0.8:r.actual)):null;
   const devC=avg(C.map(r=>r.dev).filter(x=>x!=null)),prog=avg(E.map(r=>r.progress).filter(x=>x!=null)),win=C.length?C.filter(r=>r.actual>0).length/C.length*100:null;
+  const SV=ROWS.filter(r=>F.status==='all'||r.st===F.status),gpf=f=>{const a=SV.filter(r=>r.cls!=='ne'&&r.progress!=null&&f(r));return a.length?{v:Math.round(avg(a.map(r=>r.progress))),n:a.length}:null};
+  const gp={all:gpf(()=>true),short:gpf(r=>r.term==='short'),mom:gpf(r=>r.term==='medium'||r.term==='momentum'),intra:gpf(r=>r.term==='intraday'),fm:x=>x?x.v+'% <span style="color:var(--muted)">('+x.n+')</span>':'—'};   // progress by section: the status filter applies, the term filter does not
   const t=(k,v,s)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
   $('#tiles').innerHTML=
     t('In line with expectation',E.length?Math.round(inl.length/E.length*100)+'%':'—',E.length?`${inl.length} of ${E.length} entered ideas are at or above entry, moving toward target`:'No entered ideas yet')+
-    t('Average progress to target',prog==null?'—':Math.round(prog)+'%',`100% = target reached · ${L.length} live, ${C.length} closed`)+
+    t('Average progress to target',gp.all?gp.all.v+'%':'—',`All ideas, ${gp.all?gp.all.n:0} entered (100% = target reached, −100% = stop-loss)<br><b>Short term</b> ${gp.fm(gp.short)} · <b>Momentum</b> ${gp.fm(gp.mom)} · <b>Intraday</b> ${gp.fm(gp.intra)}<br>${L.length} live, ${C.length} closed in the current view`)+
     t('Closed ideas: average deviation',devC==null?'—':pp(devC),C.length?`actual result minus the expected move, over ${C.length} closed`:'No closed ideas yet')+
     t('Closed ideas that made money',win==null?'—':Math.round(win)+'%',C.length?`${C.filter(r=>r.actual>0).length} of ${C.length}`:'Builds up as ideas close')+
     t('Versus NIFTY 500 (equal weight)',exc==null?'—':pp(exc),exc==null?'NIFTY 500 over the same holding periods; builds up as ideas trade':`average idea after costs minus NIFTY 500 (price index; NIFTY 50 for ideas without a NIFTY 500 level) over the same days, ${XN} ideas`)+
