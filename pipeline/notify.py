@@ -17,7 +17,7 @@ subs = redis("SMEMBERS", "trendlens:subs") or []
 sent = 0
 KEY = lambda a: f'{a["type"]}:{a["sym"]}:{a["date"]}' + (":intraday" if a.get("term") == "intraday" else "")   # intraday and swing alerts on one stock do not collide
 todo = [a for a in d.get("alerts_today", []) if not redis("SISMEMBER", "trendlens:notified", KEY(a))]
-watch = [a for a in todo if a["type"] == "watch"]; todo = [a for a in todo if a["type"] != "watch"]     # the evening watch list is always its own notification
+watch = []; todo = [a for a in todo if a["type"] != "watch"]     # Nov 2026: the evening watch list is no longer sent (intraday ideas are announced only when posted)
 if len(todo) > 3:      # a batch from one CEO run: one notification, not ten
     lab = lambda a: a["sym"] + (" (intraday short)" if a.get("side") == "short" else "")
     en = [lab(a) for a in todo if a["type"] == "entry"]; ex = [lab(a) for a in todo if a["type"] == "exit"]
