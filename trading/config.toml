@@ -99,7 +99,8 @@ paper_only = true              # cannot be changed; the program refuses to start
 # Ideas are NOT trades. The coded judge scores a candidate, a human decision-maker approves it, and only then it is posted.
 # It stays live until the decision-maker closes it (or you switch auto_close on). No real-time trading anywhere in this system.
 max_live = 20                  # MOMENTUM slots (the back-test holds 20: enter at top 20, exit below #50). Setups have their own slots: [ceo] max_live_short
-post_at_open = true            # Nov 2026: ideas chosen on the evening scan are POSTED at the next open, only if the opening price is inside the entry range (outside = not posted). false = the old rule: posted at the 16:15 scan, filled at the next session's open
+post_at_open = true            # Nov 2026: ideas chosen on the evening scan are POSTED the next morning, only if the price is inside the entry range (outside = not posted). false = the old rule: posted at the 16:15 scan, filled at the next session's open
+open_post_at = "09:30"         # the check and the entry price: the open of this five-minute candle (09:15 = the very first print, too jumpy). Intraday ideas keep their own 9:20 entry
 open_post_until = "10:00"      # if the opening price cannot be read by this time, the idea is not posted
 max_new_per_day = 4            # new SETUP ideas per day (momentum fills its free slots by rank, as in the back-test)
 reentry_block = false          # audit fix #2, TESTED Nov 2026 and NOT adopted: blocking re-entry after a stop until the rank resets lowered CAGR (2011-19: 18.3% vs 20.4%; 2020-26: 44.0% vs 46.3%)
