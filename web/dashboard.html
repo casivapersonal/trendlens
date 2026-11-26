@@ -108,7 +108,7 @@ const netRet=r=>r==null||isNaN(r)?r:((1+r/100)*(1-COST_SELL/100)/(1+COST_BUY/100
     else cls=progress>=100?'met':progress>=50?'ahead':progress>=0?'track':progress>-50?'lag':'risk';
     const held=st==='closed'?sessionsBetween(bars,e.entry_date,e.exit_date):(e.days_held??sessionsBetween(bars,e.entry_date,'9999'));
     out.push({sym:e.sym,name:e.name||e.sym,st,term:e.term||'momentum',conv:(e.ceo&&e.ceo.conviction)||'—',score:e.judge?e.judge.score:null,posted:e.posted||e.entry_date,
-      fill,entry:e.entry_price,target:e.target,stop:e.stop,expT,expS,actual,progress,dev:actual!=null&&expT!=null?actual-expT:null,best,worst,cls,held,expDays:e.term==='short'?e.days:null,
+      fill,entry:e.entry_price,target:e.target,stop:e.stop,expT,expS,expTn:expT==null?null:netRet(expT),actual,progress,dev:actual!=null&&expT!=null?actual-netRet(expT):null,best,worst,cls,held,expDays:e.term==='short'?e.days:null,
       reason:st==='closed'?e.reason:(e.exit_signal?e.exit_signal.reason:null),nifty:e.n500_pct!=null?e.n500_pct:e.nifty_pct,nifty50:e.nifty_pct});   // benchmark: NIFTY 500 (audit fix #17)
   };
   (P.live||[]).forEach(e=>add(e,'live'));(P.closed||[]).forEach(e=>add(e,'closed'));
@@ -117,7 +117,7 @@ const netRet=r=>r==null||isNaN(r)?r:((1+r/100)*(1-COST_SELL/100)/(1+COST_BUY/100
     const actual=st==='closed'?e.net_pct:(e.price_now!=null?-(e.price_now/fill-1)*100:null);
     let progress=null;if(actual!=null){progress=actual>=0?(expT?actual/expT*100:null):(expS?-(actual/expS)*100:null);if(progress!=null)progress=Math.max(-100,Math.min(100,progress))}
     const cls=actual==null?'ne':st==='closed'&&/Target/.test(e.reason||'')||progress>=100?'met':progress>=50?'ahead':progress>=0?'track':progress>-50?'lag':'risk';
-    out.push({sym:e.sym,name:e.sym,st,term:'intraday',conv:(e.ceo&&e.ceo.conviction)||'—',score:e.judge?e.judge.score:null,posted:e.date,fill,entry:fill,target:e.target,stop:e.stop,expT,expS,actual,progress,
+    out.push({sym:e.sym,name:e.sym,st,term:'intraday',conv:(e.ceo&&e.ceo.conviction)||'—',score:e.judge?e.judge.score:null,posted:e.date,fill,entry:fill,target:e.target,stop:e.stop,expT,expS,expTn:expT,actual,progress,
       dev:actual!=null&&expT!=null?actual-expT:null,best:actual!=null?Math.max(actual,0):null,worst:actual!=null?Math.min(actual,0):null,cls,held:0,expDays:null,reason:st==='closed'?e.reason:null,nifty:null,nifty50:null})};
   (ib.live||[]).filter(e=>e.date===today).forEach(e=>addI(e,'live'));(ib.closed||[]).forEach(e=>addI(e,'closed'));
   ROWS=out;
@@ -127,9 +127,9 @@ const view=()=>ROWS.filter(r=>(F.status==='all'||r.st===F.status)&&(F.term==='al
 function tiles(V){
   const E=V.filter(r=>r.cls!=='ne'),inl=E.filter(r=>r.progress!=null&&r.progress>=0),C=E.filter(r=>r.st==='closed'),L=E.filter(r=>r.st==='live');
   const avg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
-  const XS=E.filter(r=>r.actual!=null&&r.nifty!=null),XN=XS.length,exc=XN?avg(XS.map(r=>r.actual-r.nifty)):null;
+  const XS=E.filter(r=>r.actual!=null&&r.nifty!=null),XN=XS.length;
   const wr=a=>{const w=a.reduce((s,r)=>s+r.entry,0);return a.length&&w?a.reduce((s,r)=>s+r.entry*r.actual,0)/w:null},   // total gain in rupees / total entry price (one share of each idea), after costs
-    bt=wr(E.filter(r=>r.actual!=null)),tax=bt==null?null:(bt>0?bt*0.8:bt);   // losses are set off against gains: tax is charged on the NET result only (a net loss pays no tax)
+    bt=wr(E.filter(r=>r.actual!=null)),exc=XN?wr(XS.map(r=>({entry:r.entry,actual:r.actual-r.nifty}))):null,tax=bt==null?null:(bt>0?bt*0.8:bt);   // losses are set off against gains: tax is charged on the NET result only (a net loss pays no tax)
   const devC=avg(C.map(r=>r.dev).filter(x=>x!=null)),prog=avg(E.map(r=>r.progress).filter(x=>x!=null)),win=C.length?C.filter(r=>r.actual>0).length/C.length*100:null;
   const SV=ROWS.filter(r=>F.status==='all'||r.st===F.status),seg=f=>{const a=SV.filter(r=>r.cls!=='ne'&&r.actual!=null&&f(r));if(!a.length)return null;const b=wr(a);return{b,a:b>0?b*0.8:b,n:a.length}};   // per segment: the status filter applies, the term filter does not (every segment is listed)
   const SEG=[['All',()=>true],['Short term',r=>r.term==='short'],['Momentum',r=>r.term==='medium'||r.term==='momentum'],['Intraday',r=>r.term==='intraday']].map(([l,f])=>[l,seg(f)]);
@@ -138,9 +138,9 @@ function tiles(V){
   $('#tiles').innerHTML=
     t('In line with expectation',E.length?Math.round(inl.length/E.length*100)+'%':'—',E.length?`${inl.length} of ${E.length} entered ideas are at or above entry, moving toward target`:'No entered ideas yet')+
     t('Average gain / loss (before tax)',bt==null?'—':pc(bt),bt==null?'Builds up as ideas trade':`Total gain ÷ total entry price (one share of each idea), after costs. Ideas in brackets<br>${segL('b')}`)+
-    t('Closed ideas: average deviation',devC==null?'—':pp(devC),C.length?`actual result minus the expected move, over ${C.length} closed`:'No closed ideas yet')+
+    t('Closed ideas: average deviation',devC==null?'—':pp(devC),C.length?`actual result minus the expected move, both after costs, over ${C.length} closed`:'No closed ideas yet')+
     t('Closed ideas that made money',win==null?'—':Math.round(win)+'%',C.length?`${C.filter(r=>r.actual>0).length} of ${C.length}`:'Builds up as ideas close')+
-    t('Versus NIFTY 500 (equal weight)',exc==null?'—':pp(exc),exc==null?'NIFTY 500 over the same holding periods; builds up as ideas trade':`average idea after costs minus NIFTY 500 (price index; NIFTY 50 for ideas without a NIFTY 500 level) over the same days, ${XN} ideas`)+
+    t('Versus NIFTY 500 (weighted)',exc==null?'—':pp(exc),exc==null?'NIFTY 500 over the same holding periods; builds up as ideas trade':`weighted by entry price: result after costs minus NIFTY 500 (price index; NIFTY 50 for ideas without a NIFTY 500 level) over the same days, ${XN} ideas`)+
     t('Average gain / loss (after tax)',tax==null?'—':pc(tax),tax==null?'Builds up as ideas trade':`Same weighted result; the net gain is taxed at 20%, losses set off against gains (held under a year)<br>${segL('a')}`);
 }
 
@@ -190,9 +190,9 @@ function calib(V){
   const E=V.filter(r=>r.cls!=='ne');
   if(!E.length){$('#calib').innerHTML='<div class="empty">No entered ideas yet.</div>';return}
   const grp=(lab,keyf,order)=>{const g={};E.forEach(r=>{const k=keyf(r);(g[k]=g[k]||[]).push(r)});return (order||Object.keys(g)).filter(k=>g[k]).map(k=>{const a=g[k],avg=f=>{const v=a.map(f).filter(x=>x!=null);return v.length?v.reduce((s,x)=>s+x,0)/v.length:null};
-    return `<tr><td>${lab}</td><td>${esc(k)}</td><td class="num">${a.length}</td><td class="num">${Math.round(a.filter(r=>r.progress>=0).length/a.length*100)}%</td><td class="num">${a.filter(r=>r.cls==='met').length}</td><td class="num ${avg(r=>r.actual)>=0?'up':'dn'}">${pc(avg(r=>r.actual))}</td><td class="num">${pc(avg(r=>r.expT))}</td><td class="num">${pc(avg(r=>r.progress),1)}</td><td class="num">${pp(avg(r=>r.dev))}</td><td class="num">${pp(avg(r=>r.nifty==null||r.actual==null?null:r.actual-r.nifty))}</td></tr>`}).join('')};
+    return `<tr><td>${lab}</td><td>${esc(k)}</td><td class="num">${a.length}</td><td class="num">${Math.round(a.filter(r=>r.progress>=0).length/a.length*100)}%</td><td class="num">${a.filter(r=>r.cls==='met').length}</td><td class="num ${avg(r=>r.actual)>=0?'up':'dn'}">${pc(avg(r=>r.actual))}</td><td class="num">${pc(avg(r=>r.expTn))}</td><td class="num">${pc(avg(r=>r.progress),1)}</td><td class="num">${pp(avg(r=>r.dev))}</td><td class="num">${(()=>{const z=a.filter(r=>r.nifty!=null&&r.actual!=null),w=z.reduce((s,r)=>s+r.entry,0);return pp(w?z.reduce((s,r)=>s+r.entry*(r.actual-r.nifty),0)/w:null)})()}</td></tr>`}).join('')};
   const sb=r=>r.score==null?'—':r.score>=10?'10+':r.score>=8?'8–9':r.score>=6?'6–7':'below 6';
-  $('#calib').innerHTML=`<table><thead><tr><th>Group</th><th>Value</th><th class="num">Ideas</th><th class="num">In line</th><th class="num">Met target</th><th class="num">Avg actual</th><th class="num">Avg expected</th><th class="num">Avg progress</th><th class="num">Avg deviation</th><th class="num">vs NIFTY</th></tr></thead><tbody>`+
+  $('#calib').innerHTML=`<table><thead><tr><th>Group</th><th>Value</th><th class="num">Ideas</th><th class="num">In line</th><th class="num">Met target</th><th class="num">Avg actual</th><th class="num">Avg expected (after costs)</th><th class="num">Avg progress</th><th class="num">Avg deviation</th><th class="num">vs NIFTY</th></tr></thead><tbody>`+
     grp('Conviction',r=>r.conv,['High','Medium','Low','—'])+grp('Term',r=>r.term==='medium'?'Momentum (medium)':r.term==='short'?'Short term':'Earlier auto entries')+grp('Judge score',sb,['10+','8–9','6–7','below 6','—'])+grp('Status',r=>r.st==='live'?'Live':'Closed',['Live','Closed'])+'</tbody></table>'+(()=>{const S=ROWS.filter(r=>r.term==='short'&&r.st==='closed'&&r.actual!=null);if(!S.length&&!ROWS.some(r=>r.term==='short'))return'';const Rm=S.map(r=>r.expS?r.actual/Math.abs(r.expS):null).filter(x=>x!=null),er=Rm.length?Rm.reduce((a,b)=>a+b,0)/Rm.length:null;return `<p class="note"><b>Short-term track review:</b> ${S.length} of 50 closed trades so far${er==null?'':`; average ${er>0?'+':''}${er.toFixed(2)}R per trade`}. The audit's rule: keep it only if it earns at least +0.2R per trade after 50 trades.</p>`})();
 }
 
