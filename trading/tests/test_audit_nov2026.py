@@ -91,7 +91,7 @@ class Momentum(unittest.TestCase):
             self.assertTrue(g and g[0].get("awaiting"))
 
     def test_3_separate_books_and_momentum_caps(self):
-        cfg = {"ideas": {"max_live": 20, "max_new_per_day": 1, "entry_rank": 20}, "ceo": {"max_per_sector": 3, "max_live_short": 1, "max_per_broad_sector": 6}}
+        cfg = {"ideas": {"max_live": 20, "entry_rank": 20}, "ceo": {"max_per_sector": 3, "max_per_broad_sector": 6}}
         base = {"entry_price": 100.0, "entry_lo": 99, "entry_hi": 101, "stop": 90, "target": 120, "days": 60, "r": 2, "status": "awaiting decision",
                 "risk": {"verdict": "PASS", "reasons": []}, "review": {"lean": "bull", "time_machine": None}, "committee": {"analysts": {}}}
         q = [{**base, "id": f"M{k}-x-m", "sym": f"M{k}", "term": "medium", "entry_rank": k + 1, "judge": {"verdict": "APPROVE", "score": 5, "rules": []}} for k in range(5)]

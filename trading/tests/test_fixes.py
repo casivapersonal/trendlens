@@ -73,7 +73,7 @@ class CEOAndQueue(unittest.TestCase):
         from pathlib import Path
         self.d = Path(tempfile.mkdtemp()); self.pen = self.d / "pending.json"; self.pub = self.d / "picks.json"
         self.pub.write_text(json.dumps({"live": [], "closed": [], "recent_alerts": [], "bars": {}}))
-        self.cfg = {"ideas": {"max_live": 10, "max_new_per_day": 3, "entry_rank": 20}, "ceo": {"max_per_sector": 3}}
+        self.cfg = {"ideas": {"max_live": 10, "entry_rank": 20}, "ceo": {"max_per_sector": 3}}
 
     def idea(self, sym, score=9, rank=None, lean="bull", tm="tilted toward the target", risk="PASS", verdict="APPROVE", tech="bullish"):
         return {"id": f"{sym}-2026-11-20-s", "sym": sym, "term": "short", "entry_price": 100.0, "entry_lo": 99, "entry_hi": 101, "stop": 95, "target": 112.5,
@@ -101,9 +101,10 @@ class CEOAndQueue(unittest.TestCase):
         self.assertTrue(any("already in the judge score" for n in next(i for i in pub["live"] if i["sym"] == "DOUBT")["ceo"]["noted"]))
         self.assertEqual({q["sym"]: q["status"] for q in pen["queue"]}, {"BLOCKED": "watch"}); self.assertEqual(len(pen["ceo_log"]), 4)
 
-    def test_daily_limit(self):
-        dec, pub, _ = self.run_ceo([self.idea(s, 10, rank=3) for s in ("A", "B", "C", "D")])
-        self.assertEqual(sum(v == "POST" for v in dec.values()), 3)
+    def test_no_cap_on_short_term_ideas(self):
+        # Nov 2026: no daily limit and no live-book limit on short-term setups
+        dec, pub, _ = self.run_ceo([self.idea(s, 10) for s in ("A", "B", "C", "D", "E", "F")])
+        self.assertEqual(sum(v == "POST" for v in dec.values()), 6)
 
     def test_exit_closes_flagged_idea(self):
         import json
