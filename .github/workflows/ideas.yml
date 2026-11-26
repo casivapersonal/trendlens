@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: "scan (CEO chooses; ideas are posted at the next open) | open (post scheduled ideas at the open price, test) | monitor (CEO closes) | pending | approve | reject | close (manual overrides)"
+        description: "scan (CEO chooses; ideas are posted at the next open) | open (post scheduled ideas if the 9:30 price is in range, test) | monitor (CEO closes) | pending | approve | reject | close (manual overrides)"
         required: true
         default: "monitor"
       target:

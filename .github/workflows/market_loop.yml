@@ -56,7 +56,7 @@ jobs:
               echo "::group::cycle $(TZ=Asia/Kolkata date +%H:%M) IST"
               git fetch -q origin main && git reset -q --hard origin/main
               (cd trading && python -m arena intraday run) || echo "intraday step failed"
-              if [ "$hm" -lt 1005 ]; then (cd trading && python -m arena ideas open) || echo "open-check step failed"; fi   # post last evening's ideas if today's opening price is inside the entry range (retries until 10:00)
+              if [ "$hm" -lt 1005 ]; then (cd trading && python -m arena ideas open) || echo "open-check step failed"; fi   # from 9:30: post last evening's ideas if the price is inside the entry range (retries until 10:00)
               (cd trading && python -m arena ideas intraday) || echo "live-prices step failed"
               if [ $(( 10#$(TZ=Asia/Kolkata date +%M) % 10 )) -lt 5 ]; then (cd pipeline && python live_screen.py ../web/picks.json ../web/history.json) || echo "screener failed"; fi
               if [ -n "$VAPID_PRIVATE_KEY" ] && [ -n "$UPSTASH_REDIS_REST_URL" ]; then (cd pipeline && python notify.py ../web/picks.json) || true; fi
