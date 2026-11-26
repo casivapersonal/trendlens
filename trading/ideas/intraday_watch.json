@@ -1,7 +1,7 @@
 {
- "built": "2026-11-25T17:07+05:30",
+ "built": "2026-11-26T09:53+05:30",
  "last_close": "2026-11-25",
- "for": "2026-11-26",
+ "for": "2026-11-27",
  "stocks": {
   "AUBANK": {
    "close": 1006.05,
@@ -48,35 +48,6 @@
    "trigger_hi": 2079.0,
    "stop_dist": 55.85,
    "target_dist": 111.7,
-   "judge": {
-    "score": 1,
-    "rules": [
-     {
-      "points": 1,
-      "rule": "20-day high on heavy volume"
-     }
-    ],
-    "rejected_because": [],
-    "verdict": "APPROVE",
-    "by": "coded intraday judge"
-   }
-  },
-  "COLPAL": {
-   "close": 1825.0,
-   "date": "2026-11-25",
-   "atr": 43.35,
-   "sma50": 1750.37,
-   "ret5": 0.0612,
-   "ext50": 0.0426,
-   "bo20": true,
-   "value_cr": 74.9,
-   "why": [
-    "closed at a 20-day high on heavy volume"
-   ],
-   "trigger_lo": 1852.35,
-   "trigger_hi": 1971.0,
-   "stop_dist": 43.35,
-   "target_dist": 86.7,
    "judge": {
     "score": 1,
     "rules": [
@@ -177,35 +148,6 @@
     "by": "coded intraday judge"
    }
   },
-  "GODREJCP": {
-   "close": 963.0,
-   "date": "2026-11-25",
-   "atr": 25.8393,
-   "sma50": 865.47,
-   "ret5": 0.0766,
-   "ext50": 0.1127,
-   "bo20": true,
-   "value_cr": 142.6,
-   "why": [
-    "closed at a 20-day high on heavy volume"
-   ],
-   "trigger_lo": 977.45,
-   "trigger_hi": 1040.05,
-   "stop_dist": 25.84,
-   "target_dist": 51.68,
-   "judge": {
-    "score": 1,
-    "rules": [
-     {
-      "points": 1,
-      "rule": "20-day high on heavy volume"
-     }
-    ],
-    "rejected_because": [],
-    "verdict": "APPROVE",
-    "by": "coded intraday judge"
-   }
-  },
   "HEROMOTOCO": {
    "close": 5751.5,
    "date": "2026-11-25",
@@ -251,35 +193,6 @@
    "trigger_hi": 2313.15,
    "stop_dist": 47.46,
    "target_dist": 94.91,
-   "judge": {
-    "score": 1,
-    "rules": [
-     {
-      "points": 1,
-      "rule": "20-day high on heavy volume"
-     }
-    ],
-    "rejected_because": [],
-    "verdict": "APPROVE",
-    "by": "coded intraday judge"
-   }
-  },
-  "ICICILIFE": {
-   "close": 474.0,
-   "date": "2026-11-25",
-   "atr": 15.1071,
-   "sma50": 449.81,
-   "ret5": 0.0459,
-   "ext50": 0.0538,
-   "bo20": true,
-   "value_cr": 88.9,
-   "why": [
-    "closed at a 20-day high on heavy volume"
-   ],
-   "trigger_lo": 481.1,
-   "trigger_hi": 511.9,
-   "stop_dist": 15.11,
-   "target_dist": 30.21,
    "judge": {
     "score": 1,
     "rules": [
