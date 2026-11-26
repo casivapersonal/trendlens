@@ -98,11 +98,11 @@ paper_only = true              # cannot be changed; the program refuses to start
 [ideas]
 # Ideas are NOT trades. The coded judge scores a candidate, a human decision-maker approves it, and only then it is posted.
 # It stays live until the decision-maker closes it (or you switch auto_close on). No real-time trading anywhere in this system.
-max_live = 20                  # MOMENTUM slots (the back-test holds 20: enter at top 20, exit below #50). Setups have their own slots: [ceo] max_live_short
+max_live = 20                  # MOMENTUM slots (the back-test holds 20: enter at top 20, exit below #50). Short-term setups have no cap
 post_at_open = true            # Nov 2026: ideas chosen on the evening scan are POSTED the next morning, only if the price is inside the entry range (outside = not posted). false = the old rule: posted at the 16:15 scan, filled at the next session's open
 open_post_at = "09:30"         # the check and the entry price: the open of this five-minute candle (09:15 = the very first print, too jumpy). Intraday ideas keep their own 9:20 entry
 open_post_until = "10:00"      # if the opening price cannot be read by this time, the idea is not posted
-max_new_per_day = 4            # new SETUP ideas per day (momentum fills its free slots by rank, as in the back-test)
+# max_new_per_day removed Nov 2026: no daily cap on new setup ideas (momentum fills its free slots by rank, as in the back-test)
 reentry_block = false          # audit fix #2, TESTED Nov 2026 and NOT adopted: blocking re-entry after a stop until the rank resets lowered CAGR (2011-19: 18.3% vs 20.4%; 2020-26: 44.0% vs 46.3%)
 entry_rank = 20                # momentum rank that earns judge points (the original TrendLens entry rule)
 exit_rank = 50                 # momentum ideas are FLAGGED when their rank falls below this; the decision-maker closes
@@ -135,7 +135,7 @@ auto_close = false             # false = exit signals are flagged and the decisi
 # ideas with an exit signal. Every decision is written to trading/ideas/pending.json (ceo_log) and shown on the idea.
 enabled = true                 # false = back to manual approve / close
 max_per_sector = 3             # live ideas in one industry at once (e.g. Banks - Regional)
-max_live_short = 4             # short-term setup ideas live at once: their OWN slots, never taken from the 20 momentum slots
+# max_live_short removed Nov 2026: no cap on live short-term setup ideas
 max_per_broad_sector = 6       # live ideas in one broad sector (e.g. Financial Services). Momentum caps count momentum ideas only, in rank order (back-tested: helped)
 ai_review = false              # true + ANTHROPIC_API_KEY secret = Claude takes a second look and may DECLINE (never post) an idea
 model = ""                     # blank = claude-sonnet-5-5
