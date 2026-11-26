@@ -312,7 +312,17 @@ def cmd_ideas(a, cfg):
         from .committee import Committee
         from .feeds import make_live_feed
         from .scanner import Shortlister, daily_setups
-        feed = make_live_feed(cfg); sl = Shortlister(cfg, feed); sl.open_day(now, [])
+        feed = make_live_feed(cfg)
+        if market_open_ist(now):
+            # a forced scan during market hours must use CLOSED daily bars only: drop today's partial bar, so the levels are the last close's
+            # (otherwise the ideas get today's date and the open check rejects them as stale)
+            _h = feed.history
+            def _closed(syms, period="2y", interval="1d", **kw):
+                out = _h(syms, period=period, interval=interval, **kw)
+                if interval != "1d": return out
+                return {k: (d[d.index.date < now.date()] if d is not None and len(d) else d) for k, d in out.items()}
+            feed.history = _closed
+        sl = Shortlister(cfg, feed); sl.open_day(now, [])
         lastbar = max((d.index[-1].date() for d in sl.frames.values() if d is not None and len(d)), default=None)
         if lastbar != now.date() and not a.force:
             print(f"No trading session today (latest bar {lastbar}): nothing to scan."); return
