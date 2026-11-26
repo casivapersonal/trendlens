@@ -936,7 +936,9 @@ function ideaList(){
   if(IS.term!=='all')L=L.filter(o=>o.term===IS.term);
   const q=IS.q.trim().toLowerCase();if(q)L=L.filter(o=>o.label.toLowerCase().includes(q)||o.x.name.toLowerCase().includes(q));
   const key=o=>IS.sort==='pot'?(o.potLeft??o.ret):(o.chgSoFar??o.ret);
-  if(IS.sort==='date')L.sort((a,b)=>(IS.tab==='live'?b.i-a.i:b.exitI-a.exitI)||(a.rank??0)-(b.rank??0)||a.label.localeCompare(b.label));else L.sort((a,b)=>key(b)-key(a));
+  // "Date of posting": newest first by the real posting time. (The old sort used the bar index of the signal date, which is the PREVIOUS session for ideas posted at the open, so ideas posted on different days could tie and fall back to rank / A-Z.)
+  const pk=o=>{const t=o.approvedAt?Date.parse(o.approvedAt):NaN;return Number.isFinite(t)?t:o.posted.getTime()+16*36e5};
+  if(IS.sort==='date')L.sort((a,b)=>(pk(b)-pk(a))||(IS.tab==='live'?b.i-a.i:b.exitI-a.exitI)||(a.rank??0)-(b.rank??0)||a.label.localeCompare(b.label));else L.sort((a,b)=>key(b)-key(a));
   return L;
 }
 function renderIdeas(){
