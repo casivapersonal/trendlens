@@ -242,13 +242,13 @@ def approve(idea_id: str, by: str, now: datetime, pending_path: Path | None = No
 
 
 def post_at_open(cfg: dict, now: datetime, opens: dict, pending_path: Path | None = None, public_path: Path | None = None, frames: dict | None = None,
-                 prev_session: str | None = None, final: bool = False, by: str = "CEO") -> list[dict]:
+                 prev_session: str | None = None, final: bool = False, by: str = "CEO", at_override: str | None = None) -> list[dict]:
     """Morning step of the post_at_open rule. Ideas the CEO chose on last evening's scan wait as 'scheduled for open'. At the open each is
     checked against TODAY'S OPENING PRICE: inside the entry range -> posted live, entry = the opening price, filled at once; outside the
     range (above or below), or reward-to-risk too low at that price, or the book full -> NOT posted. `opens` = {sym: opening price or None}.
     A symbol with no price yet stays scheduled until `final` (the cut-off time), then it is dropped. Returns one record per idea decided."""
     ic = cfg["ideas"]; today = now.date().isoformat(); pen = pending(pending_path); out = []
-    at = ic.get("open_post_at", "09:15"); label = "at the open" if at == "09:15" else f"at {at}"
+    at = at_override or ic.get("open_post_at", "09:15"); label = "at the open" if at == "09:15" else f"at {at}"      # at_override: a manual run that checks the LIVE price at this time
     for q in [x for x in pen["queue"] if x["status"] == "scheduled for open"]:
         pub = public(public_path); o = opens.get(q["sym"]); lo, hi = q.get("entry_lo") or q["entry_price"], q.get("entry_hi") or q["entry_price"]
         rec = {"date": today, "time": now.strftime("%H:%M"), "sym": q["sym"], "id": q["id"], "term": q["term"], "range": [lo, hi], "open": o}

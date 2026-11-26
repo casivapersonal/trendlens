@@ -370,14 +370,25 @@ def cmd_ideas(a, cfg):
         if now.time() < atT and not a.force: print(f"too early: ideas are checked and posted from {at} IST"); return
         sched = [q for q in ideas.pending()["queue"] if q["status"] == "scheduled for open"]
         if not sched: print("nothing scheduled for the open"); return
-        bars = ii.many_5m([q["sym"] for q in sched]); today_bars = {s: [x for x in bb if x["t"].date() == now.date()] for s, bb in bars.items()}
-        if not any(today_bars.values()): print("no 5-minute data for today yet (holiday or feed delay): the ideas stay scheduled"); return
-        opens = {s: next((x["o"] for x in bb if x["t"].time() == atT), None) for s, bb in today_bars.items()}       # the open of the {at} five-minute candle
-        cut = cfg["ideas"].get("open_post_until", "10:00"); final = now.time() >= _dt.time(int(cut[:2]), int(cut[3:5]))
+        at_override = None
+        if a.force:
+            # MANUAL run (--force): check the LIVE price right now instead of the 9:30 candle. Inside the entry range -> posted at the live price
+            # (reward-to-risk is re-checked at that price); outside -> not posted. Used to post ideas the scheduled run missed.
+            from . import universe as uni
+            sys.path.insert(0, str(uni.REPO / "pipeline")); import core
+            lq = core.quotes([q["sym"] for q in sched])
+            opens = {q["sym"]: (lq.get(q["sym"]) or {}).get("p") for q in sched}
+            print("live prices:", {s: o for s, o in opens.items()})
+            at_override = now.strftime("%H:%M"); final = True
+        else:
+            bars = ii.many_5m([q["sym"] for q in sched]); today_bars = {s: [x for x in bb if x["t"].date() == now.date()] for s, bb in bars.items()}
+            if not any(today_bars.values()): print("no 5-minute data for today yet (holiday or feed delay): the ideas stay scheduled"); return
+            opens = {s: next((x["o"] for x in bb if x["t"].time() == atT), None) for s, bb in today_bars.items()}       # the open of the {at} five-minute candle
+            cut = cfg["ideas"].get("open_post_until", "10:00"); final = now.time() >= _dt.time(int(cut[:2]), int(cut[3:5]))
         fe = None
         from .feeds import make_live_feed
         fe = make_live_feed(cfg)
-        for r in ideas.post_at_open(cfg, now, opens, frames=_history(fe, [q["sym"] for q in sched]), prev_session=ii._prev_session(now.date().isoformat()), final=final): print(r["decision"], r["memo"])
+        for r in ideas.post_at_open(cfg, now, opens, frames=_history(fe, [q["sym"] for q in sched]), prev_session=ii._prev_session(now.date().isoformat()), final=final, at_override=at_override): print(r["decision"], r["memo"])
     elif a.action == "monitor":
         from .feeds import make_live_feed
         pub = ideas.public(); live = [i["sym"] for i in pub["live"]]
