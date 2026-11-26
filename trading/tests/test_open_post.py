@@ -12,7 +12,7 @@ from arena.clock import IST
 from arena.config import load_config
 from test_ideas import frame, paths, FakeShort, FakeCommittee, NOW
 
-MORNING = datetime(2026, 11, 23, 9, 21, tzinfo=IST)          # the session after NOW (Fri 20 Nov -> Mon 23 Nov)
+MORNING = datetime(2026, 11, 23, 9, 31, tzinfo=IST)          # the session after NOW (Fri 20 Nov -> Mon 23 Nov); the check runs at 9:30
 PREV = "2026-11-20"
 
 
@@ -42,7 +42,7 @@ class OpenPost(unittest.TestCase):
             self.assertEqual(r[0]["decision"], "POSTED")
             i = ideas.public(pu)["live"][0]
             self.assertEqual(i["entry_price"], o); self.assertEqual(i["filled"]["price"], o); self.assertEqual(i["filled"]["date"], "2026-11-23")
-            self.assertNotIn("provisional", i["filled"]); self.assertEqual(i["posted"], "2026-11-23"); self.assertEqual(i["entry_time"], "at the open")
+            self.assertNotIn("provisional", i["filled"]); self.assertEqual(i["posted"], "2026-11-23"); self.assertEqual(i["entry_time"], "at 09:30")
             self.assertEqual(i["signal_close"], q["entry_price"]); self.assertEqual(ideas.pending(pp)["queue"], [])
             dist = q["entry_price"] - q["stop"]; self.assertAlmostEqual(i["stop"], ideas.tick(o - dist), places=2)   # momentum stop measured from the fill, as back-tested
             self.assertEqual(ideas.public(pu)["recent_alerts"][0]["price"], o)
