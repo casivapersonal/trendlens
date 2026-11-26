@@ -261,9 +261,6 @@ def post_at_open(cfg: dict, now: datetime, opens: dict, pending_path: Path | Non
         elif not lo <= o <= hi: why = f"the price at {at} was {o:.2f}, {'above' if o > hi else 'below'} the entry range {lo:.2f}-{hi:.2f}"
         elif any(i["sym"] == q["sym"] for i in live): why = "already a live idea"
         elif mom and sum(1 for i in live if i.get("term") == "medium") >= ic.get("max_live", 20): why = "the momentum book is full"
-        elif not mom and sum(1 for i in live if i.get("term") != "medium") >= cfg.get("ceo", {}).get("max_live_short", 4): why = "the setup book is full"
-        elif not mom and sum(1 for i in live + pub["closed"] if i.get("posted") == today and i.get("approved_by") == by and i.get("term") != "medium") >= ic.get("max_new_per_day", 4):
-            why = "the daily limit of new setup ideas is reached"
         t = json.loads(json.dumps(q))
         if why is None: why = _fill_checks(t, o, cfg)                 # momentum: stop and target re-anchored to the opening price; setups: reward-to-risk at that price
         if why is None:

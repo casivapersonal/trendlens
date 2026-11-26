@@ -66,9 +66,7 @@ def review_entry(q: dict, ctx: dict, cfg: dict) -> dict:
     # audit fix #3: separate books. Momentum has its own 20 slots (as back-tested), setups their own few; one never takes the other's slots
     mom = q.get("term") == "medium"
     if mom and ctx.get("momentum_live", 0) >= ic.get("max_live", 20): no.append(f"momentum book is full ({ctx['momentum_live']} of {ic.get('max_live', 20)})")
-    if not mom and ctx.get("short_live", 0) >= c.get("max_live_short", 4):
-        no.append(f"setup book is full ({ctx['short_live']} of {c.get('max_live_short', 4)})")
-    if not mom and ctx.get("setups_today", 0) >= ic.get("max_new_per_day", 4): no.append(f"already posted {ctx['setups_today']} setup ideas today (limit)")
+    # Nov 2026: NO cap on short-term setup ideas (neither live at once nor new per day); only the industry / sector limits below apply
     sec = _sector(q["sym"], ctx["funds"]); broad = ((ctx["funds"].get("stocks", {}) or {}).get(q["sym"]) or {}).get("sector") or "Unknown"
     book = "m" if mom else "all"          # momentum caps count momentum ideas only (as back-tested); setups count the whole book
     if broad != "Unknown" and ctx.get("broad_" + book, {}).get(broad, 0) >= c.get("max_per_broad_sector", 6):
