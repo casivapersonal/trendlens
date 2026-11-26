@@ -128,16 +128,19 @@ function tiles(V){
   const E=V.filter(r=>r.cls!=='ne'),inl=E.filter(r=>r.progress!=null&&r.progress>=0),C=E.filter(r=>r.st==='closed'),L=E.filter(r=>r.st==='live');
   const avg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
   const XS=E.filter(r=>r.actual!=null&&r.nifty!=null),XN=XS.length,exc=XN?avg(XS.map(r=>r.actual-r.nifty)):null;
-  const tax=E.some(r=>r.actual!=null)?avg(E.filter(r=>r.actual!=null).map(r=>r.actual>0?r.actual*0.8:r.actual)):null;
+  const bt=E.some(r=>r.actual!=null)?avg(E.filter(r=>r.actual!=null).map(r=>r.actual)):null,tax=bt==null?null:(bt>0?bt*0.8:bt);   // losses are set off against gains: tax is charged on the NET result only (a net loss pays no tax)
   const devC=avg(C.map(r=>r.dev).filter(x=>x!=null)),prog=avg(E.map(r=>r.progress).filter(x=>x!=null)),win=C.length?C.filter(r=>r.actual>0).length/C.length*100:null;
+  const SV=ROWS.filter(r=>F.status==='all'||r.st===F.status),seg=f=>{const a=SV.filter(r=>r.cls!=='ne'&&r.actual!=null&&f(r)).map(r=>r.actual);if(!a.length)return null;const b=avg(a);return{b,a:b>0?b*0.8:b,n:a.length}};   // per segment: the status filter applies, the term filter does not (every segment is listed)
+  const SEG=[['All',()=>true],['Short term',r=>r.term==='short'],['Momentum',r=>r.term==='medium'||r.term==='momentum'],['Intraday',r=>r.term==='intraday']].map(([l,f])=>[l,seg(f)]);
+  const segL=k=>SEG.map(([l,x])=>`<b>${l}</b> ${x?pc(x[k],1)+' <span style="color:var(--muted)">('+x.n+')</span>':'—'}`).join('<br>');
   const t=(k,v,s)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
   $('#tiles').innerHTML=
     t('In line with expectation',E.length?Math.round(inl.length/E.length*100)+'%':'—',E.length?`${inl.length} of ${E.length} entered ideas are at or above entry, moving toward target`:'No entered ideas yet')+
-    t('Average progress to target',pc(prog,1),`100% = target reached, −100% = stop-loss · ${E.length} entered idea${E.length===1?'':'s'} in this selection`)+
+    t('Average gain / loss (before tax)',bt==null?'—':pc(bt),bt==null?'Builds up as ideas trade':`Average result per idea after costs (number of ideas in brackets)<br>${segL('b')}`)+
     t('Closed ideas: average deviation',devC==null?'—':pp(devC),C.length?`actual result minus the expected move, over ${C.length} closed`:'No closed ideas yet')+
     t('Closed ideas that made money',win==null?'—':Math.round(win)+'%',C.length?`${C.filter(r=>r.actual>0).length} of ${C.length}`:'Builds up as ideas close')+
     t('Versus NIFTY 500 (equal weight)',exc==null?'—':pp(exc),exc==null?'NIFTY 500 over the same holding periods; builds up as ideas trade':`average idea after costs minus NIFTY 500 (price index; NIFTY 50 for ideas without a NIFTY 500 level) over the same days, ${XN} ideas`)+
-    t('After tax (20% short-term gains)',tax==null?'—':pc(tax),tax==null?'Builds up as ideas trade':`average result if gains are taxed at 20% (held under a year); before tax ${pc(avg(E.map(r=>r.actual).filter(x=>x!=null)))}`);
+    t('Average gain / loss (after tax)',tax==null?'—':pc(tax),tax==null?'Builds up as ideas trade':`Net gain taxed at 20%, losses set off against gains (held under a year)<br>${segL('a')}`);
 }
 
 function mix(V){
