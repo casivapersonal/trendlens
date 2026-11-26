@@ -130,12 +130,10 @@ function tiles(V){
   const XS=E.filter(r=>r.actual!=null&&r.nifty!=null),XN=XS.length,exc=XN?avg(XS.map(r=>r.actual-r.nifty)):null;
   const tax=E.some(r=>r.actual!=null)?avg(E.filter(r=>r.actual!=null).map(r=>r.actual>0?r.actual*0.8:r.actual)):null;
   const devC=avg(C.map(r=>r.dev).filter(x=>x!=null)),prog=avg(E.map(r=>r.progress).filter(x=>x!=null)),win=C.length?C.filter(r=>r.actual>0).length/C.length*100:null;
-  const SV=ROWS.filter(r=>F.status==='all'||r.st===F.status),gpf=f=>{const a=SV.filter(r=>r.cls!=='ne'&&r.progress!=null&&f(r));return a.length?{v:Math.round(avg(a.map(r=>r.progress))),n:a.length}:null};
-  const gp={all:gpf(()=>true),short:gpf(r=>r.term==='short'),mom:gpf(r=>r.term==='medium'||r.term==='momentum'),intra:gpf(r=>r.term==='intraday'),fm:x=>x?x.v+'% <span style="color:var(--muted)">('+x.n+')</span>':'—'};   // progress by section: the status filter applies, the term filter does not
   const t=(k,v,s)=>`<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
   $('#tiles').innerHTML=
     t('In line with expectation',E.length?Math.round(inl.length/E.length*100)+'%':'—',E.length?`${inl.length} of ${E.length} entered ideas are at or above entry, moving toward target`:'No entered ideas yet')+
-    t('Average progress to target',gp.all?gp.all.v+'%':'—',`All ideas, ${gp.all?gp.all.n:0} entered (100% = target reached, −100% = stop-loss)<br><b>Short term</b> ${gp.fm(gp.short)} · <b>Momentum</b> ${gp.fm(gp.mom)} · <b>Intraday</b> ${gp.fm(gp.intra)}<br>${L.length} live, ${C.length} closed in the current view`)+
+    t('Average progress to target',prog==null?'—':Math.round(prog)+'%',`100% = target reached, −100% = stop-loss · ${E.length} entered idea${E.length===1?'':'s'} in this selection`)+
     t('Closed ideas: average deviation',devC==null?'—':pp(devC),C.length?`actual result minus the expected move, over ${C.length} closed`:'No closed ideas yet')+
     t('Closed ideas that made money',win==null?'—':Math.round(win)+'%',C.length?`${C.filter(r=>r.actual>0).length} of ${C.length}`:'Builds up as ideas close')+
     t('Versus NIFTY 500 (equal weight)',exc==null?'—':pp(exc),exc==null?'NIFTY 500 over the same holding periods; builds up as ideas trade':`average idea after costs minus NIFTY 500 (price index; NIFTY 50 for ideas without a NIFTY 500 level) over the same days, ${XN} ideas`)+
