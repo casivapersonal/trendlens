@@ -361,16 +361,18 @@ def cmd_ideas(a, cfg):
         # this run only marks entries and flags stop / target exits on live prices.
         print("entries and exits checked; new ideas are chosen only by the evening scan on closing prices and posted at the open")
     elif a.action == "open":
-        # 09:15 onwards (market loop): post the ideas the CEO chose last evening if today's OPENING price is inside the entry range; outside = not posted
+        # from open_post_at (09:30) (market loop): post the ideas the CEO chose last evening if the price then is inside the entry range; outside = not posted
         import datetime as _dt
         from . import intraday_ideas as ii
         if not cfg["ideas"].get("post_at_open"): print("post_at_open is off: ideas are posted by the 16:15 scan."); return
-        if not market_open_ist(now) and not a.force: print("Market is closed: the open check runs from 09:15 IST."); return
+        at = cfg["ideas"].get("open_post_at", "09:15"); atT = _dt.time(int(at[:2]), int(at[3:5]))
+        if not market_open_ist(now) and not a.force: print(f"Market is closed: the check runs from {at} IST."); return
+        if now.time() < atT and not a.force: print(f"too early: ideas are checked and posted from {at} IST"); return
         sched = [q for q in ideas.pending()["queue"] if q["status"] == "scheduled for open"]
         if not sched: print("nothing scheduled for the open"); return
         bars = ii.many_5m([q["sym"] for q in sched]); today_bars = {s: [x for x in bb if x["t"].date() == now.date()] for s, bb in bars.items()}
         if not any(today_bars.values()): print("no 5-minute data for today yet (holiday or feed delay): the ideas stay scheduled"); return
-        opens = {s: bb[0]["o"] for s, bb in today_bars.items() if bb and bb[0]["t"].time() == _dt.time(9, 15)}
+        opens = {s: next((x["o"] for x in bb if x["t"].time() == atT), None) for s, bb in today_bars.items()}       # the open of the {at} five-minute candle
         cut = cfg["ideas"].get("open_post_until", "10:00"); final = now.time() >= _dt.time(int(cut[:2]), int(cut[3:5]))
         fe = None
         from .feeds import make_live_feed
