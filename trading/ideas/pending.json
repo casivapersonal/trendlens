@@ -1,29 +1,29 @@
 {
- "asof": "2026-11-26",
+ "asof": "2026-11-27",
  "queue": [
   {
-   "id": "EMCURE-2026-11-26-m",
-   "sym": "EMCURE",
-   "name": "Emcure Pharmaceuticals Limited",
+   "id": "CRAFTSMAN-2026-11-27-m",
+   "sym": "CRAFTSMAN",
+   "name": "Craftsman Automation Limited",
    "view": "Bullish view",
    "term": "medium",
-   "entry_date": "2026-11-26",
+   "entry_date": "2026-11-27",
    "entry_time": "after close",
-   "entry_price": 2329.1,
-   "entry_rank": 20,
-   "mom_pct": 67.4,
+   "entry_price": 12005.0,
+   "entry_rank": 19,
+   "mom_pct": 79.2,
    "fill_rule": "next_open",
    "breakout_level": null,
    "stop_rule": "touch",
    "results_date": null,
    "warnings": [],
-   "entry_lo": 2300.05,
-   "entry_hi": 2358.15,
-   "stop": 1893.65,
-   "target": 3199.95,
+   "entry_lo": 11825.15,
+   "entry_hi": 12184.85,
+   "stop": 9307.15,
+   "target": 17400.7,
    "days": 60,
    "r": 2.0,
-   "status": "watch",
+   "status": "scheduled for open",
    "entry_state": "triggered: price is inside the entry range",
    "risk": {
     "verdict": "PASS",
@@ -31,7 +31,7 @@
    },
    "review": {
     "bull": [
-     "momentum rank #20",
+     "momentum rank #19",
      "price above a rising 50/200-day structure",
      "MACD above signal",
      "within 10% of the 52-week high",
@@ -44,16 +44,16 @@
      "reasons": [],
      "data": {
       "india_vix": {
-       "last": 16.83,
-       "chg_1m_pct": -1.9
+       "last": 16.55,
+       "chg_1m_pct": 0.9
       },
       "usd_inr": {
-       "last": 92.54,
-       "chg_1m_pct": -2.8
+       "last": 92.98,
+       "chg_1m_pct": -2.3
       },
       "brent": {
-       "last": 91.02,
-       "chg_1m_pct": -21.1
+       "last": 92.14,
+       "chg_1m_pct": -20.1
       },
       "sp500": {
        "last": 7182.78,
@@ -64,8 +64,150 @@
        "chg_1m_pct": -2.9
       },
       "nifty": {
-       "last": 25884.5,
-       "chg_1m_pct": 13.8
+       "last": 25607.2,
+       "chg_1m_pct": 12.6
+      }
+     }
+    },
+    "time_machine": null,
+    "proof": {
+     "technical": "partly back-tested (rank rule only)",
+     "fundamentals": "not back-tested",
+     "news": "not back-tested",
+     "macro": "not back-tested",
+     "judge": "weights not back-tested"
+    },
+    "decision_needed": "approve, reject or leave on watch"
+   },
+   "judge": {
+    "verdict": "APPROVE",
+    "score": 3,
+    "rules": [
+     {
+      "points": 2,
+      "rule": "momentum rank #19 in the NIFTY 500 (the original entry rule: top 20)"
+     },
+     {
+      "points": 1,
+      "rule": "fundamentals supportive"
+     }
+    ],
+    "rejected_because": [],
+    "warnings": [],
+    "by": "coded judge v3 (no AI)"
+   },
+   "committee": {
+    "agreement": "analysts agree (supportive)",
+    "macro": "calm",
+    "analysts": {
+     "technical": {
+      "stance": "bullish",
+      "points": [
+       "price above 50-day average",
+       "price above 200-day average",
+       "RSI 68"
+      ]
+     },
+     "fundamentals": {
+      "stance": "supportive",
+      "points": [
+       "P/E 56.0x on the live price",
+       "1.4x the industry median P/E of 40x",
+       "ROE 12%",
+       "earnings growth 54%",
+       "revenue growth 47%",
+       "debt/equity 0.7"
+      ]
+     },
+     "news": {
+      "stance": "quiet",
+      "points": []
+     }
+    },
+    "news": [
+     "Craftsman Automation inaugurates Kothavadi plant Phase II on Nov 25, 2026 - scanx.trade",
+     "Craftsman Automation Limited (NSE:CRAFTSMAN) Says Phase II of Kothavadi Plant in Coimbatore Inaugurated - Kalk",
+     "Craftsman Automation Kothavadi Plant Phase II Inauguration - Kalkine India",
+     "Craftsman Automation inaugurates Phase II of Kothavadi plant - Business Upturn"
+    ]
+   },
+   "ceo": {
+    "decision": "POST",
+    "conviction": "Low",
+    "for": [
+     "momentum rank #19 (the back-tested rule)"
+    ],
+    "against": [],
+    "noted": [],
+    "sector": "Auto Parts",
+    "memo": "POST CRAFTSMAN (medium term, conviction Low). Case: momentum rank #19 (the back-tested rule).",
+    "by": "CEO (coded rules)"
+   }
+  },
+  {
+   "id": "EMCURE-2026-11-27-m",
+   "sym": "EMCURE",
+   "name": "Emcure Pharmaceuticals Limited",
+   "view": "Bullish view",
+   "term": "medium",
+   "entry_date": "2026-11-27",
+   "entry_time": "after close",
+   "entry_price": 2308.6,
+   "entry_rank": 20,
+   "mom_pct": 70.0,
+   "fill_rule": "next_open",
+   "breakout_level": null,
+   "stop_rule": "touch",
+   "results_date": null,
+   "warnings": [],
+   "entry_lo": 2281.9,
+   "entry_hi": 2335.3,
+   "stop": 1908.25,
+   "target": 3109.35,
+   "days": 60,
+   "r": 2.0,
+   "status": "watch",
+   "entry_state": "triggered: price is inside the entry range",
+   "risk": {
+    "verdict": "PASS",
+    "reasons": []
+   },
+   "review": {
+    "bull": [
+     "momentum rank #20",
+     "price above a rising 50/200-day structure",
+     "within 10% of the 52-week high",
+     "fundamentals supportive"
+    ],
+    "bear": [],
+    "lean": "bull",
+    "economic": {
+     "stance": "calm",
+     "reasons": [],
+     "data": {
+      "india_vix": {
+       "last": 16.55,
+       "chg_1m_pct": 0.9
+      },
+      "usd_inr": {
+       "last": 92.98,
+       "chg_1m_pct": -2.3
+      },
+      "brent": {
+       "last": 92.14,
+       "chg_1m_pct": -20.1
+      },
+      "sp500": {
+       "last": 7182.78,
+       "chg_1m_pct": -7.0
+      },
+      "us10y": {
+       "last": 4.85,
+       "chg_1m_pct": -2.9
+      },
+      "nifty": {
+       "last": 25607.2,
+       "chg_1m_pct": 12.6
       }
      }
     },
@@ -97,21 +239,21 @@
     "by": "coded judge v3 (no AI)"
    },
    "committee": {
-    "agreement": "analysts agree (supportive)",
+    "agreement": "mixed views",
     "macro": "calm",
     "analysts": {
      "technical": {
-      "stance": "bullish",
+      "stance": "neutral",
       "points": [
        "price above 50-day average",
        "price above 200-day average",
-       "RSI 73"
+       "RSI 69"
       ]
      },
      "fundamentals": {
       "stance": "supportive",
       "points": [
-       "P/E 40.4x on the live price",
+       "P/E 39.8x on the live price",
        "1.0x the industry median P/E of 40x",
        "ROE 21%",
        "earnings growth 33%",
@@ -142,25 +284,25 @@
    }
   },
   {
-   "id": "ASAHIINDIA-2026-11-26-s",
+   "id": "ASAHIINDIA-2026-11-27-s",
    "sym": "ASAHIINDIA",
    "name": "Asahi India Glass Limited",
    "view": "Bullish view",
    "term": "short",
-   "entry_date": "2026-11-26",
+   "entry_date": "2026-11-27",
    "entry_time": "after close",
-   "entry_price": 1189.85,
-   "entry_rank": 119,
-   "mom_pct": 19.4,
+   "entry_price": 1158.2,
+   "entry_rank": 137,
+   "mom_pct": 15.9,
    "fill_rule": "range",
    "breakout_level": null,
    "stop_rule": "close",
    "results_date": null,
    "warnings": [],
-   "entry_lo": 1174.8,
-   "entry_hi": 1199.25,
-   "stop": 1133.45,
-   "target": 1330.9,
+   "entry_lo": 1143.25,
+   "entry_hi": 1167.55,
+   "stop": 1102.05,
+   "target": 1298.55,
    "days": 15,
    "r": 2.5,
    "status": "watch",
@@ -177,25 +319,23 @@
      "within 10% of the 52-week high",
      "fundamentals supportive"
     ],
-    "bear": [
-     "RSI 75: stretched"
-    ],
+    "bear": [],
     "lean": "bull",
     "economic": {
      "stance": "calm",
      "reasons": [],
      "data": {
       "india_vix": {
-       "last": 16.83,
-       "chg_1m_pct": -1.9
+       "last": 16.55,
+       "chg_1m_pct": 0.9
       },
       "usd_inr": {
-       "last": 92.54,
-       "chg_1m_pct": -2.8
+       "last": 92.98,
+       "chg_1m_pct": -2.3
       },
       "brent": {
-       "last": 91.02,
-       "chg_1m_pct": -21.1
+       "last": 92.14,
+       "chg_1m_pct": -20.1
       },
       "sp500": {
        "last": 7182.78,
@@ -206,30 +346,217 @@
        "chg_1m_pct": -2.9
       },
       "nifty": {
-       "last": 25884.5,
-       "chg_1m_pct": 13.8
+       "last": 25607.2,
+       "chg_1m_pct": 12.6
       }
      }
     },
     "time_machine": {
      "sim": {
-      "target": 18.4,
-      "stop": 61.5,
-      "open": 20.2
+      "target": 17.5,
+      "stop": 59.5,
+      "open": 23.0
      },
      "baseline": {
-      "target": 17.0,
-      "stop": 61.0,
-      "open": 22.1
+      "target": 15.8,
+      "stop": 59.6,
+      "open": 24.6
      },
-     "edge_vs_baseline": 0.03,
+     "edge_vs_baseline": 0.043,
      "past": {
       "sessions": 229,
-      "target": 34,
-      "stop": 114,
-      "neither": 81
+      "target": 32,
+      "stop": 115,
+      "neither": 82
      },
      "verdict": "close to a coin flip",
+     "proof": "simulation vs a no-edge baseline; not back-tested"
+    },
+    "proof": {
+     "technical": "partly back-tested (rank rule only)",
+     "fundamentals": "not back-tested",
+     "news": "not back-tested",
+     "macro": "not back-tested",
+     "judge": "weights not back-tested"
+    },
+    "decision_needed": "approve, reject or leave on watch"
+   },
+   "judge": {
+    "verdict": "APPROVE",
+    "score": 9,
+    "rules": [
+     {
+      "points": 2,
+      "rule": "daily setup: bull_flag"
+     },
+     {
+      "points": 1,
+      "rule": "above 50-day average"
+     },
+     {
+      "points": 1,
+      "rule": "above 200-day average"
+     },
+     {
+      "points": 1,
+      "rule": "50-day above 200-day"
+     },
+     {
+      "points": 1,
+      "rule": "MACD above signal"
+     },
+     {
+      "points": 1,
+      "rule": "RSI in the 50-75 trend zone"
+     },
+     {
+      "points": 1,
+      "rule": "within 10% of the 52-week high"
+     },
+     {
+      "points": 1,
+      "rule": "fundamentals supportive"
+     }
+    ],
+    "rejected_because": [],
+    "warnings": [],
+    "by": "coded judge v3 (no AI)"
+   },
+   "committee": {
+    "agreement": "analysts agree (supportive)",
+    "macro": "calm",
+    "analysts": {
+     "technical": {
+      "stance": "bullish",
+      "points": [
+       "price above 50-day average",
+       "price above 200-day average",
+       "RSI 66",
+       "21% rise in 10 sessions, then a 5-session pause within 1.5x ATR"
+      ]
+     },
+     "fundamentals": {
+      "stance": "supportive",
+      "points": [
+       "P/E 53.8x on the live price",
+       "1.4x the industry median P/E of 40x",
+       "ROE 14%",
+       "earnings growth 196%",
+       "revenue growth 38%",
+       "debt/equity 0.5"
+      ]
+     },
+     "news": {
+      "stance": "quiet",
+      "points": []
+     }
+    },
+    "news": []
+   },
+   "ceo": {
+    "decision": "DECLINE",
+    "conviction": "Medium",
+    "for": [
+     "judge score 9: +2 daily setup: bull_flag; +1 above 50-day average; +1 above 200-day average; +1 50-day above 200-day; +1 MACD above signal; +1 RSI in the 50-75 trend zone"
+    ],
+    "against": [
+     "sector limit: already 7 live ideas in Consumer Cyclical",
+     "industry limit: already 4 live ideas in Auto Parts"
+    ],
+    "noted": [],
+    "sector": "Auto Parts",
+    "memo": "DECLINE ASAHIINDIA (short term, conviction Medium). Reasons against: sector limit: already 7 live ideas in Consumer Cyclical; industry limit: already 4 live ideas in Auto Parts.",
+    "by": "CEO (coded rules)"
+   }
+  },
+  {
+   "id": "PNB-2026-11-27-s",
+   "sym": "PNB",
+   "name": "Punjab National Bank",
+   "view": "Bullish view",
+   "term": "short",
+   "entry_date": "2026-11-27",
+   "entry_time": "after close",
+   "entry_price": 146.5,
+   "entry_rank": 92,
+   "mom_pct": 23.2,
+   "fill_rule": "range",
+   "breakout_level": null,
+   "stop_rule": "close",
+   "results_date": null,
+   "warnings": [],
+   "entry_lo": 144.4,
+   "entry_hi": 147.8,
+   "stop": 138.6,
+   "target": 166.2,
+   "days": 15,
+   "r": 2.5,
+   "status": "watch",
+   "entry_state": "triggered: price is inside the entry range",
+   "risk": {
+    "verdict": "PASS",
+    "reasons": []
+   },
+   "review": {
+    "bull": [
+     "fresh daily setup: bull_flag",
+     "price above a rising 50/200-day structure",
+     "MACD above signal",
+     "within 10% of the 52-week high",
+     "fundamentals supportive",
+     "positive headline flags"
+    ],
+    "bear": [],
+    "lean": "bull",
+    "economic": {
+     "stance": "calm",
+     "reasons": [],
+     "data": {
+      "india_vix": {
+       "last": 16.55,
+       "chg_1m_pct": 0.9
+      },
+      "usd_inr": {
+       "last": 92.98,
+       "chg_1m_pct": -2.3
+      },
+      "brent": {
+       "last": 92.14,
+       "chg_1m_pct": -20.1
+      },
+      "sp500": {
+       "last": 7182.78,
+       "chg_1m_pct": -7.0
+      },
+      "us10y": {
+       "last": 4.85,
+       "chg_1m_pct": -2.9
+      },
+      "nifty": {
+       "last": 25607.2,
+       "chg_1m_pct": 12.6
+      }
+     }
+    },
+    "time_machine": {
+     "sim": {
+      "target": 5.8,
+      "stop": 43.0,
+      "open": 51.2
+     },
+     "baseline": {
+      "target": 5.5,
+      "stop": 43.3,
+      "open": 51.2
+     },
+     "edge_vs_baseline": 0.01,
+     "past": {
+      "sessions": 229,
+      "target": 7,
+      "stop": 107,
+      "neither": 115
+     },
+     "verdict": "past sessions lost money after charges: unfavourable",
      "proof": "simulation vs a no-edge baseline; not back-tested"
     },
     "proof": {
@@ -267,7 +594,15 @@
      },
      {
       "points": 1,
+      "rule": "RSI in the 50-75 trend zone"
+     },
+     {
+      "points": 1,
       "rule": "within 10% of the 52-week high"
+     },
+     {
+      "points": -1,
+      "rule": "Time Machine: past sessions lost money after charges: unfavourable"
      },
      {
       "points": 1,
@@ -287,64 +622,71 @@
       "points": [
        "price above 50-day average",
        "price above 200-day average",
-       "RSI 75",
-       "21% rise in 10 sessions, then a 4-session pause within 1.5x ATR"
+       "RSI 66",
+       "18% rise in 10 sessions, then a 3-session pause within 1.1x ATR"
       ]
      },
      "fundamentals": {
       "stance": "supportive",
       "points": [
-       "P/E 55.3x on the live price",
-       "1.4x the industry median P/E of 39x",
-       "ROE 14%",
-       "earnings growth 196%",
-       "revenue growth 38%",
-       "debt/equity 0.5"
+       "P/E 7.4x on the live price",
+       "0.6x the industry median P/E of 12x",
+       "ROE 15%",
+       "earnings growth 15%",
+       "revenue growth 7%"
       ]
      },
      "news": {
-      "stance": "quiet",
-      "points": []
+      "stance": "positive flags",
+      "points": [
+       "acquisition"
+      ]
      }
     },
-    "news": []
+    "news": [
+     "Deutsche Bank, India's PNB sign deal to finance Indian corporate acquisitions - Reuters",
+     "PNB Shares in Focus Today After Bank Signs MoU With Deutsche Bank for Acquisition Financing - Kotak Neo",
+     "SBI, PNB, Bank of Baroda: PSBs in focus as lenders report record asset quality; advances grow 15% in 5 years -",
+     "Punjab National Bank Valuation Shifts to Fair Amid Market Volatility - MarketsMojo"
+    ]
    },
    "ceo": {
     "decision": "DECLINE",
     "conviction": "Medium",
     "for": [
-     "judge score 8: +2 daily setup: bull_flag; +1 above 50-day average; +1 above 200-day average; +1 50-day above 200-day; +1 MACD above signal; +1 within 10% of the 52-week high"
+     "judge score 8: +2 daily setup: bull_flag; +1 above 50-day average; +1 above 200-day average; +1 50-day above 200-day; +1 MACD above signal; +1 RSI in the 50-75 trend zone"
     ],
     "against": [
-     "sector limit: already 6 live ideas in Consumer Cyclical",
-     "industry limit: already 3 live ideas in Auto Parts"
+     "sector limit: already 6 live ideas in Financial Services"
     ],
-    "noted": [],
-    "sector": "Auto Parts",
-    "memo": "DECLINE ASAHIINDIA (short term, conviction Medium). Reasons against: sector limit: already 6 live ideas in Consumer Cyclical; industry limit: already 3 live ideas in Auto Parts.",
+    "noted": [
+     "Time Machine: past sessions lost money after charges: unfavourable (already in the judge score)"
+    ],
+    "sector": "Banks - Regional",
+    "memo": "DECLINE PNB (short term, conviction Medium). Reasons against: sector limit: already 6 live ideas in Financial Services. Watch: Time Machine: past sessions lost money after charges: unfavourable (already in the judge score).",
     "by": "CEO (coded rules)"
    }
   },
   {
-   "id": "LICHSGFIN-2026-11-26-s",
-   "sym": "LICHSGFIN",
-   "name": "LIC Housing Finance Limited",
+   "id": "IREDA-2026-11-27-s",
+   "sym": "IREDA",
+   "name": "Indian Renewable Energy Development Agency Limited",
    "view": "Bullish view",
    "term": "short",
-   "entry_date": "2026-11-26",
+   "entry_date": "2026-11-27",
    "entry_time": "after close",
-   "entry_price": 596.25,
-   "entry_rank": 173,
-   "mom_pct": 6.5,
+   "entry_price": 125.59,
+   "entry_rank": 315,
+   "mom_pct": -14.2,
    "fill_rule": "range",
    "breakout_level": null,
    "stop_rule": "close",
    "results_date": null,
    "warnings": [],
-   "entry_lo": 588.45,
-   "entry_hi": 601.15,
-   "stop": 566.9,
-   "target": 669.6,
+   "entry_lo": 123.25,
+   "entry_hi": 127.05,
+   "stop": 116.8,
+   "target": 147.55,
    "days": 15,
    "r": 2.5,
    "status": "watch",
@@ -356,27 +698,28 @@
    "review": {
     "bull": [
      "fresh daily setup: bull_flag",
-     "price above a rising 50/200-day structure",
-     "MACD above signal",
-     "within 10% of the 52-week high"
+     "MACD above signal"
     ],
-    "bear": [],
-    "lean": "bull",
+    "bear": [
+     "volatile (daily ATR 4.7%)",
+     "fundamentals concerning"
+    ],
+    "lean": "balanced",
     "economic": {
      "stance": "calm",
      "reasons": [],
      "data": {
       "india_vix": {
-       "last": 16.83,
-       "chg_1m_pct": -1.9
+       "last": 16.55,
+       "chg_1m_pct": 0.9
       },
       "usd_inr": {
-       "last": 92.54,
-       "chg_1m_pct": -2.8
+       "last": 92.98,
+       "chg_1m_pct": -2.3
       },
       "brent": {
-       "last": 91.02,
-       "chg_1m_pct": -21.1
+       "last": 92.14,
+       "chg_1m_pct": -20.1
       },
       "sp500": {
        "last": 7182.78,
@@ -387,28 +730,28 @@
        "chg_1m_pct": -2.9
       },
       "nifty": {
-       "last": 25884.5,
-       "chg_1m_pct": 13.8
+       "last": 25607.2,
+       "chg_1m_pct": 12.6
       }
      }
     },
     "time_machine": {
      "sim": {
-      "target": 6.5,
-      "stop": 46.7,
-      "open": 46.9
+      "target": 7.0,
+      "stop": 43.0,
+      "open": 50.0
      },
      "baseline": {
-      "target": 7.7,
-      "stop": 47.6,
-      "open": 44.7
+      "target": 5.7,
+      "stop": 43.0,
+      "open": 51.4
      },
-     "edge_vs_baseline": -0.021,
+     "edge_vs_baseline": 0.032,
      "past": {
       "sessions": 229,
-      "target": 10,
-      "stop": 113,
-      "neither": 106
+      "target": 16,
+      "stop": 117,
+      "neither": 96
      },
      "verdict": "past sessions lost money after charges: unfavourable",
      "proof": "simulation vs a no-edge baseline; not back-tested"
@@ -423,8 +766,8 @@
     "decision_needed": "approve, reject or leave on watch"
    },
    "judge": {
-    "verdict": "APPROVE",
-    "score": 7,
+    "verdict": "WATCH",
+    "score": 4,
     "rules": [
      {
       "points": 2,
@@ -440,10 +783,6 @@
      },
      {
       "points": 1,
-      "rule": "50-day above 200-day"
-     },
-     {
-      "points": 1,
       "rule": "MACD above signal"
      },
      {
@@ -451,12 +790,12 @@
       "rule": "RSI in the 50-75 trend zone"
      },
      {
-      "points": 1,
-      "rule": "within 10% of the 52-week high"
+      "points": -1,
+      "rule": "Time Machine: past sessions lost money after charges: unfavourable"
      },
      {
       "points": -1,
-      "rule": "Time Machine: past sessions lost money after charges: unfavourable"
+      "rule": "fundamentals concerning"
      }
     ],
     "rejected_because": [],
@@ -473,18 +812,18 @@
        "price above 50-day average",
        "price above 200-day average",
        "RSI 62",
-       "16% rise in 10 sessions, then a 3-session pause within 1.4x ATR"
+       "19% rise in 10 sessions, then a 3-session pause within 1.4x ATR"
       ]
      },
      "fundamentals": {
-      "stance": "mixed",
+      "stance": "concerning",
       "points": [
-       "P/E 5.6x on the live price",
-       "0.4x the industry median P/E of 13x",
+       "P/E 17.9x on the live price",
+       "1.1x the industry median P/E of 16x",
        "ROE 14%",
-       "earnings growth 12%",
-       "revenue growth 12%",
-       "debt/equity 6.3"
+       "earnings growth -1%",
+       "revenue growth -1%",
+       "debt/equity 5.7"
       ]
      },
      "news": {
@@ -493,667 +832,6 @@
      }
     },
     "news": []
-   },
-   "ceo": {
-    "decision": "DECLINE",
-    "conviction": "Low",
-    "for": [
-     "judge score 7: +2 daily setup: bull_flag; +1 above 50-day average; +1 above 200-day average; +1 50-day above 200-day; +1 MACD above signal; +1 RSI in the 50-75 trend zone"
-    ],
-    "against": [
-     "sector limit: already 6 live ideas in Financial Services"
-    ],
-    "noted": [
-     "Time Machine: past sessions lost money after charges: unfavourable (already in the judge score)"
-    ],
-    "sector": "Mortgage Finance",
-    "memo": "DECLINE LICHSGFIN (short term, conviction Low). Reasons against: sector limit: already 6 live ideas in Financial Services. Watch: Time Machine: past sessions lost money after charges: unfavourable (already in the judge score).",
-    "by": "CEO (coded rules)"
-   }
-  },
-  {
-   "id": "MAXHEALTH-2026-11-26-s",
-   "sym": "MAXHEALTH",
-   "name": "Max Healthcare Institute Limited",
-   "view": "Bullish view",
-   "term": "short",
-   "entry_date": "2026-11-26",
-   "entry_time": "after close",
-   "entry_price": 1081.25,
-   "entry_rank": 233,
-   "mom_pct": -3.4,
-   "fill_rule": "range",
-   "breakout_level": null,
-   "stop_rule": "close",
-   "results_date": null,
-   "warnings": [],
-   "entry_lo": 1069.4,
-   "entry_hi": 1088.65,
-   "stop": 1036.85,
-   "target": 1192.25,
-   "days": 15,
-   "r": 2.5,
-   "status": "watch",
-   "entry_state": "triggered: price is inside the entry range",
-   "risk": {
-    "verdict": "PASS",
-    "reasons": []
-   },
-   "review": {
-    "bull": [
-     "fresh daily setup: bull_flag",
-     "MACD above signal",
-     "within 10% of the 52-week high"
-    ],
-    "bear": [
-     "RSI 76: stretched"
-    ],
-    "lean": "bull",
-    "economic": {
-     "stance": "calm",
-     "reasons": [],
-     "data": {
-      "india_vix": {
-       "last": 16.83,
-       "chg_1m_pct": -1.9
-      },
-      "usd_inr": {
-       "last": 92.54,
-       "chg_1m_pct": -2.8
-      },
-      "brent": {
-       "last": 91.02,
-       "chg_1m_pct": -21.1
-      },
-      "sp500": {
-       "last": 7182.78,
-       "chg_1m_pct": -7.0
-      },
-      "us10y": {
-       "last": 4.85,
-       "chg_1m_pct": -2.9
-      },
-      "nifty": {
-       "last": 25884.5,
-       "chg_1m_pct": 13.8
-      }
-     }
-    },
-    "time_machine": {
-     "sim": {
-      "target": 16.8,
-      "stop": 58.9,
-      "open": 24.3
-     },
-     "baseline": {
-      "target": 15.6,
-      "stop": 58.9,
-      "open": 25.6
-     },
-     "edge_vs_baseline": 0.03,
-     "past": {
-      "sessions": 229,
-      "target": 35,
-      "stop": 133,
-      "neither": 61
-     },
-     "verdict": "past sessions lost money after charges: unfavourable",
-     "proof": "simulation vs a no-edge baseline; not back-tested"
-    },
-    "proof": {
-     "technical": "partly back-tested (rank rule only)",
-     "fundamentals": "not back-tested",
-     "news": "not back-tested",
-     "macro": "not back-tested",
-     "judge": "weights not back-tested"
-    },
-    "decision_needed": "approve, reject or leave on watch"
-   },
-   "judge": {
-    "verdict": "WATCH",
-    "score": 5,
-    "rules": [
-     {
-      "points": 2,
-      "rule": "daily setup: bull_flag"
-     },
-     {
-      "points": 1,
-      "rule": "above 50-day average"
-     },
-     {
-      "points": 1,
-      "rule": "above 200-day average"
-     },
-     {
-      "points": 1,
-      "rule": "MACD above signal"
-     },
-     {
-      "points": 1,
-      "rule": "within 10% of the 52-week high"
-     },
-     {
-      "points": -1,
-      "rule": "Time Machine: past sessions lost money after charges: unfavourable"
-     }
-    ],
-    "rejected_because": [],
-    "warnings": [],
-    "by": "coded judge v3 (no AI)"
-   },
-   "committee": {
-    "agreement": "mixed views",
-    "macro": "calm",
-    "analysts": {
-     "technical": {
-      "stance": "bullish",
-      "points": [
-       "price above 50-day average",
-       "price above 200-day average",
-       "RSI 76",
-       "16% rise in 10 sessions, then a 3-session pause within 1.4x ATR"
-      ]
-     },
-     "fundamentals": {
-      "stance": "mixed",
-      "points": [
-       "P/E 76.5x on the live price",
-       "1.2x the industry median P/E of 65x",
-       "ROE 13%",
-       "earnings growth -16%",
-       "revenue growth 20%",
-       "debt/equity 0.3"
-      ]
-     },
-     "news": {
-      "stance": "quiet",
-      "points": []
-     }
-    },
-    "news": [
-     "Max Healthcare director resigns effective November 23, 2026 - scanx.trade",
-     "Max Healthcare: The Growth Engine Is Strong, but Valuation Leaves Little Room for Error - Moneylife",
-     "Max Healthcare MAXHEALTH Senior Management Change Nov 2026 - Kalkine India"
-    ]
-   }
-  },
-  {
-   "id": "GODREJIND-2026-11-26-s",
-   "sym": "GODREJIND",
-   "name": "Godrej Industries Limited",
-   "view": "Bullish view",
-   "term": "short",
-   "entry_date": "2026-11-26",
-   "entry_time": "after close",
-   "entry_price": 1055.3,
-   "entry_rank": 219,
-   "mom_pct": -1.8,
-   "fill_rule": "range",
-   "breakout_level": null,
-   "stop_rule": "close",
-   "results_date": null,
-   "warnings": [],
-   "entry_lo": 1035.8,
-   "entry_hi": 1067.5,
-   "stop": 982.25,
-   "target": 1237.9,
-   "days": 15,
-   "r": 2.5,
-   "status": "watch",
-   "entry_state": "triggered: price is inside the entry range",
-   "risk": {
-    "verdict": "PASS",
-    "reasons": []
-   },
-   "review": {
-    "bull": [
-     "fresh daily setup: bull_flag",
-     "MACD above signal"
-    ],
-    "bear": [
-     "below the 200-day average",
-     "volatile (daily ATR 4.6%)"
-    ],
-    "lean": "balanced",
-    "economic": {
-     "stance": "calm",
-     "reasons": [],
-     "data": {
-      "india_vix": {
-       "last": 16.83,
-       "chg_1m_pct": -1.9
-      },
-      "usd_inr": {
-       "last": 92.54,
-       "chg_1m_pct": -2.8
-      },
-      "brent": {
-       "last": 91.02,
-       "chg_1m_pct": -21.1
-      },
-      "sp500": {
-       "last": 7182.78,
-       "chg_1m_pct": -7.0
-      },
-      "us10y": {
-       "last": 4.85,
-       "chg_1m_pct": -2.9
-      },
-      "nifty": {
-       "last": 25884.5,
-       "chg_1m_pct": 13.8
-      }
-     }
-    },
-    "time_machine": {
-     "sim": {
-      "target": 12.4,
-      "stop": 49.7,
-      "open": 37.9
-     },
-     "baseline": {
-      "target": 10.4,
-      "stop": 47.9,
-      "open": 41.7
-     },
-     "edge_vs_baseline": 0.032,
-     "past": {
-      "sessions": 229,
-      "target": 24,
-      "stop": 110,
-      "neither": 95
-     },
-     "verdict": "past sessions lost money after charges: unfavourable",
-     "proof": "simulation vs a no-edge baseline; not back-tested"
-    },
-    "proof": {
-     "technical": "partly back-tested (rank rule only)",
-     "fundamentals": "not back-tested",
-     "news": "not back-tested",
-     "macro": "not back-tested",
-     "judge": "weights not back-tested"
-    },
-    "decision_needed": "approve, reject or leave on watch"
-   },
-   "judge": {
-    "verdict": "WATCH",
-    "score": 4,
-    "rules": [
-     {
-      "points": 2,
-      "rule": "daily setup: bull_flag"
-     },
-     {
-      "points": 1,
-      "rule": "above 50-day average"
-     },
-     {
-      "points": 1,
-      "rule": "MACD above signal"
-     },
-     {
-      "points": 1,
-      "rule": "RSI in the 50-75 trend zone"
-     },
-     {
-      "points": -1,
-      "rule": "Time Machine: past sessions lost money after charges: unfavourable"
-     }
-    ],
-    "rejected_because": [],
-    "warnings": [],
-    "by": "coded judge v3 (no AI)"
-   },
-   "committee": {
-    "agreement": "mixed views",
-    "macro": "calm",
-    "analysts": {
-     "technical": {
-      "stance": "neutral",
-      "points": [
-       "price above 50-day average",
-       "price below 200-day average",
-       "RSI 54",
-       "16% rise in 10 sessions, then a 5-session pause within 1.5x ATR"
-      ]
-     },
-     "fundamentals": {
-      "stance": "mixed",
-      "points": [
-       "P/E 24.1x on the live price",
-       "0.8x the industry median P/E of 29x",
-       "ROE 10%",
-       "earnings growth 131%",
-       "revenue growth 16%",
-       "debt/equity 2.5"
-      ]
-     },
-     "news": {
-      "stance": "quiet",
-      "points": []
-     }
-    },
-    "news": []
-   }
-  },
-  {
-   "id": "VOLTAS-2026-11-26-s",
-   "sym": "VOLTAS",
-   "name": "Voltas Limited",
-   "view": "Bullish view",
-   "term": "short",
-   "entry_date": "2026-11-26",
-   "entry_time": "after close",
-   "entry_price": 1215.5,
-   "entry_rank": 279,
-   "mom_pct": -11.3,
-   "fill_rule": "range",
-   "breakout_level": null,
-   "stop_rule": "close",
-   "results_date": null,
-   "warnings": [],
-   "entry_lo": 1196.95,
-   "entry_hi": 1227.1,
-   "stop": 1145.95,
-   "target": 1389.35,
-   "days": 15,
-   "r": 2.5,
-   "status": "watch",
-   "entry_state": "triggered: price is inside the entry range",
-   "risk": {
-    "verdict": "PASS",
-    "reasons": []
-   },
-   "review": {
-    "bull": [
-     "fresh daily setup: bull_flag",
-     "MACD above signal"
-    ],
-    "bear": [
-     "below the 200-day average"
-    ],
-    "lean": "balanced",
-    "economic": {
-     "stance": "calm",
-     "reasons": [],
-     "data": {
-      "india_vix": {
-       "last": 16.83,
-       "chg_1m_pct": -1.9
-      },
-      "usd_inr": {
-       "last": 92.54,
-       "chg_1m_pct": -2.8
-      },
-      "brent": {
-       "last": 91.02,
-       "chg_1m_pct": -21.1
-      },
-      "sp500": {
-       "last": 7182.78,
-       "chg_1m_pct": -7.0
-      },
-      "us10y": {
-       "last": 4.85,
-       "chg_1m_pct": -2.9
-      },
-      "nifty": {
-       "last": 25884.5,
-       "chg_1m_pct": 13.8
-      }
-     }
-    },
-    "time_machine": {
-     "sim": {
-      "target": 8.5,
-      "stop": 48.6,
-      "open": 42.9
-     },
-     "baseline": {
-      "target": 9.2,
-      "stop": 47.8,
-      "open": 43.1
-     },
-     "edge_vs_baseline": -0.025,
-     "past": {
-      "sessions": 229,
-      "target": 13,
-      "stop": 109,
-      "neither": 107
-     },
-     "verdict": "past sessions lost money after charges: unfavourable",
-     "proof": "simulation vs a no-edge baseline; not back-tested"
-    },
-    "proof": {
-     "technical": "partly back-tested (rank rule only)",
-     "fundamentals": "not back-tested",
-     "news": "not back-tested",
-     "macro": "not back-tested",
-     "judge": "weights not back-tested"
-    },
-    "decision_needed": "approve, reject or leave on watch"
-   },
-   "judge": {
-    "verdict": "WATCH",
-    "score": 4,
-    "rules": [
-     {
-      "points": 2,
-      "rule": "daily setup: bull_flag"
-     },
-     {
-      "points": 1,
-      "rule": "above 50-day average"
-     },
-     {
-      "points": 1,
-      "rule": "MACD above signal"
-     },
-     {
-      "points": 1,
-      "rule": "RSI in the 50-75 trend zone"
-     },
-     {
-      "points": -1,
-      "rule": "Time Machine: past sessions lost money after charges: unfavourable"
-     }
-    ],
-    "rejected_because": [],
-    "warnings": [],
-    "by": "coded judge v3 (no AI)"
-   },
-   "committee": {
-    "agreement": "mixed views",
-    "macro": "calm",
-    "analysts": {
-     "technical": {
-      "stance": "neutral",
-      "points": [
-       "price above 50-day average",
-       "price below 200-day average",
-       "RSI 66",
-       "16% rise in 10 sessions, then a 4-session pause within 1.1x ATR"
-      ]
-     },
-     "fundamentals": {
-      "stance": "mixed",
-      "points": [
-       "P/E 87.2x on the live price",
-       "2.2x the sector median P/E of 40x",
-       "ROE 7%",
-       "earnings growth 54%",
-       "revenue growth 15%",
-       "debt/equity 0.2"
-      ]
-     },
-     "news": {
-      "stance": "quiet",
-      "points": []
-     }
-    },
-    "news": []
-   }
-  },
-  {
-   "id": "COROMANDEL-2026-11-26-s",
-   "sym": "COROMANDEL",
-   "name": "Coromandel International Limited",
-   "view": "Bullish view",
-   "term": "short",
-   "entry_date": "2026-11-26",
-   "entry_time": "after close",
-   "entry_price": 1942.3,
-   "entry_rank": 294,
-   "mom_pct": -11.8,
-   "fill_rule": "range",
-   "breakout_level": null,
-   "stop_rule": "close",
-   "results_date": null,
-   "warnings": [],
-   "entry_lo": 1915.7,
-   "entry_hi": 1958.9,
-   "stop": 1842.55,
-   "target": 2191.6,
-   "days": 15,
-   "r": 2.5,
-   "status": "watch",
-   "entry_state": "triggered: price is inside the entry range",
-   "risk": {
-    "verdict": "PASS",
-    "reasons": []
-   },
-   "review": {
-    "bull": [
-     "fresh daily setup: bull_flag",
-     "MACD above signal"
-    ],
-    "bear": [
-     "below the 200-day average"
-    ],
-    "lean": "balanced",
-    "economic": {
-     "stance": "calm",
-     "reasons": [],
-     "data": {
-      "india_vix": {
-       "last": 16.83,
-       "chg_1m_pct": -1.9
-      },
-      "usd_inr": {
-       "last": 92.54,
-       "chg_1m_pct": -2.8
-      },
-      "brent": {
-       "last": 91.02,
-       "chg_1m_pct": -21.1
-      },
-      "sp500": {
-       "last": 7182.78,
-       "chg_1m_pct": -7.0
-      },
-      "us10y": {
-       "last": 4.85,
-       "chg_1m_pct": -2.9
-      },
-      "nifty": {
-       "last": 25884.5,
-       "chg_1m_pct": 13.8
-      }
-     }
-    },
-    "time_machine": {
-     "sim": {
-      "target": 14.6,
-      "stop": 54.2,
-      "open": 31.1
-     },
-     "baseline": {
-      "target": 13.0,
-      "stop": 55.7,
-      "open": 31.3
-     },
-     "edge_vs_baseline": 0.055,
-     "past": {
-      "sessions": 229,
-      "target": 34,
-      "stop": 115,
-      "neither": 80
-     },
-     "verdict": "past sessions lost money after charges: unfavourable",
-     "proof": "simulation vs a no-edge baseline; not back-tested"
-    },
-    "proof": {
-     "technical": "partly back-tested (rank rule only)",
-     "fundamentals": "not back-tested",
-     "news": "not back-tested",
-     "macro": "not back-tested",
-     "judge": "weights not back-tested"
-    },
-    "decision_needed": "approve, reject or leave on watch"
-   },
-   "judge": {
-    "verdict": "WATCH",
-    "score": 4,
-    "rules": [
-     {
-      "points": 2,
-      "rule": "daily setup: bull_flag"
-     },
-     {
-      "points": 1,
-      "rule": "above 50-day average"
-     },
-     {
-      "points": 1,
-      "rule": "MACD above signal"
-     },
-     {
-      "points": 1,
-      "rule": "RSI in the 50-75 trend zone"
-     },
-     {
-      "points": -1,
-      "rule": "Time Machine: past sessions lost money after charges: unfavourable"
-     }
-    ],
-    "rejected_because": [],
-    "warnings": [],
-    "by": "coded judge v3 (no AI)"
-   },
-   "committee": {
-    "agreement": "mixed views",
-    "macro": "calm",
-    "analysts": {
-     "technical": {
-      "stance": "neutral",
-      "points": [
-       "price above 50-day average",
-       "price below 200-day average",
-       "RSI 57",
-       "16% rise in 10 sessions, then a 7-session pause within 1.5x ATR"
-      ]
-     },
-     "fundamentals": {
-      "stance": "mixed",
-      "points": [
-       "P/E 36.7x on the live price",
-       "1.3x the industry median P/E of 27x",
-       "ROE 11%",
-       "earnings growth -34%",
-       "revenue growth 7%",
-       "debt/equity 0.1"
-      ]
-     },
-     "news": {
-      "stance": "quiet",
-      "points": []
-     }
-    },
-    "news": [
-     "Coromandel International Stock: Trading, Earnings and Momentum - Kalkine India",
-     "Madras High Court Records Settlement In Coromandel-R.C. Fertilisers 'GODAVARI' Trademark Dispute - LiveLawBiz"
-    ]
    }
   }
  ],
@@ -2223,6 +1901,217 @@
      ]
     }
    ]
+  },
+  {
+   "date": "2026-11-27",
+   "results": [
+    {
+     "sym": "PNB",
+     "verdict": "APPROVE",
+     "score": 8,
+     "why": []
+    },
+    {
+     "sym": "ASAHIINDIA",
+     "verdict": "APPROVE",
+     "score": 9,
+     "why": []
+    },
+    {
+     "sym": "IREDA",
+     "verdict": "WATCH",
+     "score": 4,
+     "why": []
+    },
+    {
+     "sym": "CRAFTSMAN",
+     "verdict": "APPROVE",
+     "score": 3,
+     "why": []
+    },
+    {
+     "sym": "EMCURE",
+     "verdict": "APPROVE",
+     "score": 3,
+     "why": []
+    },
+    {
+     "sym": "LENSKART",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "SHYAMMETL",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "ACMESOLAR",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "GLENMARK",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "ANTHEM",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "FEDERALBNK",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "INOXINDIA",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "AUROPHARMA",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "TORNTPHARM",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "PVRINOX",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "VIJAYA",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "CEMPRO",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "WOCKPHARMA",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "BBOX",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "PTCIL",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "AEGISLOG",
+     "verdict": "REJECT",
+     "score": 0,
+     "why": [
+      "no fresh setup and not in the momentum top ranks"
+     ]
+    },
+    {
+     "sym": "CUPID",
+     "verdict": "REJECT",
+     "score": 2,
+     "why": [
+      "ASM surveillance (Stage I) (NSE surveillance)"
+     ]
+    },
+    {
+     "sym": "STLTECH",
+     "verdict": "REJECT",
+     "score": 3,
+     "why": [
+      "ASM surveillance (Stage IV) (NSE surveillance)"
+     ]
+    },
+    {
+     "sym": "ATHERENERG",
+     "verdict": "REJECT",
+     "score": 1,
+     "why": [
+      "ASM surveillance (Stage I) (NSE surveillance)"
+     ]
+    },
+    {
+     "sym": "RUBICON",
+     "verdict": "REJECT",
+     "score": 3,
+     "why": [
+      "ASM surveillance (Stage I) (NSE surveillance)"
+     ]
+    },
+    {
+     "sym": "WELCORP",
+     "verdict": "REJECT",
+     "score": 2,
+     "why": [
+      "ASM surveillance (Stage I) (NSE surveillance)"
+     ]
+    },
+    {
+     "sym": "HFCL",
+     "verdict": "REJECT",
+     "score": 3,
+     "why": [
+      "ASM surveillance (Stage IV) (NSE surveillance)"
+     ]
+    }
+   ]
   }
  ],
  "ceo_log": [
@@ -2936,6 +2825,42 @@
    "decision": "POST AT OPEN",
    "conviction": "Low",
    "memo": "POST POLYMED (short term, conviction Low). Case: judge score 6: +2 daily setup: bull_flag; +1 above 50-day average; +1 above 200-day average; +1 50-day above 200-day; +1 MACD above signal; +1 RSI in the 50-75 trend zone. Watch: Time Machine: past sessions lost money after charges: unfavourable (already in the judge score). Posted at the next open only if the opening price is inside the entry range."
+  },
+  {
+   "date": "2026-11-27",
+   "time": "05:01 PM",
+   "sym": "CRAFTSMAN",
+   "id": "CRAFTSMAN-2026-11-27-m",
+   "decision": "POST AT OPEN",
+   "conviction": "Low",
+   "memo": "POST CRAFTSMAN (medium term, conviction Low). Case: momentum rank #19 (the back-tested rule). Posted at the next open only if the opening price is inside the entry range."
+  },
+  {
+   "date": "2026-11-27",
+   "time": "05:01 PM",
+   "sym": "EMCURE",
+   "id": "EMCURE-2026-11-27-m",
+   "decision": "DECLINE",
+   "conviction": "Low",
+   "memo": "DECLINE EMCURE (medium term, conviction Low). Reasons against: industry limit: already 3 live ideas in Drug Manufacturers - Specialty & Generic."
+  },
+  {
+   "date": "2026-11-27",
+   "time": "05:01 PM",
+   "sym": "ASAHIINDIA",
+   "id": "ASAHIINDIA-2026-11-27-s",
+   "decision": "DECLINE",
+   "conviction": "Medium",
+   "memo": "DECLINE ASAHIINDIA (short term, conviction Medium). Reasons against: sector limit: already 7 live ideas in Consumer Cyclical; industry limit: already 4 live ideas in Auto Parts."
+  },
+  {
+   "date": "2026-11-27",
+   "time": "05:01 PM",
+   "sym": "PNB",
+   "id": "PNB-2026-11-27-s",
+   "decision": "DECLINE",
+   "conviction": "Medium",
+   "memo": "DECLINE PNB (short term, conviction Medium). Reasons against: sector limit: already 6 live ideas in Financial Services. Watch: Time Machine: past sessions lost money after charges: unfavourable (already in the judge score)."
   }
  ],
  "open_log": [

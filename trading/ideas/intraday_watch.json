@@ -1,24 +1,24 @@
 {
- "built": "2026-11-26T17:03+05:30",
- "last_close": "2026-11-26",
- "for": "2026-11-27",
+ "built": "2026-11-27T17:02+05:30",
+ "last_close": "2026-11-27",
+ "for": "2026-11-30",
  "stocks": {
-  "BRITANNIA": {
-   "close": 5185.0,
-   "date": "2026-11-26",
-   "atr": 139.9785,
-   "sma50": 4820.93,
-   "ret5": 0.1095,
-   "ext50": 0.0755,
+  "BEL": {
+   "close": 411.45,
+   "date": "2026-11-27",
+   "atr": 7.75,
+   "sma50": 386.65,
+   "ret5": 0.0179,
+   "ext50": 0.0641,
    "bo20": true,
-   "value_cr": 163.1,
+   "value_cr": 421.6,
    "why": [
     "closed at a 20-day high on heavy volume"
    ],
-   "trigger_lo": 5262.75,
-   "trigger_hi": 5599.8,
-   "stop_dist": 139.98,
-   "target_dist": 279.96,
+   "trigger_lo": 417.6,
+   "trigger_hi": 444.35,
+   "stop_dist": 7.75,
+   "target_dist": 15.5,
    "judge": {
     "score": 1,
     "rules": [
@@ -32,225 +32,22 @@
     "by": "coded intraday judge"
    }
   },
-  "CIPLA": {
-   "close": 1450.0,
-   "date": "2026-11-26",
-   "atr": 27.5143,
-   "sma50": 1370.51,
-   "ret5": 0.0233,
-   "ext50": 0.058,
+  "DATAPATTNS": {
+   "close": 4336.9,
+   "date": "2026-11-27",
+   "atr": 185.5571,
+   "sma50": 4150.41,
+   "ret5": 0.0544,
+   "ext50": 0.0449,
    "bo20": true,
-   "value_cr": 219.0,
+   "value_cr": 303.6,
    "why": [
     "closed at a 20-day high on heavy volume"
    ],
-   "trigger_lo": 1471.75,
-   "trigger_hi": 1566.0,
-   "stop_dist": 27.51,
-   "target_dist": 55.03,
-   "judge": {
-    "score": 1,
-    "rules": [
-     {
-      "points": 1,
-      "rule": "20-day high on heavy volume"
-     }
-    ],
-    "rejected_because": [],
-    "verdict": "APPROVE",
-    "by": "coded intraday judge"
-   }
-  },
-  "GODREJPROP": {
-   "close": 2004.3,
-   "date": "2026-11-26",
-   "atr": 66.25,
-   "sma50": 1692.28,
-   "ret5": 0.0675,
-   "ext50": 0.1844,
-   "bo20": true,
-   "value_cr": 145.4,
-   "why": [
-    "closed at a 20-day high on heavy volume"
-   ],
-   "trigger_lo": 2034.35,
-   "trigger_hi": 2164.65,
-   "stop_dist": 66.25,
-   "target_dist": 132.5,
-   "judge": {
-    "score": 1,
-    "rules": [
-     {
-      "points": 1,
-      "rule": "20-day high on heavy volume"
-     }
-    ],
-    "rejected_because": [],
-    "verdict": "APPROVE",
-    "by": "coded intraday judge"
-   }
-  },
-  "HDFCBANK": {
-   "close": 862.0,
-   "date": "2026-11-26",
-   "atr": 23.0464,
-   "sma50": 740.92,
-   "ret5": 0.0666,
-   "ext50": 0.1634,
-   "bo20": true,
-   "value_cr": 3440.7,
-   "why": [
-    "closed at a 20-day high on heavy volume"
-   ],
-   "trigger_lo": 874.95,
-   "trigger_hi": 930.95,
-   "stop_dist": 23.05,
-   "target_dist": 46.09,
-   "judge": {
-    "score": 1,
-    "rules": [
-     {
-      "points": 1,
-      "rule": "20-day high on heavy volume"
-     }
-    ],
-    "rejected_because": [],
-    "verdict": "APPROVE",
-    "by": "coded intraday judge"
-   }
-  },
-  "KFINTECH": {
-   "close": 995.0,
-   "date": "2026-11-26",
-   "atr": 31.8429,
-   "sma50": 889.71,
-   "ret5": 0.0667,
-   "ext50": 0.1183,
-   "bo20": true,
-   "value_cr": 114.3,
-   "why": [
-    "closed at a 20-day high on heavy volume"
-   ],
-   "trigger_lo": 1009.9,
-   "trigger_hi": 1074.6,
-   "stop_dist": 31.84,
-   "target_dist": 63.69,
-   "judge": {
-    "score": 1,
-    "rules": [
-     {
-      "points": 1,
-      "rule": "20-day high on heavy volume"
-     }
-    ],
-    "rejected_because": [],
-    "verdict": "APPROVE",
-    "by": "coded intraday judge"
-   }
-  },
-  "LODHA": {
-   "close": 1261.2,
-   "date": "2026-11-26",
-   "atr": 47.3857,
-   "sma50": 1114.9,
-   "ret5": 0.0535,
-   "ext50": 0.1312,
-   "bo20": true,
-   "value_cr": 174.6,
-   "why": [
-    "closed at a 20-day high on heavy volume"
-   ],
-   "trigger_lo": 1280.1,
-   "trigger_hi": 1362.1,
-   "stop_dist": 47.39,
-   "target_dist": 94.77,
-   "judge": {
-    "score": 1,
-    "rules": [
-     {
-      "points": 1,
-      "rule": "20-day high on heavy volume"
-     }
-    ],
-    "rejected_because": [],
-    "verdict": "APPROVE",
-    "by": "coded intraday judge"
-   }
-  },
-  "MCX": {
-   "close": 3835.0,
-   "date": "2026-11-26",
-   "atr": 143.5428,
-   "sma50": 3350.29,
-   "ret5": 0.0597,
-   "ext50": 0.1447,
-   "bo20": true,
-   "value_cr": 969.6,
-   "why": [
-    "closed at a 20-day high on heavy volume"
-   ],
-   "trigger_lo": 3892.5,
-   "trigger_hi": 4141.8,
-   "stop_dist": 143.54,
-   "target_dist": 287.09,
-   "judge": {
-    "score": 1,
-    "rules": [
-     {
-      "points": 1,
-      "rule": "20-day high on heavy volume"
-     }
-    ],
-    "rejected_because": [],
-    "verdict": "APPROVE",
-    "by": "coded intraday judge"
-   }
-  },
-  "OBEROIRLTY": {
-   "close": 1905.2,
-   "date": "2026-11-26",
-   "atr": 53.2643,
-   "sma50": 1741.51,
-   "ret5": 0.0584,
-   "ext50": 0.094,
-   "bo20": true,
-   "value_cr": 79.9,
-   "why": [
-    "closed at a 20-day high on heavy volume"
-   ],
-   "trigger_lo": 1933.8,
-   "trigger_hi": 2057.6,
-   "stop_dist": 53.26,
-   "target_dist": 106.53,
-   "judge": {
-    "score": 1,
-    "rules": [
-     {
-      "points": 1,
-      "rule": "20-day high on heavy volume"
-     }
-    ],
-    "rejected_because": [],
-    "verdict": "APPROVE",
-    "by": "coded intraday judge"
-   }
-  },
-  "PRESTIGE": {
-   "close": 1832.1,
-   "date": "2026-11-26",
-   "atr": 62.8071,
-   "sma50": 1515.9,
-   "ret5": 0.1054,
-   "ext50": 0.2086,
-   "bo20": true,
-   "value_cr": 155.0,
-   "why": [
-    "closed at a 20-day high on heavy volume"
-   ],
-   "trigger_lo": 1859.6,
-   "trigger_hi": 1978.65,
-   "stop_dist": 62.81,
-   "target_dist": 125.61,
+   "trigger_lo": 4401.95,
+   "trigger_hi": 4683.85,
+   "stop_dist": 185.56,
+   "target_dist": 371.11,
    "judge": {
     "score": 1,
     "rules": [
@@ -265,21 +62,21 @@
    }
   },
   "TORNTPHARM": {
-   "close": 5019.1,
-   "date": "2026-11-26",
-   "atr": 96.2357,
-   "sma50": 4731.42,
-   "ret5": 0.0886,
-   "ext50": 0.0608,
+   "close": 5034.0,
+   "date": "2026-11-27",
+   "atr": 94.5,
+   "sma50": 4732.79,
+   "ret5": 0.0917,
+   "ext50": 0.0636,
    "bo20": true,
-   "value_cr": 192.0,
+   "value_cr": 204.8,
    "why": [
     "closed at a 20-day high on heavy volume"
    ],
-   "trigger_lo": 5094.4,
-   "trigger_hi": 5420.65,
-   "stop_dist": 96.24,
-   "target_dist": 192.47,
+   "trigger_lo": 5109.5,
+   "trigger_hi": 5436.7,
+   "stop_dist": 94.5,
+   "target_dist": 189.0,
    "judge": {
     "score": 1,
     "rules": [
