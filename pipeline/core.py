@@ -93,6 +93,35 @@ def ranks_now(hist, prices, today):
     order = sorted(score, key=lambda s: (-score[s], s))
     return {s: i + 1 for i, s in enumerate(order)}, mom
 
+def rank_exit_prices(hist, prices, today, syms, exit_rank=None):
+    """Nov 2026: for each momentum idea, the estimated closing price below which it would drop out of the top `exit_rank`
+    (the rank exit), with every other stock at its current price. Shown on the site as one "Exit below" price instead of the rank
+    rule. The level moves when other stocks move, so it is recomputed after every close. {sym: price or None}."""
+    exit_rank = exit_rank or EXIT_RANK
+    dates = hist["dates"]; today_in = dates[-1] == today
+    past = lambda s: (lambda c: (c[:-1] if today_in else c) if c else None)(hist["closes"].get(s))
+    score = {}
+    for s in hist.get("rank_universe") or hist["universe"]:
+        c = past(s); r = momentum_score(c, prices.get(s)) if c else None
+        if r: score[s] = r[1]
+    out = {}
+    for sym in syms:
+        others = sorted((v for s, v in score.items() if s != sym), reverse=True)
+        c, p0 = past(sym), prices.get(sym)
+        if len(others) < exit_rank or not c or not p0: out[sym] = None; continue
+        thr = others[exit_rank - 1]                        # the stock must score at least as high as the 50th of the others
+        f = lambda p: (momentum_score(c, p) or (None, None))[1]
+        hi, lo = float(p0), float(p0) * 0.3
+        if f(hi) is None or f(hi) < thr: out[sym] = round(hi, 2); continue          # already below: exit level = today's price
+        if f(lo) is not None and f(lo) >= thr: out[sym] = None; continue           # no level within 70% of the price
+        for _ in range(40):
+            mid = (hi + lo) / 2; v = f(mid)
+            if v is not None and v >= thr: hi = mid
+            else: lo = mid
+        out[sym] = round(hi, 2)
+    return out
+
+
 RANK_EXIT_TERMS = ("momentum", "medium")      # only ideas built on momentum rank are flagged when the rank fades
 
 
