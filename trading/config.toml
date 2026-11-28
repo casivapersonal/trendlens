@@ -114,6 +114,8 @@ setups = ["bull_flag"]         # setups that become ideas. Back-tested Nov 2026 
 results_skip = true            # setup ideas are skipped when company results fall inside the holding period (needs nse/ results calendar)
 entry_atr = 0.4                # entry range = close +/- this x ATR
 short_days = 15                # trading days
+short_time_exit = "vwap"       # Nov 2026 (pipeline/exit_check.py): a bull flag open on its last session is sold through the day at about the
+                               # day's VWAP (beat the close +0.19% t 2.6 in 2014-21, +0.21% t 7.9 in 2022-26); "close" = the old rule
 short_stop_atr = 1.5
 short_stop_mode = "close"      # Nov 2026: bull flags exit at the next open after a CLOSE below the stop (not on a touch). Tested after costs, same trades:
                                # +0.05R (2011-19) and +0.10R (2020-26) a trade with 0.5% extra slippage; "touch" = the old rule
