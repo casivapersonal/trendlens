@@ -6,7 +6,7 @@ Usage: python pipeline/update_picks.py web/picks.json web/history.json
 """
 import json, os, sys, datetime as dt
 import pandas as pd, numpy as np, yfinance as yf
-from core import fill_last_close, MIN_TURNOVER_CR, MIN_PRICE, UNIVERSE, STATS, ENTRY_RANK, EXIT_RANK, ist_now, market_open, ranks_now, refresh_live, rank_exit_flags, load_nse
+from core import fill_last_close, MIN_TURNOVER_CR, MIN_PRICE, UNIVERSE, STATS, ENTRY_RANK, EXIT_RANK, ist_now, market_open, ranks_now, refresh_live, rank_exit_flags, load_nse, rank_exit_prices, RANK_EXIT_TERMS
 
 PICKS, HIST = sys.argv[1], sys.argv[2]
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -59,6 +59,10 @@ if last == today and not market_open(now):     # after the close: refresh live i
     n500 = float(frames["^CRSLDX"]["Close"].iloc[-1]) if "^CRSLDX" in frames else None
     refresh_live(state, rk, prices, float(nifty.iloc[-1]), now, blocked, results, n500_now=n500)
     print("exit flags (decision-maker closes):", rank_exit_flags(state, rk, now))
+    mom_live = [e for e in state["live"] if e.get("term", "momentum") in RANK_EXIT_TERMS]   # Nov 2026: "Exit below" price instead of the rank rule
+    lv = rank_exit_prices(hist, prices, today, [e["sym"] for e in mom_live])
+    for e in mom_live: e["exit_px_est"] = lv.get(e["sym"]); e["exit_px_date"] = today
+    print("exit levels:", {k: v for k, v in lv.items()})
 def ohlc(x, n=330):
     x = x.iloc[-n:]
     return [[str(i.date()), round(float(r.Open), 2), round(float(r.High), 2), round(float(r.Low), 2), round(float(r.Close), 2), int(r.Volume)] for i, r in zip(x.index, x.itertuples())]
