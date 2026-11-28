@@ -48,7 +48,9 @@ function fromOwnSite(req) {
 const cache = {};
 async function file(base, name) {
   const c = cache[name]; if (c && Date.now() - c.t < 300e3) return c.v;
-  try { const r = await fetch(base + '/' + name); if (!r.ok) throw new Error(r.status); const v = await r.json(); cache[name] = { t: Date.now(), v }; return v; }
+  // the site's own files: with the trial lock on, the server signs its own reads (the secret never goes to another host)
+  const own = !process.env.DATA_BASE && String(process.env.SITE_SECRET || '').length >= 32;
+  try { const r = await fetch(base + '/' + name, own ? { headers: { 'x-tl-internal': process.env.SITE_SECRET } } : {}); if (!r.ok) throw new Error(r.status); const v = await r.json(); cache[name] = { t: Date.now(), v }; return v; }
   catch (e) { return c ? c.v : null; }
 }
 async function liveQuote(sym, raw) {
