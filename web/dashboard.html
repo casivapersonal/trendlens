@@ -54,7 +54,7 @@ tr:hover td{background:#faf9f6}
 <body data-palette="#2a78d6,#e34948">
 <div class="wrap">
   <header><h1>Expectation vs actual</h1><span class="sub" id="asof">Loading…</span><a href="/" id="backlink">← TrendLens</a></header>
-  <p class="lead" id="lead">How each idea is doing against what the CEO expected when it was posted: the target (the reference objective for momentum ideas) above, the stop-loss below.</p>
+  <p class="lead" id="lead">How each idea is doing against what the CEO expected when it was posted: the target above (a guide only for momentum ideas, which are not closed there), the stop-loss below.</p>
   <div class="filters">
     <div class="seg" id="fStatus" role="group" aria-label="Status"><button data-v="all" class="on" aria-pressed="true">All ideas</button><button data-v="live" aria-pressed="false">Live</button><button data-v="closed" aria-pressed="false">Closed</button></div>
     <div class="seg" id="fTerm" role="group" aria-label="Term"><button data-v="all" class="on" aria-pressed="true">All terms</button><button data-v="medium" aria-pressed="false">Momentum</button><button data-v="short" aria-pressed="false">Short term</button><button data-v="intraday" aria-pressed="false">Intraday</button></div>
@@ -66,8 +66,8 @@ tr:hover td{background:#faf9f6}
     <div class="card"><h2>How far off: distribution</h2><p class="hint">Progress toward the target: 100% = target reached, 0% = flat, −100% = stop-loss reached.</p><div id="hist"></div></div>
   </div>
   <div class="card" id="calibcard"><h2>Calibration</h2><p class="hint">Does higher conviction or a higher judge score actually do better? Ideas never entered are left out.</p><div class="tw" id="calib"></div></div>
-  <div class="card"><h2>Every idea</h2><p class="hint">Click a column to sort. Deviation = actual return minus the expected move to target, in percentage points.</p><div class="tw" id="detail"></div>
-    <p class="note">Entry = the price at which the idea was posted (the same entry price shown on the Trade Ideas page). Expected move = target ÷ entry − 1 (reference objective for momentum ideas, which are not closed there). Best / worst = highest high and lowest low since entry, from daily bars. Progress is measured after costs (the expected move is reduced by the same charges as the actual result) and capped at ±100%. Figures update when the page loads; live prices refresh every minute in market hours.</p></div>
+  <div class="card"><h2>Every idea</h2><p class="hint">Click a column to sort. Deviation = actual result minus the target move, in percentage points.</p><div class="tw" id="detail"></div>
+    <p class="note">Entry = the price at which the idea was posted (the same entry price shown on the Trade Ideas page). Target move = target ÷ entry − 1 (a guide only for momentum ideas, which are not closed at the target). Best / worst = highest high and lowest low since entry, from daily bars. Progress is measured after costs (the target move is reduced by the same charges as the actual result) and capped at ±100%. Figures update when the page loads; live prices refresh every minute in market hours.</p></div>
 </div>
 <div class="tip" id="tip"></div>
 <script>
@@ -146,7 +146,7 @@ function tiles(V){
   $('#tiles').innerHTML=
     t('In line with expectation',E.length?Math.round(inl.length/E.length*100)+'%':'—',E.length?`${inl.length} of ${E.length} entered ideas are at or above their entry price`:'No entered ideas yet')+
     t('Average gain / loss (before tax)',bt==null?'—':pc(bt),bt==null?'Builds up as ideas trade':`Total gain ÷ total entry price (one share of each idea), after costs. Ideas in brackets<br>${segL('b')}`)+
-    t('Closed ideas: average deviation',devC==null?'—':pp(devC),C.length?`actual result minus the expected move, both after costs, over ${C.length} closed`:'No closed ideas yet')+
+    t('Closed ideas: average deviation',devC==null?'—':pp(devC),C.length?`actual result minus the target move, both after costs, over ${C.length} closed`:'No closed ideas yet')+
     t('Closed ideas that made money',win==null?'—':Math.round(win)+'%',C.length?`${C.filter(r=>r.actual>0).length} of ${C.length}`:'Builds up as ideas close')+
     t('Versus NIFTY 500 (weighted)',exc==null?'—':pp(exc),exc==null?'NIFTY 500 over the same holding periods; builds up as ideas trade':`weighted by entry price: result after costs minus NIFTY 500 (price index; NIFTY 50 for ideas without a NIFTY 500 level) over the same days, ${XN} ideas`)+
     t('Average gain / loss (after tax)',tax==null?'—':pc(tax),tax==null?'Builds up as ideas trade':`Same weighted result; the net gain is taxed at 20%, losses set off against gains (held under a year)<br>${segL('a')}`);
@@ -207,7 +207,7 @@ function calib(V){
     grp('Conviction',r=>r.conv,['High','Medium','Low','—'])+grp('Term',r=>r.term==='medium'?'Momentum (medium)':r.term==='short'?'Short term':'Earlier auto entries')+grp('Judge score',sb,['10+','8–9','6–7','below 6','—'])+grp('Status',r=>r.st==='live'?'Live':'Closed',['Live','Closed'])+'</tbody></table>'+(()=>{const S=ROWS.filter(r=>r.term==='short'&&r.st==='closed'&&r.actual!=null);if(!S.length&&!ROWS.some(r=>r.term==='short'))return'';const Rm=S.map(r=>r.expS?r.actual/Math.abs(r.expS):null).filter(x=>x!=null),er=Rm.length?Rm.reduce((a,b)=>a+b,0)/Rm.length:null;return `<p class="note"><b>Short-term track review:</b> ${S.length} of 50 closed trades so far${er==null?'':`; average ${er>0?'+':''}${er.toFixed(2)}R per trade`}. The audit's rule: keep it only if it earns at least +0.2R per trade after 50 trades.</p>`})();
 }
 
-const COLS=[['sym','Stock'],['st','Status'],['term','Term'],...(ADM?[['conv','Conviction']]:[]),['posted','Posted'],['entry','Entry',1],['expT','Expected to target',1],['expS','Stop-loss at',1],['actual','Actual',1],['progress','Progress',1],['dev','Deviation',1],['best','Best',1],['worst','Worst',1],['held','Sessions held',1],['cls','Outcome']];
+const COLS=[['sym','Stock'],['st','Status'],['term','Term'],...(ADM?[['conv','Conviction']]:[]),['posted','Posted'],['entry','Entry',1],['expT','Target move',1],['expS','Stop-loss move',1],['actual','Actual',1],['progress','Progress',1],['dev','Deviation',1],['best','Best',1],['worst','Worst',1],['held','Sessions held',1],['cls','Outcome']];
 function detail(V){
   if(!V.length){$('#detail').innerHTML='<div class="empty">No ideas match these filters.</div>';return}
   const k=SORT.k,R=V.slice().sort((a,b)=>{const x=a[k],y=b[k];if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return (typeof x==='string'?x.localeCompare(y):x-y)*SORT.d});
