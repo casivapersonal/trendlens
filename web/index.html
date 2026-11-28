@@ -1212,7 +1212,7 @@ function openScorecard(){
   const f=$('#scframe'),want='dashboard.html?embed=1'+(ADMIN?'&admin=1':'');
   if(f.dataset.src===want)return;f.dataset.src=want;f.src=want;
 }
-$('#scframe').addEventListener('load',()=>{const f=$('#scframe');try{const d=f.contentDocument;const fit=()=>{f.style.height=Math.max(d.documentElement.scrollHeight,d.body.scrollHeight)+'px'};fit();if(f._ro)f._ro.disconnect();f._ro=new ResizeObserver(fit);f._ro.observe(d.body)}catch(e){}});
+$('#scframe').addEventListener('load',()=>{const f=$('#scframe');try{const d=f.contentDocument;const fit=()=>{const w=d.querySelector('.wrap')||d.body;f.style.height=Math.ceil(w.getBoundingClientRect().height+16)+'px'};fit();if(f._ro)f._ro.disconnect();f._ro=new ResizeObserver(fit);f._ro.observe(d.querySelector('.wrap')||d.body)}catch(e){}});
 function openScreener(o,toChart){
   $('#ov').classList.remove('show');S.m=o.m;S.sel=o.x.sym;S.filter='all';S.q='';$('#q').value='';
   document.querySelectorAll('#mtabs button').forEach(b=>b.classList.toggle('on',b.dataset.m===o.m));
