@@ -40,6 +40,10 @@ for a in todo:
     elif a["type"] == "watch":
         title = f'Intraday setups for {a.get("for") or "the next session"}'
         body = "Possible intraday shorts, posted only if they trigger at the open: " + ", ".join(a.get("list") or []) + "."
+    elif a["type"] == "lastday":
+        title = f'Last session tomorrow: {a["sym"]}'
+        body = ("Tomorrow is the last session of this idea's time frame. Sell through the day at about the day's average price (VWAP) "
+                "instead of waiting for the close. The result is counted at that day's VWAP.")
     elif a["type"] == "entry" and a.get("side") == "short":
         title = f'Intraday short: {a["sym"]}'
         body = f'Triggered: short at Rs {a["price"]:,.2f} (9:20 open). Stop-loss Rs {a["stop"]:,.2f}, target Rs {a["target"]:,.2f}, squared off by 3:15 PM. Approved by the CEO.'
