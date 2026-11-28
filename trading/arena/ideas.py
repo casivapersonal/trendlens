@@ -3,6 +3,9 @@ scan -> committee -> coded judge -> PENDING (trading/ideas/pending.json) -> deci
 -> monitor flags exit signals (stop, target, time, faded momentum rank) -> decision-maker closes -> CLOSED idea.
 Stops (Nov 2026 study, pipeline/stop_final_check.py + stop_robust.py): momentum ideas exit on a touch of the stop; bull-flag ideas
 (stop_rule "close") exit at the next open after a CLOSE below the stop, plus an emergency stop short_hard_stop_r x the risk below the fill.
+Time exit (Nov 2026, pipeline/exit_check.py): a bull flag still open on its last session (day `days`) is sold through that day; the result is
+counted at the day's VWAP from 5-minute candles (beat the close by +0.19% (t 2.6) in 2014-21 and +0.21% (t 7.9) in 2022-26). The site warns
+on the last day. If the day's candles cannot be read, the close is used and the note says so.
 Nothing is posted and nothing is closed without the decision-maker, unless auto_close is switched on. No real-time loop.
 Wording is a "Bullish view", never buy or sell."""
 from __future__ import annotations
@@ -18,6 +21,28 @@ REPO = universe.REPO
 PENDING = REPO / "trading" / "ideas" / "pending.json"
 PUBLIC = REPO / "web" / "picks.json"
 tick = lambda p: round(round(p / 0.05) * 0.05, 2)
+
+
+def day_vwap(sym: str, day: date) -> float | None:
+    """The session's volume-weighted average price, (high + low + close) / 3 weighted by volume over the 5-minute candles of `day`
+    (as in the back-test). Yahoo serves today's candles only, so an earlier day returns None. Needs most of the session (60+ candles)."""
+    try:
+        import requests
+        r = requests.get(f"https://query2.finance.yahoo.com/v8/finance/chart/{requests.utils.quote(sym)}.NS", params={"interval": "5m", "range": "1d"},
+                         headers={"User-Agent": "Mozilla/5.0 TrendLens"}, timeout=15)
+        r.raise_for_status(); res = r.json()["chart"]["result"][0]; q = res["indicators"]["quote"][0]
+        pv = vv = 0.0; n = 0
+        for k, ts in enumerate(res.get("timestamp") or []):
+            if datetime.utcfromtimestamp(ts + 19800).date() != day: continue
+            h, l, c, v = q["high"][k], q["low"][k], q["close"][k], q["volume"][k]
+            if None in (h, l, c, v) or v <= 0: continue
+            pv += (h + l + c) / 3 * v; vv += v; n += 1
+        return round(pv / vv, 2) if vv > 0 and n >= 60 else None
+    except Exception:
+        return None
+
+
+VWAP_FN = day_vwap          # tests replace this
 KINDS = {"Target hit": "target", "Stop-loss hit": "stop", "Time up": "time"}
 
 
@@ -397,7 +422,16 @@ def monitor(cfg: dict, frames: dict, now: datetime, public_path: Path | None = N
             if await_note:
                 flag(i, {"reason": "Stop-loss hit", "price": round(float(d.loc[awaiting, "close"]), 2), "date": awaiting.date().isoformat(), "awaiting": True, "note": await_note}); continue
             flag(i, {"reason": "Stop-loss hit (locked at the lower circuit: exit at the next tradable price)", "price": stop, "date": awaiting.date().isoformat(), "awaiting": True}); continue
-        if not sig and not momentum and i.get("days") and held >= i["days"]: sig = ("Time up", float(win["close"].iloc[-1]), win.index[-1])
+        if not sig and not momentum and i.get("days") and held >= i["days"]:
+            px, note = float(win["close"].iloc[-1]), None
+            if cfg["ideas"].get("short_time_exit", "close") == "vwap":
+                vw = VWAP_FN(i["sym"], win.index[-1].date())
+                if vw: px, note = vw, "last session: sold through the day, counted at the day's average price (VWAP)"
+                else: note = "last session: the day's average price (VWAP) was not available, so the close is used"
+            sig = ("Time up", px, win.index[-1]) + ((note,) if note else ())
+        # Nov 2026: tomorrow is the last session -> the site tells users to sell through that day (VWAP exit)
+        i["last_day"] = bool(not sig and not momentum and i.get("days") and held == i["days"] - 1
+                             and cfg["ideas"].get("short_time_exit", "close") == "vwap")
         if not sig and i.get("rank_exit"): sig = (i["rank_exit"]["reason"], last, d.index[-1])
         i["exit_signal"] = None
         if momentum and not sig and tgt and len(win) and float(win["high"].max()) >= tgt and not i.get("target_reached"):
