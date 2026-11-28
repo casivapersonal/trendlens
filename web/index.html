@@ -967,9 +967,9 @@ const netRet=r=>r==null||isNaN(r)?r:((1+r/100)*(1-COST_SELL/100)/(1+COST_BUY/100
 /* ---------- About trade modal ---------- */
 function judgePoints(o,cx){
   const j=o.judge,c=o.committee||{},P=[];
-  if(o.ceo)P.push(`<b>CEO decision:</b> ${o.ceo.memo}`);if(o.ceoExit)P.push(`<b>CEO exit:</b> ${o.ceoExit}`);
+  if(o.ceo)P.push(`<b>CEO decision:</b> ${EH(o.ceo.memo)}`);if(o.ceoExit)P.push(`<b>CEO exit:</b> ${EH(o.ceoExit)}`);
   P.push(`Posted after ${o.approvedBy||'the CEO'} approved it${o.approvedAt?' on '+o.approvedAt.slice(0,10):''}. The score is ${j.score}, from fixed rules written as code (${j.by}). Nothing here is an AI opinion.`);
-  for(const r of j.rules||[])P.push(`${r.points>0?'+':''}${r.points}: ${r.rule}.`);
+  for(const r of j.rules||[])P.push(`${r.points>0?'+':''}${r.points}: ${EH(r.rule)}.`);
   const an=Object.entries(c.analysts||{}).map(([k,v])=>`${k} ${v.stance}`).join(', ');
   if(an)P.push(`Committee: ${an}.${c.agreement?' '+c.agreement.charAt(0).toUpperCase()+c.agreement.slice(1)+'.':''}${c.macro?' Economy: '+c.macro+'.':''}`);
   const E=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),rv=o.review;
@@ -1025,7 +1025,7 @@ function rangeMsg(o){
   if(o.status!=='live'){const[l]=STATUS[o.status];return`<div class="okmsg" style="background:var(--gray-soft);color:var(--muted)">This idea is closed: ${l} on ${dstr(o.x.bars[o.exitI].t)} at ${money(o,o.exitPx)}.</div>`}
   const W=warnings(o);
   if(!W.length)return`<div class="okmsg">No warnings. ${o.opt?'Premium':'Price'} is ${o.opt||(o.cur>=o.lo&&o.cur<=o.hi)?'tracking the view':'tracking the view'}${!o.opt&&o.cur>=o.lo&&o.cur<=o.hi?' and within the entry range':''}.</div>`;
-  return W.map(w=>`<div class="warn ${w.lvl}">${w.t} Take caution.</div>`).join('');
+  return W.map(w=>`<div class="warn ${w.lvl}">${EH(w.t)} Take caution.</div>`).join('');
 }
 
 /* ---------- Warning signals on live ideas ---------- */
@@ -1047,7 +1047,7 @@ function warnings(o){
   return W.sort((p,q)=>(p.lvl==='red'?0:1)-(q.lvl==='red'?0:1));
 }
 function warnStrip(o){const W=warnings(o);if(!W.length)return'';const w=W[0];
-  return`<div class="wstrip ${w.lvl}">⚠ ${w.t}${W.length>1?` <b>+${W.length-1} more</b>`:''}</div>`}
+  return`<div class="wstrip ${w.lvl}">⚠ ${EH(w.t)}${W.length>1?` <b>+${W.length-1} more</b>`:''}</div>`}
 let MO=null;
 function openAbout(o){
   MO=o;const fn=`${o.label.replace(/[^A-Za-z0-9]+/g,'_')}_TA_${o.posted.toLocaleDateString('en-GB').replace(/\//g,'')}${o.time.replace(/\D/g,'')}.pdf`;
@@ -1349,9 +1349,9 @@ function showNextPop(){
   const body=a.type==='watch'?`Conditional intraday shorts for ${a.for||'the next session'}: <b>${(a.list||[]).map(EH).join(', ')}</b>. Each triggers only if it opens inside its band; see the Intraday panel.`
     :a.type==='entry'&&a.side==='short'?`Triggered: intraday short at ${fmt(a.price,'IN')} (9:20 open), stop-loss ${fmt(a.stop,'IN')}, target ${fmt(a.target,'IN')}, closed by 3:15 PM. Approved by the CEO.`
     :a.type==='entry'?`Approved by the CEO: bullish view at ${fmt(a.price,'IN')}${a.stop?`, stop-loss ${fmt(a.stop,'IN')}, target ${fmt(a.target,'IN')}`:''}. Added to <b>Live ideas</b>.`
-    :`${a.reason||'Closed by the CEO'}. ${a.ret_pct==null?(a.term==='intraday'?'No result counted.':'Never entered, so no result.'):`Result <b class="${a.ret_pct>=0?'up':'dn'}">${pct(a.ret_pct)}</b>${a.term==='intraday'?' after costs':''}.`} Moved to <b>Closed ideas</b>.`;
+    :`${EH(a.reason||'Closed by the CEO')}. ${a.ret_pct==null?(a.term==='intraday'?'No result counted.':'Never entered, so no result.'):`Result <b class="${a.ret_pct>=0?'up':'dn'}">${pct(a.ret_pct)}</b>${a.term==='intraday'?' after costs':''}.`} Moved to <b>Closed ideas</b>.`;
   const el=document.createElement('div');el.className='apop';el.setAttribute('role','alertdialog');
-  el.innerHTML=`<div class="h"><span class="${a.type==='entry'||a.type==='watch'?'tagE':'tagX'}">${a.type==='watch'?'◆ Intraday setups':a.type==='entry'&&a.side==='short'?'▼ Intraday short':a.type==='entry'?'▲ New idea':a.term==='intraday'?'▼ Intraday short closed':'▼ Idea closed'}</span>${a.sym}</div><p>${body}${prov?'<br><span style="color:var(--muted);font-size:12.5px">Confirmed after the 3:30 PM close.</span>':''}</p>
+  el.innerHTML=`<div class="h"><span class="${a.type==='entry'||a.type==='watch'?'tagE':'tagX'}">${a.type==='watch'?'◆ Intraday setups':a.type==='entry'&&a.side==='short'?'▼ Intraday short':a.type==='entry'?'▲ New idea':a.term==='intraday'?'▼ Intraday short closed':'▼ Idea closed'}</span>${EH(a.sym)}</div><p>${body}${prov?'<br><span style="color:var(--muted);font-size:12.5px">Confirmed after the 3:30 PM close.</span>':''}</p>
   <div class="row"><button class="bigbtn out" data-pop="dismiss">Dismiss</button><button class="bigbtn pri" data-pop="view">View idea</button></div>`;
   document.body.appendChild(el);
   try{if(Notification.permission==='granted'&&document.hidden)new Notification(`TrendLens · ${a.type==='watch'?'Intraday setups':a.type==='entry'&&a.side==='short'?'Intraday short':a.type==='entry'?'New idea':a.term==='intraday'?'Intraday short closed':'Idea closed'}: ${a.sym}`,{body:el.querySelector('p').innerText})}catch(e){}
