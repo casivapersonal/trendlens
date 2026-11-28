@@ -27,6 +27,7 @@ button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
 header{position:sticky;top:0;z-index:20;background:rgba(251,250,247,.94);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .hwrap{max-width:1320px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:12px 20px}
 .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:18px;letter-spacing:-.3px;white-space:nowrap}
+a.logo{color:inherit;text-decoration:none;cursor:pointer;min-height:44px;border-radius:8px}a.logo:hover{color:var(--brand)}
 .logo i{width:30px;height:30px;border-radius:8px;background:var(--brand);display:grid;place-items:center}
 .mtabs{display:flex;gap:4px;background:var(--gray-soft);padding:4px;border-radius:12px}
 .mtabs button{padding:8px 14px;border-radius:9px;font-weight:600;color:var(--muted);white-space:nowrap}
@@ -146,6 +147,26 @@ td.r,th.r{text-align:right}
 .topnav button.on{color:var(--brand);border-bottom-color:var(--brand)}
 body.v-ideas #screener,body.v-ideas #mtabs,body.v-ideas .search{display:none}
 body.v-screener #ideas{display:none}
+body:not(.v-scorecard) #scorecard{display:none}
+body.v-scorecard #ideas,body.v-scorecard #screener,body.v-scorecard #mtabs,body.v-scorecard .search{display:none}
+#scorecard{max-width:1180px;margin:0 auto;padding:4px 0 40px}
+#scframe{display:block;width:100%;min-height:80vh;border:0;background:transparent}
+.adminrow{display:flex;justify-content:flex-end;gap:10px;align-items:center;margin:22px 2px 0;font-size:12.5px;color:var(--muted)}
+.adminrow button{background:none;border:0;color:var(--muted);font:inherit;cursor:pointer;text-decoration:underline;min-height:44px;padding:0 6px}
+.adminrow .on{color:var(--brand);font-weight:700;text-decoration:none}
+#adlg{border:1px solid var(--line);border-radius:14px;padding:0;width:min(440px,calc(100vw - 24px));color:var(--ink);background:var(--card);box-shadow:0 12px 40px rgba(16,32,31,.22)}
+#adlg::backdrop{background:rgba(16,32,31,.45)}
+#adlg form,#adlg .pane{padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+#adlg h3{margin:0;font-size:17px}#adlg p{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
+#adlg label{font-size:13px;font-weight:600;display:flex;flex-direction:column;gap:5px}
+#adlg input{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:15px;min-height:44px;background:#fff;color:var(--ink)}
+#adlg .err{color:var(--red);font-size:13px;min-height:18px}
+#adlg .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#adlg .row button{min-height:44px;padding:0 16px;border-radius:10px;font:600 14px Inter,system-ui,sans-serif;cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink)}
+#adlg .row button.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+#adlg code{display:block;word-break:break-all;background:var(--gray-soft);border-radius:8px;padding:8px 10px;font-size:12px;user-select:all}
+#adlg .lnk{background:none;border:0;color:var(--brand);font:600 13px Inter,system-ui,sans-serif;text-decoration:underline;cursor:pointer;padding:0;min-height:32px;align-self:flex-start}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 /* ---------- Ideas page ---------- */
 #ideas{max-width:1320px;margin:0 auto;padding:16px 20px 40px}
 .notice{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:#6b3d07;background:var(--amber-soft);border:1px solid #f0dcbc;border-radius:12px;padding:10px 14px;margin-bottom:14px;line-height:1.5}
@@ -332,8 +353,8 @@ body:has(.ov[style*="flex"]) #gfab,body:has(.ov.show) #gfab{display:none}
 <body class="v-ideas">
 <header>
   <div class="hwrap">
-    <div class="logo"><i><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></i>TrendLens</div>
-    <nav class="topnav" id="nav"><button data-v="ideas" class="on">Trade Ideas</button><button data-v="screener">Charts</button><a href="dashboard.html" class="navlink">Scorecard</a></nav>
+    <a class="logo" id="logo" href="#trade-ideas" aria-label="TrendLens home"><i><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></i>TrendLens</a>
+    <nav class="topnav" id="nav"><button data-v="ideas" class="on">Trade Ideas</button><button data-v="screener">Charts</button><button data-v="scorecard">Scorecard</button></nav>
     <div class="mtabs" id="mtabs">
 
     </div>
@@ -354,7 +375,7 @@ body:has(.ov[style*="flex"]) #gfab,body:has(.ov.show) #gfab{display:none}
   <section class="detail" id="detail"></section>
 </main>
 <section id="ideas">
-  <div class="notice"><span style="font-size:15px">ⓘ</span><div><b>Analysis, not investment advice.</b> Ideas are posted only after the CEO agent approves them. <details style="display:inline"><summary style="display:inline;cursor:pointer;font-weight:600;color:var(--brand)">How it works</summary> After each close TrendLens ranks the NIFTY 500 on risk-adjusted 12-month momentum (12-month return divided by volatility; stocks trading under Rs 10 cr a day or priced under Rs 50 are left out) and scans for one daily setup, the bull flag (a 15% rise in 10 sessions, then a 3–10 session pause). A committee reports on each candidate: technical, fundamentals, news, macro and NSE surveillance. A <b>coded judge</b>, plain fixed rules with no AI, scores it, counting each piece of evidence once. The <b>CEO agent</b> takes the final call: post or decline, with a written memo. Momentum ideas have their own 20 slots; setup ideas have their own few slots, skip stocks with results due inside the holding period, and are cancelled if the actual fill leaves less than 2:1 reward-to-risk. New ideas are chosen on the closing prices and posted the next morning at 9:30, with the 9:30 price as the entry, but only if the price at that time is inside the idea's entry range: an idea outside its range is not posted. Intraday ideas follow the same idea (posted at 9:20 only if the open is inside the trigger band). During market hours prices are checked every 5 minutes for stop-losses and targets. An idea stays in <b>Live ideas</b> until the CEO closes it: at the stop-loss or target, when the time frame ends, or, for momentum ideas, when the rank falls below #50. Bull-flag stop-losses count on the closing price (exit at the next open), with an emergency stop 3 × the risk below the entry; this beat touch stops in both test periods after costs (Nov 2026). A stop hit while a stock is locked at its lower circuit is closed at the next tradable price. The Scorecard shows results after costs (brokerage, STT, exchange, GST, stamp and 0.1% slippage each side) against the NIFTY 500. Back-test of the momentum rules (re-tested Nov 2026, after costs): 21.2% a year in 2011–19 and 45.4% in 2020–26, against 7.9% and 13.8% for the NIFTY 500 index, with falls of up to 28% and 38%; about half the ideas were profitable. It uses today's index members, so stocks that were dropped or delisted are missing and the figures are flattered; a realistic expectation is about 18–25% a year with drops of 30–40%. The bull-flag setup back-tested at a small edge after costs (+0.07 of the risk per trade over 2,588 trades, 44% profitable); 20-day breakouts lost money after costs and are no longer posted. Past results do not guarantee future ones. Consult a SEBI-registered adviser before investing.</details></div></div>
+  <div class="notice"><span style="font-size:15px">ⓘ</span><div><b>Analysis, not investment advice.</b> Ideas are posted only after the CEO agent approves them. <details style="display:inline"><summary style="display:inline;cursor:pointer;font-weight:600;color:var(--brand)">How it works</summary> After each close TrendLens screens NSE stocks with its own technical indicators (price trend, momentum, volume and volatility). Candidates are checked and an idea is posted only after it is approved. Each idea shows its entry price, stop-loss, target and time frame. During market hours prices are checked every 5 minutes. An idea stays in <b>Live ideas</b> until it is closed: at the stop-loss or target, when the time frame ends, or on an exit signal from the indicators. A stop hit while a stock is locked at its lower circuit is closed at the next tradable price. The Scorecard shows results after costs (brokerage, STT, exchange, GST, stamp and 0.1% slippage each side) against the NIFTY 500. Back-test of the momentum ideas (after costs): 21.2% a year in 2011–19 and 45.4% in 2020–26, against 7.9% and 13.8% for the NIFTY 500 index, with falls of up to 28% and 38%. The test uses today's index members, so the figures are flattered; a realistic expectation is about 18–25% a year with drops of 30–40%. Past results do not guarantee future ones. Consult a SEBI-registered adviser before investing.</details></div></div>
   <div class="ibar" id="ibar"></div>
   <div class="segs" id="segs"></div>
   <div class="irow">
@@ -371,8 +392,11 @@ body:has(.ov[style*="flex"]) #gfab,body:has(.ov.show) #gfab{display:none}
   <div class="intra" id="intraday" style="display:none"></div>
   <h3 id="swinghead" style="display:none;margin:18px 0 8px;font-size:16px">Momentum and short-term ideas</h3>
   <div class="igrid" id="igrid"></div>
+  <div class="adminrow" id="adminrow"><button type="button" data-admin="open">Admin</button></div>
 </section>
 <div class="ov" id="ov" role="dialog" aria-modal="true" aria-label="Idea details"><div class="modal" id="modal"></div></div>
+<section id="scorecard" aria-label="Scorecard"><iframe id="scframe" title="Scorecard: expectation vs actual"></iframe></section>
+<dialog id="adlg" aria-label="Admin"></dialog>
 <div class="pv" id="pv" role="dialog" aria-label="PDF viewer"></div>
 <div id="tip"></div>
 <div class="toast" id="toast"></div>
@@ -803,8 +827,12 @@ const EXITS={short:[3,1.5],medium:[3,3]}; // stop ATR, target ATR: chosen from t
 const BT={IN:{short:[71.2,3.9,-7.8,1820],medium:[51.7,7.7,-6.5,757],long:[78.2,18.0,-6.4,1283]}}; BT.US=BT.IN; // [win%, avg win, avg loss, trades] real NSE+US large caps 2010-2026, net of costs
 const TERMS={intraday:['Intraday','Same day',1],momentum:['Momentum','Until exit alert',9999],short:['Short term','2–6 weeks',30],medium:['Medium term','until momentum fades',120],long:['Long term','1–3 years',750]};
 const EH=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// Admin (Nov 2026): the public site shows only entry, stop-loss, target and "technical indicators". The full reasons, scores and notes
+// are shown only after an admin login checked by the server (api/admin.js).
+let ADMIN=false;window.TL_ADMIN=false;
+const pubReason=r=>ADMIN?String(r||''):(/rank|nifty ?500|momentum|judge|committee/i.test(String(r||''))?'Exit signal from our indicators':String(r||''));
 const PAL=['#0b6e6e','#0E7C7B','#1F5F5B','#2a8a7e','#145c5c','#3d7f78'];
-const STATUS={target:['Target hit','bull'],stop:['Stop-loss hit','bear'],reversed:['Closed: view reversed','neu'],timeout:['Time frame ended','neu'],expiry:['Expired','neu'],superseded:['Replaced by newer idea','neu'],rebalanced:['Monthly review','neu'],momexit:['Exit alert','neu'],rank:['Closed: momentum rank fell','neu'],manual:['Closed by the CEO','neu'],squared:['Squared off at 3:15 PM','neu'],not_entered:['Not entered','neu']};
+const STATUS={target:['Target hit','bull'],stop:['Stop-loss hit','bear'],reversed:['Closed: view reversed','neu'],timeout:['Time frame ended','neu'],expiry:['Expired','neu'],superseded:['Replaced by newer idea','neu'],rebalanced:['Monthly review','neu'],momexit:['Exit alert','neu'],rank:['Closed: exit signal','neu'],manual:['Closed by the CEO','neu'],squared:['Squared off at 3:15 PM','neu'],not_entered:['Not entered','neu']};
 function postTime(seed){const r=rng(hashStr(seed))();const mins=15*60+35+Math.floor(r*170);return`${String(Math.floor(mins/60)-12).padStart(2,'0')}:${String(mins%60).padStart(2,'0')} PM`}
 const fD=d=>`${d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})} '${String(d.getFullYear()).slice(2)}`;
 function nextTue(d,minDays){const t=new Date(d);t.setDate(t.getDate()+minDays);while(t.getDay()!==2)t.setDate(t.getDate()+1);return t}
@@ -898,7 +926,7 @@ function perfHTML(o){
   if(o.status==='live'&&o.term==='momentum')return`<div class="perf ${o.chgSoFar<0?'bad':''}"><span>Change so far: <span class="box ${o.chgSoFar>=0?'up':'dn'}">${pct(o.chgSoFar)}</span></span><span class="sep"></span><span>${o.n500!=null?'NIFTY 500':'NIFTY 50'} same period: <b class="${(o.n500!=null?o.n500:o.nifty)>=0?'up':'dn'}">${pct(o.n500!=null?o.n500:o.nifty)}</b></span></div>`;
   if(o.status==='live')return`<div class="perf ${o.chgSoFar<0?'bad':''}"><span>Change so far: <span class="box ${o.chgSoFar>0?'up':o.chgSoFar<0?'dn':''}">${pct(o.chgSoFar)}</span></span><span class="sep"></span><span>${o.term==='medium'?'To reference objective':'Potential left'}: <b class="${o.potLeft>=0?'up':'dn'}">${pct(o.potLeft)}</b></span></div>`;
   const[sl,sc]=STATUS[o.status];
-  if(o.term==='momentum')return`<div class="perf ${o.ret<0?'bad':''}"><span>Result: <span class="box ${o.ret>=0?'up':'dn'}">${pct(o.ret)}</span></span><span class="sep"></span><span>${o.n500!=null?'NIFTY 500':'NIFTY 50'} same period: <b class="${(o.n500!=null?o.n500:o.nifty)>=0?'up':'dn'}">${pct(o.n500!=null?o.n500:o.nifty)}</b></span></div><div class="wstrip exit">▼ Exit alert ${fD(o.x.bars[o.exitI].t)}: ${o.reason}</div>`;
+  if(o.term==='momentum')return`<div class="perf ${o.ret<0?'bad':''}"><span>Result: <span class="box ${o.ret>=0?'up':'dn'}">${pct(o.ret)}</span></span><span class="sep"></span><span>${o.n500!=null?'NIFTY 500':'NIFTY 50'} same period: <b class="${(o.n500!=null?o.n500:o.nifty)>=0?'up':'dn'}">${pct(o.n500!=null?o.n500:o.nifty)}</b></span></div><div class="wstrip exit">▼ Exit alert ${fD(o.x.bars[o.exitI].t)}: ${EH(pubReason(o.reason))}</div>`;
   return`<div class="perf ${o.ret<0?'bad':''}"><span>Result: <span class="box ${o.ret>=0?'up':'dn'}">${pct(o.ret)}</span></span><span class="sep"></span><span><span class="chip ${sc}">${sl}</span> ${fD(o.x.bars[o.exitI].t)}</span></div>`;
 }
 function instHTML(o){
@@ -907,12 +935,13 @@ function instHTML(o){
   return`<div class="ihead">${mono(o)}<div><b>${o.label}</b><div class="q tabular">${q}</div><div style="font-size:12px;color:var(--muted);margin-top:1px">${o.sub}</div></div></div>
   <div class="itab"><table class="tabular"><thead><tr><th>Basis close</th><th>View</th><th>Price</th><th>Entry range</th></tr></thead>
   <tbody><tr><td>${o.basis?fD(new Date(o.basis+'T00:00:00')):fD(o.posted)}</td><td><span class="vchip ${o.view>0?'bull':'bear'}">${o.term==='momentum'?'Momentum':o.view>0?'Bullish':'Bearish'}</span></td><td>${money(o,o.entry)}</td><td>${o.term==='intraday'&&!o.cond?'9:20 open':fmtN(o.lo)+' – '+fmtN(o.hi)}</td></tr></tbody></table></div>
-  ${o.term==='momentum'?`<div class="trio tabular"><div><div class="k">Exit rule <span class="info" tabindex="0" title="An exit alert is raised when the stock's momentum rank falls below #${MOM?.rules?.exit_rank??50} in the NIFTY 500, or when it leaves the index.">i</span></div><div class="v">Rank &gt; #${MOM?.rules?.exit_rank??50}</div></div>
-  <div><div class="k">${o.status==='live'?'Rank now':'Rank at exit'}</div><div class="v">${o.status==='live'?'#'+o.rank_now:(o.exit_rank?'#'+o.exit_rank:'—')} <small style="font-size:12px;color:var(--muted)">(entry #${o.rank})</small></div></div><div><div class="k">${o.status==='live'?'Held so far':'Held'}</div><div class="v">${o.days} days</div></div></div>`:
+  ${o.term==='momentum'?`<div class="trio tabular"><div><div class="k">Exit rule <span class="info" tabindex="0" title="${ADMIN?`An exit alert is raised when the stock's momentum rank falls below #${MOM?.rules?.exit_rank??50} in the NIFTY 500, or when it leaves the index.`:'An exit alert is raised when our indicators turn against the idea.'}">i</span></div><div class="v">${ADMIN?'Rank &gt; #'+(MOM?.rules?.exit_rank??50):'Exit signal'}</div></div>
+  ${ADMIN?`<div><div class="k">${o.status==='live'?'Rank now':'Rank at exit'}</div><div class="v">${o.status==='live'?'#'+o.rank_now:(o.exit_rank?'#'+o.exit_rank:'—')} <small style="font-size:12px;color:var(--muted)">(entry #${o.rank})</small></div></div>`:`<div><div class="k">Entry price</div><div class="v">${money(o,o.entry)}</div></div>`}<div><div class="k">${o.status==='live'?'Held so far':'Held'}</div><div class="v">${o.days} days</div></div></div>`:
   `<div class="trio tabular"><div><div class="k">Stop-loss <span class="info" tabindex="0" title="Invalidation level: if price closes beyond this, the technical view no longer holds.">i</span></div><div class="v">${o.stop==null?'--':money(o,o.stop)}</div></div>
-  <div><div class="k">${o.term==='medium'?'Reference objective':'Target'}</div><div class="v">${o.tgt==null?'--':money(o,o.tgt)}</div></div><div><div class="k">${o.term==='medium'?'Exit rule':'Time frame'}</div><div class="v">${o.term==='medium'?'Rank &gt; #'+(MOM?.rules?.exit_rank??50)+' or stop':o.maxDays?o.maxDays+' sessions':TERMS[o.term][1]}</div></div></div>${o.ceo?`<div class="memo"><b>CEO · ${EH(o.ceo.conviction)} conviction:</b> ${(o.ceo.for||[]).slice(0,3).map(EH).join(' · ')||EH(o.ceo.memo)}</div>`:''}`}`;
+  <div><div class="k">${o.term==='medium'?'Reference objective':'Target'}</div><div class="v">${o.tgt==null?'--':money(o,o.tgt)}</div></div><div><div class="k">${o.term==='medium'?'Exit rule':'Time frame'}</div><div class="v">${o.term==='medium'?(ADMIN?'Rank &gt; #'+(MOM?.rules?.exit_rank??50)+' or stop':'Stop or exit signal'):o.maxDays?o.maxDays+' sessions':TERMS[o.term][1]}</div></div></div>${o.ceo&&ADMIN?`<div class="memo"><b>CEO · ${EH(o.ceo.conviction)} conviction:</b> ${(o.ceo.for||[]).slice(0,3).map(EH).join(' · ')||EH(o.ceo.memo)}</div>`:''}`}`;
 }
 function btBox(o){if(o.term==='intraday')return`<span style="font-size:12px">Back-test 2022–26</span><b style="font-size:20px;color:var(--ink);margin:2px 0">+0.34%</b><span>a trade after costs</span><span>714 trades · 4/5 years up</span>`;
+  if(o.judge&&!ADMIN)return`<span style="font-size:12px">Selected by</span><b style="font-size:16px;color:var(--ink);margin:2px 0">Technical indicators</b><span>${TERMS[o.term][0]}</span><span>${o.maxDays?o.maxDays+' sessions':TERMS[o.term][1]}</span>`;
   if(o.judge)return`<span style="font-size:12px">Judge score</span><b style="font-size:20px;color:var(--ink);margin:2px 0">${o.judge.score}<small style="font-size:12px;color:var(--muted)"> pts</small></b><span>${o.judge.score>=10?'Strong':o.judge.score>=6?'Approve level (6+)':'Below approve level'}</span><span>${o.term==='medium'?'Rank rule back-tested':'Setup: not back-tested'}</span>`;
   if(o.term==='momentum'&&MOM?.stats?.periods){const q=MOM.stats.periods[MOM.stats.periods.length-1];return`<span style="font-size:12px">Back-test ${q.period}</span><b style="font-size:20px;color:var(--ink);margin:2px 0">${q.win}% win</b><span>Avg win <b class="up">+${q.avg_win}%</b></span><span>Avg loss <b class="dn">${q.avg_loss}%</b></span>`}
   const bt=BT[o.m]?.[o.term];
@@ -920,7 +949,7 @@ function btBox(o){if(o.term==='intraday')return`<span style="font-size:12px">Bac
   return`<span style="font-size:12px">Back-test 2010–26</span><b style="font-size:20px;color:var(--ink);margin:2px 0">${bt[0]}% win</b><span>Avg win <b class="up">+${bt[1]}%</b></span><span>Avg loss <b class="dn">${bt[2]}%</b></span>`}
 function cardHTML(o){
   return`<div class="idea ${o.status==='live'?'':'closed'}" data-id="${o.id}">
-    <div class="ihd"><div class="posted"><b>${o.term==='momentum'?'Entry alert':'Posted'}:</b> ${fD(o.posted)} | ${o.time}${o.approvedBy?` <span class="real-tag" title="Posted only after the CEO agent approved it">Approved by ${o.approvedBy}${o.ceo?' · '+o.ceo.conviction+' conviction':''}</span>`:o.term==='momentum'?' <span class="demo-tag" title="Entered by the automatic rank rule, before CEO approval was introduced">Auto entry</span>':''}${o.cond?` <span class="real-tag" title="Checked by the coded judge; posted only if it triggers">Conditional · for ${fD(new Date(o.forDay+'T00:00:00'))}</span>`:''}${o.backfilled?' <span class="demo-tag" title="Generated by replaying the same rules on past prices">Back-filled</span>':''}${o.resultsDate?` <span class="demo-tag" title="Quarterly results date from NSE">Results ${fD(new Date(o.resultsDate+'T00:00:00'))}</span>`:''}${o.surv?` <span class="demo-tag" style="color:var(--red);background:var(--red-soft)" title="${o.surv}">NSE ASM/GSM</span>`:''}</div><div class="tag">${ICON.clock} ${TERMS[o.term][0]}</div></div>
+    <div class="ihd"><div class="posted"><b>${o.term==='momentum'?'Entry alert':'Posted'}:</b> ${fD(o.posted)} | ${o.time}${o.approvedBy?` <span class="real-tag" title="Posted only after the CEO agent approved it">Approved by ${o.approvedBy}${o.ceo&&ADMIN?' · '+EH(o.ceo.conviction)+' conviction':''}</span>`:o.term==='momentum'?' <span class="demo-tag" title="Entered automatically, before approval checks were introduced">Auto entry</span>':''}${o.cond?` <span class="real-tag" title="Posted only if it triggers">Conditional · for ${fD(new Date(o.forDay+'T00:00:00'))}</span>`:''}${o.backfilled?' <span class="demo-tag" title="Generated by replaying the same rules on past prices">Back-filled</span>':''}${o.resultsDate?` <span class="demo-tag" title="Quarterly results date from NSE">Results ${fD(new Date(o.resultsDate+'T00:00:00'))}</span>`:''}${o.surv?` <span class="demo-tag" style="color:var(--red);background:var(--red-soft)" title="${o.surv}">NSE ASM/GSM</span>`:''}</div><div class="tag">${ICON.clock} ${TERMS[o.term][0]}</div></div>
     <div style="margin-top:6px">${perfHTML(o)}${warnStrip(o)}<div class="inst">${instHTML(o)}</div></div>
     <div class="iside">
       <div class="icons"><button data-act="save" title="Bookmark" aria-label="Bookmark idea" class="${IS.saved.has(o.id)?'on':''}">${IS.saved.has(o.id)?ICON.bookOn:ICON.book}</button><button data-act="chart" title="Open chart" aria-label="Open chart">${ICON.chart}</button><button data-act="copy" title="Copy summary" aria-label="Copy idea summary">${ICON.link}</button></div>
@@ -989,8 +1018,25 @@ function judgePoints(o,cx){
   P.push(`The scoring weights are starting points and have not been back-tested. Results are measured from the first price inside the entry range; an idea that never trades in the range is closed as not entered, with no result.`);
   return P;
 }
+function pubPoints(o,cx){
+  const P=[],tf=o.maxDays?o.maxDays+' sessions':TERMS[o.term][1];
+  P.push(`Selected by TrendLens's technical indicators (price trend, momentum, volume and volatility) and posted after an approval check.`);
+  if(o.term==='intraday'){
+    if(o.cond)P.push(`Conditional: posted only if the stock opens between ${cx(o.lo)} and ${cx(o.hi)}.`);
+    else P.push(`Intraday short at ${cx(o.entry)} (9:20 open). Stop-loss ${cx(o.stop)}, target ${cx(o.tgt)}. Anything still open is closed at 3:15 PM.`);
+  }else{
+    P.push(`Entry ${cx(o.entry)}${o.lo!=null&&o.hi!=null?`, entry range ${cx(o.lo)} to ${cx(o.hi)}`:''}.`);
+    if(o.stop!=null)P.push(`Stop-loss ${cx(o.stop)}${o.term==='medium'?' (a wide safety stop)':''}.${o.tgt!=null?(o.term==='medium'?` Reference objective ${cx(o.tgt)}, for tracking only; reaching it does not close the idea.`:` Target ${cx(o.tgt)}.`):''}`);
+    P.push(o.term==='medium'||o.term==='momentum'?`Held until the stop-loss is hit or our indicators give an exit signal.`:`Time frame: ${tf}. Closed at the stop-loss, the target or the end of the time frame.`);
+    if(o.stopRule==='close')P.push(`The stop-loss counts on the closing price: if a session closes below it, the idea is closed at the next open.${o.hardStop?` Emergency stop ${cx(o.hardStop)} sells at once if touched.`:''} Consider a position about 25% smaller than usual.`);
+  }
+  if(o.status!=='live'&&o.reason)P.push(`Closed: ${EH(pubReason(o.reason))}.`);
+  P.push(`Results are shown after costs. Past results do not guarantee future ones.`);
+  return P;
+}
 function whyPoints(o,rs){
   const c=o.comp,b=o.x.bars,i=o.i,a=o.x.a,cx=v=>(rs?(o.m==='US'?'$':'Rs. '):cur(o.m))+fmtN(v);
+  if(!ADMIN)return pubPoints(o,cx);
   if(o.term==='intraday'){const e=o.intra,P=[];
     P.push(`Setup at the previous close: ${(e.why||[]).join('; ')}. Stocks that have run up this hard and then gap up again tend to give back part of the gap during the day.`);
     if(o.cond)P.push(`Trigger: if it opens between ${cx(o.lo)} and ${cx(o.hi)} (1.5% to 8% above the ${cx(e.prev_close)} close), the CEO posts a short at the open of the 9:20 candle.`);
@@ -1033,11 +1079,11 @@ function warnings(o){
   if(o.status!=='live'||o.term==='intraday')return[];
   const W=[],x=o.x,a=x.a,b=x.bars,n=b.length-1,vd=o.view;
   const sg=o.exitSig||(o.rankExit?{reason:o.rankExit.reason,date:o.rankExit.date}:null);
-  if(sg)W.push({lvl:'red',t:`Exit signal: ${sg.reason}${sg.price?' at '+fmt(sg.price,'IN'):''}${sg.date?' on '+sg.date:''}. ${sg.awaiting?'The stock is at its lower circuit: the CEO closes it at the next price it can actually be sold at.':'The CEO closes it on its next check.'}`});
+  if(sg)W.push({lvl:'red',t:`Exit signal: ${pubReason(sg.reason)}${sg.price?' at '+fmt(sg.price,'IN'):''}${sg.date?' on '+sg.date:''}. ${sg.awaiting?'The stock is at its lower circuit: the CEO closes it at the next price it can actually be sold at.':'The CEO closes it on its next check.'}`});
   if(o.stopAdvice&&!sg)W.push({lvl:'amber',t:`1R reached: consider moving the stop-loss to ${fmt(o.stopAdvice.move_stop_to,'IN')}.`});
   const lastOpp=a.ev.filter(z=>z.i>o.i&&(z.type==='bull'||z.type==='bear')).pop();
-  if(a.state===(vd>0?'bear':'bull'))W.push({lvl:'red',t:`Indicators turned ${vd>0?'bearish':'bullish'} on ${dstr(b[lastOpp?.i??n].t)} (score ${x.score>0?'+':''}${x.score}). The original view no longer has technical support.`});
-  else if(vd>0?x.score<0:x.score>0)W.push({lvl:'amber',t:`Momentum weakening: composite score is now ${x.score>0?'+':''}${x.score}, against the ${vd>0?'bullish':'bearish'} view.`});
+  if(a.state===(vd>0?'bear':'bull'))W.push({lvl:'red',t:`Indicators turned ${vd>0?'bearish':'bullish'} on ${dstr(b[lastOpp?.i??n].t)}${ADMIN?` (score ${x.score>0?'+':''}${x.score})`:''}. The original view no longer has technical support.`});
+  else if(vd>0?x.score<0:x.score>0)W.push({lvl:'amber',t:`Momentum weakening${ADMIN?`: composite score is now ${x.score>0?'+':''}${x.score},`:','} against the ${vd>0?'bullish':'bearish'} view.`});
   if(o.stop!=null){const dist=(o.cur-o.stop)/(o.entry-o.stop);if(dist<0.25&&dist>0)W.push({lvl:'red',t:`Price is close to the stop-loss (${Math.round(dist*100)}% of the original risk left).`});if(o.stopRule==='close'&&o.cur<=o.stop&&!sg)W.push({lvl:'red',t:`Price is below the stop-loss. The idea exits at the next open only if today closes below ${fmt(o.stop,'IN')}${o.hardStop?`; emergency stop ${fmt(o.hardStop,'IN')}`:''}.`})}
   const prog=o.tgt==null?0:(o.cur-o.entry)/(o.tgt-o.entry);if(prog>=0.85)W.push({lvl:'amber',t:`Most of the expected move is done (${Math.round(prog*100)}% of the way to target).`});
   if(!o.opt&&!(o.term==='momentum'&&n-o.i>5)){if(o.cur<o.lo||o.cur>o.hi){const above=o.cur>o.hi,tw=(above&&o.dir>0)||(!above&&o.dir<0);W.push({lvl:'amber',t:`Price is ${above?'above':'below'} the entry range${o.stop==null?'':tw?', so less potential is left':' and closer to the stop-loss'}.`})}}
@@ -1098,6 +1144,7 @@ async function buildPdf(o){
   y+=16;doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(95,107,106);
   doc.text(`${o.sub}   |   Posted ${fD(o.posted)}, ${String(o.time).replace(/ IST$/,'')} IST   |   ${TERMS[o.term][0]} (${TERMS[o.term][1]})`,M,y);
   y+=18;const cells=[['Entry price',rs(o.entry)],['Entry range',`${fmtN(o.lo)}-${fmtN(o.hi)}`],['Stop-loss',o.stop==null?'--':rs(o.stop)],o.term==='momentum'?['Exit rule','Rank > #'+MOM.rules.exit_rank]:[o.term==='medium'?'Reference objective':'Target',rs(o.tgt)],o.term==='momentum'?['Entry rank','#'+o.rank+' of '+o.uni]:o.term==='medium'?['Exit rule','Rank > #'+(MOM.rules.exit_rank||50)+' or stop']:['Back-test win rate',BT[o.m]?.[o.term]?BT[o.m][o.term][0]+'%':'not validated']];
+  if(!ADMIN)cells.splice(3,2,[o.term==='medium'?'Reference objective':o.term==='momentum'?'Exit':'Target',o.tgt==null?'Exit signal':rs(o.tgt)],['Time frame',o.maxDays?o.maxDays+' sessions':TERMS[o.term][1]]);
   const cw=(W-2*M)/cells.length;doc.setDrawColor(216,230,227);doc.setFillColor(243,239,231);doc.roundedRect(M,y,W-2*M,50,6,6,'FD');
   cells.forEach(([k,v],i)=>{doc.setFontSize(8.5);doc.setTextColor(95,107,106);doc.text(k,M+10+i*cw,y+18);doc.setFontSize(10.5);doc.setFont('helvetica','bold');doc.setTextColor(16,32,31);doc.text(v,M+10+i*cw,y+36);doc.setFont('helvetica','normal')});
   y+=66;const cv=document.createElement('canvas');cv.width=1030;cv.height=400;const g=cv.getContext('2d');g.scale(2,2);drawMini(g,515,200,o);
@@ -1106,15 +1153,15 @@ async function buildPdf(o){
   y+=24;need(40);doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.setTextColor(16,32,31);doc.text('Rationale',M,y);y+=8;
   doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(36,48,47);
   for(const p of whyPoints(o,true)){const lines=doc.splitTextToSize(String(p).replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/₹/g,'Rs. ').replace(/×/g,'x').replace(/±/g,'+/-').replace(/[−–—]/g,'-').replace(/[^\x00-\xFF]/g,''),W-2*M-14);need(14+lines.length*12.5);doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(36,48,47);y+=14;doc.text('•',M,y);doc.text(lines,M+12,y);y+=(lines.length-1)*12.5}
-  y+=24;need(60);doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.setTextColor(16,32,31);doc.text('Indicator snapshot at posting',M,y);y+=16;
+  if(ADMIN){  y+=24;need(60);doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.setTextColor(16,32,31);doc.text('Indicator snapshot at posting',M,y);y+=16;
   doc.setFontSize(8.5);doc.setTextColor(95,107,106);['Indicator','Reading','Score impact'].forEach((h,k)=>doc.text(h,M+[0,250,420][k],y));y+=6;doc.setDrawColor(231,232,240);doc.line(M,y,W-M,y);
   doc.setFont('helvetica','normal');doc.setFontSize(9.5);
   for(const k of Object.keys(W_)){const v=o.comp.p[k];need(15);y+=15;doc.setTextColor(16,32,31);doc.text(LABELS[k][0],M,y);
     const rd=readTxt(v);doc.setTextColor(...(v>0.15?[31,122,63]:v<-0.15?[180,35,24]:[95,107,106]));doc.text(rd,M+250,y);
     const imp=Math.round(W_[k]*v);doc.text((imp>0?'+':'')+imp,M+420,y)}
-  need(20);y+=15;doc.setDrawColor(231,232,240);doc.line(M,y-9,W-M,y-9);doc.setFont('helvetica','bold');doc.setTextColor(16,32,31);doc.text('Composite score',M,y+3);doc.text((o.score>0?'+':'')+o.score+' / 100',M+420,y+3);
+  need(20);y+=15;doc.setDrawColor(231,232,240);doc.line(M,y-9,W-M,y-9);doc.setFont('helvetica','bold');doc.setTextColor(16,32,31);doc.text('Composite score',M,y+3);doc.text((o.score>0?'+':'')+o.score+' / 100',M+420,y+3);}
   y+=26;need(60);doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.text('Current status',M,y);y+=15;doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(36,48,47);
-  {const sl=doc.splitTextToSize(o.status==='live'?(o.term==='momentum'?`Live. Last price ${rs(o.cur)}; change so far ${pct(o.chgSoFar)}; ${o.n500!=null?'NIFTY 500':'NIFTY 50'} over the same period ${pct(o.n500!=null?o.n500:o.nifty)}. Rank today #${o.rank_now}; exit alert below #${MOM.rules.exit_rank}.`:`Live. Last price ${rs(o.cur)}; change so far ${pct(o.chgSoFar)}; ${o.term==='medium'?'distance to the reference objective':'potential left to target'} ${pct(o.potLeft)}.`):`Closed: ${STATUS[o.status][0]} on ${dstr(o.x.bars[o.exitI].t)} at ${rs(o.exitPx)}. Result ${pct(o.ret)}.`,W-2*M);need(sl.length*12.5+6);doc.text(sl,M,y);y+=sl.length*12.5}
+  {const sl=doc.splitTextToSize(o.status==='live'?(o.term==='momentum'?`Live. Last price ${rs(o.cur)}; change so far ${pct(o.chgSoFar)}; ${o.n500!=null?'NIFTY 500':'NIFTY 50'} over the same period ${pct(o.n500!=null?o.n500:o.nifty)}.${ADMIN?` Rank today #${o.rank_now}; exit alert below #${MOM.rules.exit_rank}.`:''}`:`Live. Last price ${rs(o.cur)}; change so far ${pct(o.chgSoFar)}; ${o.term==='medium'?'distance to the reference objective':'potential left to target'} ${pct(o.potLeft)}.`):`Closed: ${STATUS[o.status][0]} on ${dstr(o.x.bars[o.exitI].t)} at ${rs(o.exitPx)}. Result ${pct(o.ret)}.`,W-2*M);need(sl.length*12.5+6);doc.text(sl,M,y);y+=sl.length*12.5}
   doc.setFontSize(7.3);const dl=doc.splitTextToSize('Disclaimer: This note is generated automatically from technical indicators for educational and informational purposes only. It is not investment advice or a recommendation to buy, sell or hold any security, derivative or commodity. TrendLens is not a SEBI-registered Investment Adviser or Research Analyst. Past performance does not guarantee future results. Trading in equities, F&O and commodities involves substantial risk of loss. Consult a SEBI-registered adviser before investing.',W-2*M);y+=30;need(dl.length*9+14);doc.setDrawColor(216,218,229);doc.line(M,y-12,W-M,y-12);doc.setTextColor(95,107,106);doc.text(dl,M,y);
   const np=doc.getNumberOfPages();for(let pg=1;pg<=np;pg++){doc.setPage(pg);doc.setFontSize(7.5);doc.setTextColor(140,150,149);doc.text(`TrendLens · ${o.label} · page ${pg} of ${np}`,W-M,825,{align:'right'})}
   return doc.output('blob');
@@ -1151,12 +1198,21 @@ async function viewPdf(o,fn,btn){
     pv.querySelector('.pvpages').innerHTML=`<div class="pvmsg">The PDF preview could not load here. You can still download the note.<br><br><div style="text-align:left;max-width:640px;margin:0 auto"><b>${o.label}</b><ul>${whyPoints(o).map(p=>`<li>${p}</li>`).join('')}</ul></div></div>`}
 }
 /* ---------- Navigation ---------- */
-function setView(v){
-  document.body.classList.toggle('v-ideas',v==='ideas');document.body.classList.toggle('v-screener',v==='screener');
-  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  try{history.replaceState(null,'','#'+(v==='ideas'?'trade-ideas':'market-screener'))}catch{}
-  if(v==='screener')renderAll();else renderIdeas();requestAnimationFrame(()=>scrollTo(0,0));
+const VIEW_HASH={ideas:'trade-ideas',screener:'market-screener',scorecard:'scorecard'};
+const viewFromHash=()=>({'#market-screener':'screener','#scorecard':'scorecard'})[location.hash]||'ideas';
+function setView(v,push){
+  if(!VIEW_HASH[v])v='ideas';
+  document.body.classList.toggle('v-ideas',v==='ideas');document.body.classList.toggle('v-screener',v==='screener');document.body.classList.toggle('v-scorecard',v==='scorecard');
+  document.querySelectorAll('#nav button').forEach(b=>{const on=b.dataset.v===v;b.classList.toggle('on',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+  try{if(push&&location.hash!=='#'+VIEW_HASH[v])history.pushState(null,'','#'+VIEW_HASH[v]);else history.replaceState(null,'','#'+VIEW_HASH[v])}catch{}
+  if(v==='scorecard')openScorecard();else if(v==='screener')renderAll();else renderIdeas();requestAnimationFrame(()=>scrollTo(0,0));
 }
+addEventListener('popstate',()=>{$('#ov').classList.remove('show');setView(viewFromHash())});
+function openScorecard(){
+  const f=$('#scframe'),want='dashboard.html?embed=1'+(ADMIN?'&admin=1':'');
+  if(f.dataset.src===want)return;f.dataset.src=want;f.src=want;
+}
+$('#scframe').addEventListener('load',()=>{const f=$('#scframe');try{const d=f.contentDocument;const fit=()=>{f.style.height=Math.max(d.documentElement.scrollHeight,d.body.scrollHeight)+'px'};fit();if(f._ro)f._ro.disconnect();f._ro=new ResizeObserver(fit);f._ro.observe(d.body)}catch(e){}});
 function openScreener(o,toChart){
   $('#ov').classList.remove('show');S.m=o.m;S.sel=o.x.sym;S.filter='all';S.q='';$('#q').value='';
   document.querySelectorAll('#mtabs button').forEach(b=>b.classList.toggle('on',b.dataset.m===o.m));
@@ -1167,7 +1223,8 @@ const byId=id=>IDEAS.find(o=>o.id===id);
 function summary(o){return`${o.label} (${o.sub}) | ${o.view>0?'Bullish':'Bearish'} view posted ${fD(o.posted)} | Entry ${money(o,o.entry)} (range ${fmtN(o.lo)}-${fmtN(o.hi)}) | SL ${o.stop==null?'--':money(o,o.stop)} | Target ${o.tgt==null?'--':money(o,o.tgt)} | ${TERMS[o.term][0]} (${TERMS[o.term][1]}) | Technical view, not investment advice.`}
 const orderMsg=()=>toast('Broker connection (Zerodha, Upstox, Angel One) comes in the production build');
 
-$('#nav').onclick=e=>{const b=e.target.closest('button');if(b)setView(b.dataset.v)};
+$('#nav').onclick=e=>{const b=e.target.closest('button');if(b)setView(b.dataset.v,true)};
+$('#logo').onclick=e=>{e.preventDefault();$('#ov').classList.remove('show');document.body.classList.remove('show-detail');IS.tab='live';setView('ideas',true)};
 $('#ibar').onclick=e=>{const b=e.target.closest('button');if(!b)return;IS.tab=b.dataset.t;renderIdeas()};
 $('#segs').onclick=e=>{const b=e.target.closest('button');if(!b)return;IS.seg=b.dataset.g;renderIdeas()};
 document.querySelectorAll('input[name=term]').forEach(r=>r.onchange=()=>{IS.term=r.value;renderIdeas()});
@@ -1291,7 +1348,7 @@ function liveHTML(){
   const st=LIVE.ok===null?'<span class="dot off"></span>Connecting to live prices…':LIVE.ok?`<span class="dot ${marketOpen()?'on':'off'}"></span>${marketOpen()?'Live prices':'Market closed · last prices'} · updated ${LIVE.at.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Kolkata'})} IST, refreshes every minute`:'<span class="dot off"></span>Live prices run on your deployed site (not in this preview). Showing the last screener update.';
   const nb=window.Notification&&Notification.permission!=='granted'&&LIVE.ok?' <button class="linkbtn" data-live="notify">Turn on browser notifications</button>':'';
   const intra=LIVE.log.length?LIVE.log.slice(0,12).map(a=>`<span class="alert ${a.lvl==='green'?'entry':a.lvl==='red'?'exit':'warnx'}">${a.time} · <b>${a.sym}</b> ${a.t}</span>`).join(''):'<span class="hint" style="margin:0">No intraday moves to flag yet.</span>';
-  const rec=(MOM.recent_alerts||[]).filter(a=>a.type!=='watch').slice(0,14).map(a=>`<span class="alert ${a.type}">${fD(new Date(a.date+'T00:00:00'))} · ${a.type==='watch'?`◆ Intraday setups for ${EH(a.for||'next session')}: <b>${(a.list||[]).map(EH).join(', ')}</b>`:a.type==='entry'&&a.side==='short'?`▼ Intraday short <b>${a.sym}</b> at ${fmt(a.price,'IN')}`:a.type==='entry'?`▲ Posted <b>${a.sym}</b> ${a.rank?'#'+a.rank+' ':''}at ${fmt(a.price,'IN')}`:`${a.term==='intraday'?'▼ Intraday short closed':'▼ Closed'} <b>${a.sym}</b> ${a.ret_pct==null?'no result':pct(a.ret_pct)}`}</span>`).join('');
+  const rec=(MOM.recent_alerts||[]).filter(a=>a.type!=='watch').slice(0,14).map(a=>`<span class="alert ${a.type}">${fD(new Date(a.date+'T00:00:00'))} · ${a.type==='watch'?`◆ Intraday setups for ${EH(a.for||'next session')}: <b>${(a.list||[]).map(EH).join(', ')}</b>`:a.type==='entry'&&a.side==='short'?`▼ Intraday short <b>${a.sym}</b> at ${fmt(a.price,'IN')}`:a.type==='entry'?`▲ Posted <b>${a.sym}</b> ${a.rank&&ADMIN?'#'+a.rank+' ':''}at ${fmt(a.price,'IN')}`:`${a.term==='intraday'?'▼ Intraday short closed':'▼ Closed'} <b>${a.sym}</b> ${a.ret_pct==null?'no result':pct(a.ret_pct)}`}</span>`).join('');
   return`<div class="livebar">${st}${nb}</div>
   <div class="altitle">Intraday alerts <span class="hint" style="display:inline;margin:0">· sharp moves, new 20-day lows, breaks below the 50-day average (informational; ideas are posted and closed by the CEO agent)</span></div><div class="alerts">${intra}</div>
   <div class="altitle">Recently posted and closed ideas</div><div class="alerts">${rec}</div>`;
@@ -1349,7 +1406,7 @@ function showNextPop(){
   const body=a.type==='watch'?`Conditional intraday shorts for ${a.for||'the next session'}: <b>${(a.list||[]).map(EH).join(', ')}</b>. Each triggers only if it opens inside its band; see the Intraday panel.`
     :a.type==='entry'&&a.side==='short'?`Triggered: intraday short at ${fmt(a.price,'IN')} (9:20 open), stop-loss ${fmt(a.stop,'IN')}, target ${fmt(a.target,'IN')}, closed by 3:15 PM. Approved by the CEO.`
     :a.type==='entry'?`Approved by the CEO: bullish view at ${fmt(a.price,'IN')}${a.stop?`, stop-loss ${fmt(a.stop,'IN')}, target ${fmt(a.target,'IN')}`:''}. Added to <b>Live ideas</b>.`
-    :`${EH(a.reason||'Closed by the CEO')}. ${a.ret_pct==null?(a.term==='intraday'?'No result counted.':'Never entered, so no result.'):`Result <b class="${a.ret_pct>=0?'up':'dn'}">${pct(a.ret_pct)}</b>${a.term==='intraday'?' after costs':''}.`} Moved to <b>Closed ideas</b>.`;
+    :`${EH(pubReason(a.reason||'Closed by the CEO'))}. ${a.ret_pct==null?(a.term==='intraday'?'No result counted.':'Never entered, so no result.'):`Result <b class="${a.ret_pct>=0?'up':'dn'}">${pct(a.ret_pct)}</b>${a.term==='intraday'?' after costs':''}.`} Moved to <b>Closed ideas</b>.`;
   const el=document.createElement('div');el.className='apop';el.setAttribute('role','alertdialog');
   el.innerHTML=`<div class="h"><span class="${a.type==='entry'||a.type==='watch'?'tagE':'tagX'}">${a.type==='watch'?'◆ Intraday setups':a.type==='entry'&&a.side==='short'?'▼ Intraday short':a.type==='entry'?'▲ New idea':a.term==='intraday'?'▼ Intraday short closed':'▼ Idea closed'}</span>${EH(a.sym)}</div><p>${body}${prov?'<br><span style="color:var(--muted);font-size:12.5px">Confirmed after the 3:30 PM close.</span>':''}</p>
   <div class="row"><button class="bigbtn out" data-pop="dismiss">Dismiss</button><button class="bigbtn pri" data-pop="view">View idea</button></div>`;
@@ -1374,7 +1431,7 @@ function renderIntraday(){
   el.style.display='';const R=b.rules||{},bt=R.backtest||{},st=b.stats||{},w=b.watch||{},day=(b.days||{})[istDate()]||{};
   const q=IS.q.trim().toLowerCase(),I=IDEAS.filter(o=>o.term==='intraday'&&(!q||o.label.toLowerCase().includes(q)));
   const grid=L=>`<div class="igrid" style="margin-top:8px">${L.map(cardHTML).join('')}</div>`;
-  const sub=`<div class="sub">Short F&amp;O stocks that ran up hard and then gap up 1.5–8%: entry at the 9:20 open, stop 1 × daily ATR, target 2 × that, out by 3:15 PM. Up to ${R.max_per_day||3} a day, chosen by the CEO.</div>`;
+  const sub=ADMIN?`<div class="sub">Short F&amp;O stocks that ran up hard and then gap up 1.5–8%: entry at the 9:20 open, stop 1 × daily ATR, target 2 × that, out by 3:15 PM. Up to ${R.max_per_day||3} a day, chosen by the CEO.</div>`:`<div class="sub">Same-day short ideas on F&amp;O stocks, selected by our technical indicators: entry at the 9:20 open, stop-loss and target set at entry, closed by 3:15 PM. Up to ${R.max_per_day||3} a day.</div>`;
   if(IS.tab==='live'){
     const live=I.filter(o=>o.status==='live'&&!o.cond);
     el.innerHTML=`<h3>Intraday ideas</h3>${sub}
@@ -1402,10 +1459,47 @@ function condStatus(o){ // what happened to a conditional intraday setup on its 
 function fmtISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 (async()=>{try{const r=await fetch('picks.json',{cache:'no-store'});if(!r.ok)throw 0;MOM=await r.json();buildMomentum()}catch(e){MOM={error:true}}
   try{renderIntraday()}catch(e){}
-  if(document.body.classList.contains('v-ideas'))renderIdeas();else renderAll();
+  if(document.body.classList.contains('v-ideas'))renderIdeas();else if(document.body.classList.contains('v-screener'))renderAll();
   initPush();
   if(MOM&&!MOM.error){queueNewAlerts();pollQuotes();setInterval(()=>{if(marketOpen())pollQuotes()},60000);setInterval(refreshPicksFile,5*60000)}})();
-setView(location.hash==='#market-screener'?'screener':'ideas');
+setView(viewFromHash());
+/* ---------- Admin login (server-checked; the password never leaves this form except to api/admin over HTTPS) ---------- */
+(function(){
+  const dlg=$('#adlg'),ss={get(){try{return sessionStorage.getItem('tl_admin')}catch{return null}},set(v){try{v?sessionStorage.setItem('tl_admin',v):sessionStorage.removeItem('tl_admin')}catch{}}};
+  function setAdmin(on){ADMIN=!!on;window.TL_ADMIN=ADMIN;
+    $('#adminrow').innerHTML=ADMIN?'<span class="on">Admin view: full reasons and notes</span><button type="button" data-admin="out">Log out</button>':'<button type="button" data-admin="open">Admin</button>';
+    const f=$('#scframe');if(f.dataset.src){f.dataset.src='';if(document.body.classList.contains('v-scorecard'))openScorecard()}
+    if(document.body.classList.contains('v-ideas'))renderIdeas()}
+  async function check(){const t=ss.get();if(!t)return;try{const r=await fetch('api/admin',{headers:{Authorization:'Bearer '+t},cache:'no-store'});if(r.ok)setAdmin(true);else ss.set(null)}catch(e){}}
+  const b64=u=>btoa(String.fromCharCode(...new Uint8Array(u)));
+  function loginPane(msg){dlg.innerHTML=`<form method="dialog" id="adform"><h3>Admin login</h3><p>Shows the full reasons, scores and notes behind each idea. Visitors see only the entry, stop-loss and target.</p>
+    <label>Password<input type="password" id="adpw" autocomplete="current-password" required maxlength="200"></label><div class="err" id="aderr" role="alert">${msg?EH(msg):''}</div>
+    <div class="row"><button type="button" data-admin="close">Cancel</button><button type="submit" class="pri" id="adgo">Log in</button></div>
+    <button type="button" class="lnk" data-admin="setup">First time? Set up the admin password</button></form>`;
+    $('#adform').onsubmit=async e=>{e.preventDefault();const pw=$('#adpw').value,go=$('#adgo');go.disabled=true;go.textContent='Checking…';
+      try{const r=await fetch('api/admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});const j=await r.json().catch(()=>({}));
+        if(r.ok&&j.token){ss.set(j.token);dlg.close();setAdmin(true);toast('Admin view on')}
+        else{$('#aderr').textContent=r.status===503?'Admin login is not set up yet. Use "Set up the admin password" below.':j.error||'Login failed';$('#adpw').value='';$('#adpw').focus()}}
+      catch(err){$('#aderr').textContent='Could not reach the server. Check your connection.'}go.disabled=false;go.textContent='Log in'}}
+  function setupPane(){dlg.innerHTML=`<form method="dialog" id="adset"><h3>Set up the admin password</h3><p>Everything here runs in your own browser; nothing is sent anywhere. You get two values to paste into Vercel.</p>
+    <label>New password (at least 12 characters)<input type="password" id="adn1" autocomplete="new-password" minlength="12" maxlength="200" required></label>
+    <label>Type it again<input type="password" id="adn2" autocomplete="new-password" minlength="12" maxlength="200" required></label><div class="err" id="aderr" role="alert"></div>
+    <div class="row"><button type="button" data-admin="back">Back</button><button type="submit" class="pri" id="adgo">Create values</button></div></form>`;
+    $('#adset').onsubmit=async e=>{e.preventDefault();const a=$('#adn1').value,b=$('#adn2').value;if(a.length<12)return $('#aderr').textContent='Use at least 12 characters.';if(a!==b)return $('#aderr').textContent='The two passwords do not match.';
+      $('#adgo').disabled=true;$('#adgo').textContent='Working…';
+      try{const it=310000,salt=crypto.getRandomValues(new Uint8Array(16)),key=await crypto.subtle.importKey('raw',new TextEncoder().encode(a),'PBKDF2',false,['deriveBits']);
+        const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations:it},key,256),sec=b64(crypto.getRandomValues(new Uint8Array(32))).replace(/[^A-Za-z0-9]/g,'');
+        dlg.innerHTML=`<div class="pane"><h3>Paste these into Vercel</h3><p>Vercel → your TrendLens project → Settings → Environment Variables. Add both for Production, tick <b>Sensitive</b>, then redeploy. Keep the password yourself; it is not shown again.</p>
+          <p><b>ADMIN_PASSWORD_HASH</b></p><code>pbkdf2$${it}$${b64(salt)}$${b64(bits)}</code><p><b>ADMIN_SECRET</b></p><code>${sec}</code>
+          <div class="row"><button type="button" class="pri" data-admin="close">Done</button></div></div>`}
+      catch(err){$('#aderr').textContent='This browser cannot create the values.';$('#adgo').disabled=false;$('#adgo').textContent='Create values'}}}
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-admin]');if(!b)return;const k=b.dataset.admin;
+    if(k==='open'){loginPane();dlg.showModal();setTimeout(()=>$('#adpw')?.focus(),30)}
+    else if(k==='close')dlg.close();else if(k==='setup')setupPane();else if(k==='back')loginPane();
+    else if(k==='out'){ss.set(null);setAdmin(false);toast('Logged out')}});
+  dlg.addEventListener('close',()=>{dlg.innerHTML=''});
+  check();
+})();
 </script>
 
 
