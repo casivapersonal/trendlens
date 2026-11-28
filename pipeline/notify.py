@@ -12,6 +12,12 @@ def redis(*cmd):
     r = requests.post(URL, headers={"Authorization": f"Bearer {TOK}"}, json=list(cmd), timeout=15); r.raise_for_status()
     return r.json().get("result")
 
+import re
+def pub_reason(r):
+    """Public text never names the selection logic (Nov 2026): ranking-based exits become a generic exit signal."""
+    r = r or "Closed"
+    return "Exit signal from our indicators" if re.search(r"rank|nifty ?500|momentum|judge|committee", r, re.I) else r
+
 d = json.load(open(sys.argv[1]))
 subs = redis("SMEMBERS", "trendlens:subs") or []
 sent = 0
@@ -33,7 +39,7 @@ for a in todo:
         title, body = a["title"], a["body"]
     elif a["type"] == "watch":
         title = f'Intraday setups for {a.get("for") or "the next session"}'
-        body = "If they open 1.5-8% above yesterday's close, intraday short at 9:20: " + ", ".join(a.get("list") or []) + ". Stop, target and trigger band on TrendLens."
+        body = "Possible intraday shorts, posted only if they trigger at the open: " + ", ".join(a.get("list") or []) + "."
     elif a["type"] == "entry" and a.get("side") == "short":
         title = f'Intraday short: {a["sym"]}'
         body = f'Triggered: short at Rs {a["price"]:,.2f} (9:20 open). Stop-loss Rs {a["stop"]:,.2f}, target Rs {a["target"]:,.2f}, squared off by 3:15 PM. Approved by the CEO.'
@@ -43,7 +49,7 @@ for a in todo:
         body = f'Bullish view posted at about Rs {a["price"]:,.2f}.{lv} Approved by the CEO.'
     else:
         title = f'{"Intraday short closed" if a.get("term") == "intraday" else "Idea closed"}: {a["sym"]}'
-        body = f'{a.get("reason") or "Closed by the CEO"}. ' + (("No result counted." if a.get("term") == "intraday" else "Never entered, so no result.") if a.get("ret_pct") is None else (f'Result {a["ret_pct"]:+.2f}% after costs.' if a.get("term") == "intraday" else f'Result {a["ret_pct"]:+.2f}%.')) + ' Moved to Closed ideas.'
+        body = f'{pub_reason(a.get("reason"))}. ' + (("No result counted." if a.get("term") == "intraday" else "Never entered, so no result.") if a.get("ret_pct") is None else (f'Result {a["ret_pct"]:+.2f}% after costs.' if a.get("term") == "intraday" else f'Result {a["ret_pct"]:+.2f}%.')) + ' Moved to Closed ideas.'
     payload = json.dumps({"title": title, "body": body, "tag": key, "url": SITE})
     for s in subs:
         try:
