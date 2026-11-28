@@ -1,0 +1,38 @@
+name: Exit-rule check (momentum next-open stop, bull-flag emergency stop, VWAP time exit)
+# Run by hand (pipeline/exit_check.py). Research only: changes nothing live. No secrets. Results appear on the run's summary page.
+on:
+  workflow_dispatch:
+    inputs:
+      hist_run:
+        description: "run ID with history-5min-data (2014-2021)"
+        required: true
+        default: "45143637613"
+      new_run:
+        description: "run ID with hf-5min-data (2022-2026)"
+        required: true
+        default: "45141143038"
+permissions:
+  contents: read
+  actions: read
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -q -r trading/requirements.txt -r pipeline/requirements.txt
+      - uses: actions/download-artifact@v4
+        with: { name: history-5min-data, path: hist_data, run-id: "${{ github.event.inputs.hist_run }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { name: hf-5min-data, path: new_data, run-id: "${{ github.event.inputs.new_run }}", github-token: "${{ github.token }}" }
+      - name: Exit-rule check
+        env: { PYTHONUNBUFFERED: "1" }
+        run: python pipeline/exit_check.py --old hist_data --new new_data --out exit_results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exit-check-results
+          path: exit_results
+          retention-days: 30
