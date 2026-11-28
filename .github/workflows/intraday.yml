@@ -30,12 +30,14 @@ jobs:
       - name: Intraday segment (exhaustion fade) -> 9:20 entries, stop / target / 15:15 exits
         continue-on-error: true
         working-directory: trading
+        env: { FORCE: "${{ github.event.inputs.force }}" }
         run: |
-          if [ "${{ github.event.inputs.force }}" = "true" ]; then python -m arena intraday run --force; else python -m arena intraday run; fi
+          if [ "$FORCE" = "true" ]; then python -m arena intraday run --force; else python -m arena intraday run; fi
       - name: Live prices -> CEO entries and exits
         working-directory: trading
+        env: { FORCE: "${{ github.event.inputs.force }}" }
         run: |
-          if [ "${{ github.event.inputs.force }}" = "true" ]; then python -m arena ideas intraday --force; else python -m arena ideas intraday; fi
+          if [ "$FORCE" = "true" ]; then python -m arena ideas intraday --force; else python -m arena ideas intraday; fi
       - name: Notify subscribers
         if: ${{ always() && env.VAPID_PRIVATE_KEY != '' && env.UPSTASH_REDIS_REST_URL != '' }}
         continue-on-error: true
