@@ -36,6 +36,8 @@ async function limited(name, max, sec) {
   if (mem.size > 5000) mem.clear();
   return a.length > max;
 }
+// Public answers never give the selection logic (Nov 2026): closing reasons that name the ranking are shown as a generic exit signal.
+const pubR = r => /rank|nifty ?500|momentum|judge|committee/i.test(String(r || '')) ? 'exit signal from our indicators' : String(r || '');
 const clientIp = req => String(req.headers['x-real-ip'] || String(req.headers['x-forwarded-for'] || '').split(',')[0] || 'unknown').trim();
 function fromOwnSite(req) {
   const o = req.headers.origin || req.headers.referer || '';
@@ -163,8 +165,8 @@ const T = {
   fund: d => !d.f ? [`**Fundamentals**`, 'Fundamentals are not available for this stock yet (the data file refreshes each trading morning).'] : [`**Fundamentals** (${d.f.sector || 'sector n/a'}${d.f.industry ? ', ' + d.f.industry : ''}; financials as of ${d.f.asof}, valuation on the price above)`,
     `P/E ${peTxt(d.f)}${d.f.fpe ? ` (forward ${d.f.fpe.toFixed(1)}x)` : ''} · EPS ${inr(d.f.eps)} · P/B ${d.f.pb ? d.f.pb.toFixed(1) + 'x' : 'n/a'} · Market cap ${cr(d.f.mcap)} · Dividend yield ${d.f.dy ? d.f.dy.toFixed(2) + '%' : 'none or n/a'}.`,
     `ROE ${pl(d.f.roe)} · Debt/equity ${num(d.f.de)} · Revenue growth ${pc(d.f.revg)} · Earnings growth ${pc(d.f.eg)} · Net margin ${pl(d.f.nm)} · Beta ${num(d.f.beta)}.`],
-  mom: d => [`**TrendLens momentum**`, d.rank ? `Risk-adjusted 12-month momentum rank is about #${d.rank} of ${d.rankOf} (other stocks at their last close). A stock in the top 20 becomes a candidate; the CEO agent posts it as an idea only after the committee review, and closes it when an exit signal appears.` : 'Not enough history to rank this stock.',
-    d.idea ? (d.idea.status === 'live' ? `It is a live TrendLens idea since ${d.idea.since} at ${inr(d.idea.entry)} ${d.idea.entryRank ? ` (momentum rank #${d.idea.entryRank} at the time)` : ''}.${d.idea.surveillance ? ' NSE surveillance flag: ' + d.idea.surveillance + '.' : ''}${d.idea.results ? ' Results due ' + d.idea.results + '.' : ''}` : `Its last idea closed on ${d.idea.exitDate}: ${d.idea.reason} (${pc(d.idea.ret)}).`) : 'It is not currently a TrendLens idea.']
+  mom: d => [`**TrendLens momentum**`, d.rank ? `Trend strength ranks about #${d.rank} of ${d.rankOf} NIFTY 500 stocks (other stocks at their last close). TrendLens ideas are selected by its technical indicators and posted only after an approval check.` : 'Not enough history to rank this stock.',
+    d.idea ? (d.idea.status === 'live' ? `It is a live TrendLens idea since ${d.idea.since} at ${inr(d.idea.entry)}.${d.idea.surveillance ? ' NSE surveillance flag: ' + d.idea.surveillance + '.' : ''}${d.idea.results ? ' Results due ' + d.idea.results + '.' : ''}` : `Its last idea closed on ${d.idea.exitDate}: ${pubR(d.idea.reason)} (${pc(d.idea.ret)}).`) : 'It is not currently a TrendLens idea.']
 };
 function route(q) {
   const l = q.toLowerCase(), t = [];
@@ -232,10 +234,10 @@ const GLOSS = [
   [/moving average|\bsma\b|\bdma\b|200.?day|50.?day|golden cross|death cross/, 'Moving averages', 'The average closing price over the last 20, 50 or 200 sessions. Price above a rising 200-day average is the classic sign of a long-term uptrend; the 50-day crossing above the 200-day is called a golden cross, below it a death cross.'],
   [/support|resistance/, 'Support and resistance', 'Price levels where a stock has tended to stop falling (support) or stop rising (resistance): recent lows and highs, key moving averages and the 52-week range. They are zones, not exact prices.'],
   [/52.?week/, '52-week high and low', 'The highest and lowest closing price over the last year. Stocks near their 52-week high are often in strong uptrends; momentum strategies favour them.'],
-  [/momentum rank|momentum/, 'TrendLens momentum rank', 'Each NIFTY 500 stock\'s 12-month return divided by its 12-month volatility, ranked from #1 (strongest). The back-tested rule: a stock becomes a candidate in the top 20 and its exit is flagged when it falls below #50.'],
-  [/stop.?loss/, 'Stop-loss level', 'The price at which an idea\'s view is considered wrong. TrendLens sets it from the stock\'s typical daily range (ATR), and a gap below it counts at the open price.'],
-  [/\batr\b|average true range/, 'ATR (average true range)', 'The average size of a stock\'s daily move over 14 days, including gaps. TrendLens uses it to size the entry range, stop-loss and target.'],
-  [/conviction|\bceo\b|committee|judge/, 'How an idea is decided', 'Analysts (technical, fundamentals, news, economy) report, a bull and a bear researcher argue, a risk officer checks size and limits, a coded judge scores it, and the CEO agent makes the final call with a written memo and a conviction level (High, Medium or Low).'],
+  [/momentum rank|momentum/, 'Momentum', 'How strongly a stock\'s price has been trending compared with other stocks. TrendLens uses it among several technical indicators.'],
+  [/stop.?loss/, 'Stop-loss level', 'The price at which an idea\'s view is considered wrong. A gap below it counts at the open price.'],
+  [/\batr\b|average true range/, 'ATR (average true range)', 'The average size of a stock\'s daily move over 14 days, including gaps.'],
+  [/conviction|\bceo\b|committee|judge/, 'How an idea is decided', 'Ideas are selected by TrendLens\'s technical indicators and posted only after an approval check. Each idea shows its entry, stop-loss, target and time frame.'],
   [/\bvix\b/, 'India VIX', 'The market\'s expected volatility for the next 30 days, from NIFTY option prices. Below 15 is calm; above 22 signals nervous markets.'],
   [/asm|gsm|surveillance/, 'ASM / GSM', 'NSE surveillance lists for stocks with unusual price moves or weak fundamentals. Higher margins and trading limits apply; TrendLens posts no new ideas in them.'],
 ];
@@ -512,25 +514,22 @@ function ideasAnswer(q, P, sym) {
     if (!L && !C) return `${sym} is not a TrendLens idea right now and has no closed idea on record.`;
     const e = L || C, out = [`**${sym}: ${L ? 'live idea' : 'closed idea'}** (${e.term} term, posted ${e.posted || e.entry_date}${e.approved_by ? ' by the ' + e.approved_by : ''})`,
       `Entry range ${inr(e.entry_lo)}–${inr(e.entry_hi)} · stop-loss ${inr(e.stop)} · target ${inr(e.target)} · ${e.days} trading days.`];
-    if (e.ceo) out.push(`**CEO memo:** ${e.ceo.memo}`);
-    if (e.judge) out.push(`Judge score ${e.judge.score}: ` + e.judge.rules.filter(r => r.points > 0).map(r => r.rule).slice(0, 5).join('; ') + '.');
-    if (e.review) out.push(`Bull case: ${(e.review.bull || []).join('; ') || '—'}. Bear case: ${(e.review.bear || []).join('; ') || 'none raised'}.`);
-    if (e.committee) out.push(`Committee: ${e.committee.agreement}; economy ${e.committee.macro}.`);
-    if (L && L.exit_signal) out.push(`Exit signal: ${L.exit_signal.reason} at ${inr(L.exit_signal.price)}; the CEO closes it at the close.`);
-    if (C) out.push(`Closed ${C.exit_date} at ${inr(C.exit_price)}: ${C.reason} (${pc(C.ret_pct)}).${C.ceo_exit ? ' ' + C.ceo_exit : ''}`);
+    out.push('Selected by TrendLens\'s technical indicators (price trend, momentum, volume and volatility) and posted after an approval check.');
+    if (L && L.exit_signal) out.push(`Exit signal at ${inr(L.exit_signal.price)}; it is closed at the close.`);
+    if (C) out.push(`Closed ${C.exit_date} at ${inr(C.exit_price)}: ${pubR(C.reason)} (${pc(C.ret_pct)}).`);
     return out.join('\n');
   }
   if (/closed|track record|performance|win rate|result|how (good|well)|hit rate|accuracy/.test(l)) {
     if (!closed.length) return `No closed ideas yet. ${live.length} idea${live.length === 1 ? ' is' : 's are'} live. Results build up as ideas reach their target, stop-loss or time limit.`;
     const w = closed.filter(c => c.ret_pct > 0), avg = closed.reduce((s, c) => s + c.ret_pct, 0) / closed.length;
     return [`**Track record: ${closed.length} closed ideas**`, `Profitable ${w.length} (${Math.round(w.length / closed.length * 100)}%) · average result ${pc(avg)}.`,
-      ...closed.slice(0, 10).map(c => `- **${c.sym}** ${pc(c.ret_pct)} · ${c.reason} · ${c.entry_date} → ${c.exit_date}`)].join('\n');
+      ...closed.slice(0, 10).map(c => `- **${c.sym}** ${pc(c.ret_pct)} · ${pubR(c.reason)} · ${c.entry_date} → ${c.exit_date}`)].join('\n');
   }
   if (!live.length) return 'No live ideas right now. The CEO reviews candidates every 5 minutes in market hours and after the close.';
   return [`**${live.length} live idea${live.length === 1 ? '' : 's'}**`, ...live.map(e => {
     const chg = e.price_now && e.entry_price ? (e.price_now / e.entry_price - 1) * 100 : null;
-    return `- **${e.sym}** posted ${e.posted || e.entry_date} at ${inr(e.entry_price)}${chg != null ? ` (${pc(chg)} since)` : ''} · stop ${inr(e.stop, 0)} · target ${inr(e.target, 0)}${e.ceo ? ` · ${e.ceo.conviction} conviction` : ''}${e.exit_signal ? ' · ⚠ exit signal: ' + e.exit_signal.reason : ''}`;
-  }), 'Ask "why did the CEO post <stock>?" for the full reasoning.'].join('\n');
+    return `- **${e.sym}** posted ${e.posted || e.entry_date} at ${inr(e.entry_price)}${chg != null ? ` (${pc(chg)} since)` : ''} · stop ${inr(e.stop, 0)} · target ${inr(e.target, 0)}${e.exit_signal ? ' · ⚠ exit signal' : ''}`;
+  }), 'Ask about any of them by name for its entry, stop-loss and target.'].join('\n');
 }
 
 // ---------- news (Google News RSS, filtered to headlines that name the company) ----------
