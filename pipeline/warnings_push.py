@@ -47,7 +47,7 @@ for s, kind, text in warn:
     key = f"warn:{kind}:{s}:{today}"
     if redis("SISMEMBER", "trendlens:notified", key):
         continue
-    payload = json.dumps({"title": f"Price warning: {s}", "body": text + ". Live idea, exit rule unchanged (rank below #50).", "tag": key, "url": SITE})
+    payload = json.dumps({"title": f"Price warning: {s}", "body": text + ". Live idea, exit rule unchanged.", "tag": key, "url": SITE})
     for sub in subs:
         try:
             webpush(subscription_info=json.loads(sub), data=payload, vapid_private_key=os.environ["VAPID_PRIVATE_KEY"],
