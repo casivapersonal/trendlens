@@ -14,8 +14,19 @@ async function one(sym) {
              l: m.regularMarketDayLow, v: m.regularMarketVolume, t: m.regularMarketTime };
   } catch (e) { return null; }
 }
+// Security (Nov 2026 review): GET only, symbols checked against a strict pattern, at most 60 per call, rate limited per visitor.
+const mem = new Map();
+function limited(ip, max, sec) {
+  const now = Date.now(), a = (mem.get(ip) || []).filter(t => now - t < sec * 1000); a.push(now); mem.set(ip, a);
+  if (mem.size > 5000) mem.clear();
+  return a.length > max;
+}
+const SYM = /^[A-Z0-9&.\- ]{1,20}$/;
 module.exports = async (req, res) => {
-  const syms = String((req.query && req.query.s) || "").split(",").map(s => s.trim()).filter(Boolean).slice(0, 80);
+  if (req.method !== "GET") return res.status(405).json({ error: "GET only" });
+  const ip = String(req.headers["x-real-ip"] || String(req.headers["x-forwarded-for"] || "").split(",")[0] || "unknown").trim();
+  if (limited(ip, 30, 60)) return res.status(429).json({ error: "too many requests" });
+  const syms = [...new Set(String((req.query && req.query.s) || "").slice(0, 2000).split(",").map(s => s.trim().toUpperCase()).filter(s => SYM.test(s)))].slice(0, 60);
   const quotes = {};
   for (let i = 0; i < syms.length; i += 20) {
     const part = syms.slice(i, i + 20);
