@@ -38,6 +38,10 @@ class VwapTimeExit(unittest.TestCase):
                 g = ideas.monitor(self.cfg, {"AAA": self._flat(idea, n)}, NOW, pu)
             self.assertEqual(g, []); live = ideas.public(pu)["live"][0]
             self.assertTrue(live["last_day"]); self.assertEqual(live["days_held"], n)
+            al = [a for a in ideas.public(pu)["alerts_today"] if a["type"] == "lastday"]
+            self.assertEqual([a["sym"] for a in al], ["AAA"])                                  # the phone alert (pipeline/notify.py)
+            ideas.monitor(self.cfg, {"AAA": self._flat(idea, n)}, NOW, pu)                     # a second run the same evening: no second alert
+            self.assertEqual(len([a for a in ideas.public(pu)["recent_alerts"] if a["type"] == "lastday"]), 1)
 
     def test_time_exit_at_the_days_vwap(self):
         with tempfile.TemporaryDirectory() as t:
