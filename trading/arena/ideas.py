@@ -432,6 +432,10 @@ def monitor(cfg: dict, frames: dict, now: datetime, public_path: Path | None = N
         # Nov 2026: tomorrow is the last session -> the site tells users to sell through that day (VWAP exit)
         i["last_day"] = bool(not sig and not momentum and i.get("days") and held == i["days"] - 1
                              and cfg["ideas"].get("short_time_exit", "close") == "vwap")
+        if i["last_day"] and not i.get("last_day_alerted"):      # one phone alert per idea, the evening before its last session
+            i["last_day_alerted"] = now.date().isoformat()
+            pub["recent_alerts"] = ([{"type": "lastday", "sym": i["sym"], "date": now.date().isoformat(), "time": now.strftime("%I:%M %p"),
+                                      "price": round(last, 2), "term": i.get("term")}] + pub["recent_alerts"])[:60]
         if not sig and i.get("rank_exit"): sig = (i["rank_exit"]["reason"], last, d.index[-1])
         i["exit_signal"] = None
         if momentum and not sig and tgt and len(win) and float(win["high"].max()) >= tgt and not i.get("target_reached"):
