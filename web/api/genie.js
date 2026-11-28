@@ -270,7 +270,7 @@ function findStocks(q, universe, F) {
     while ((m = re.exec(low))) { const st = m.index + m[1].length, en = st + a.length; if (free(st, en)) { used.push([st, en]); found.push({ sym: s, pos: st }); } }
   }
   const wre = /[A-Za-z0-9&-]+/g; let m;
-  while ((m = wre.exec(q))) { const w = m[0], u = w.toUpperCase(); if (set.has(u) && (!WORDLIKE.has(u) || w === u) && free(m.index, m.index + w.length)) { used.push([m.index, m.index + w.length]); found.push({ sym: u, pos: m.index }); } }
+  while ((m = wre.exec(q))) { const w = m[0], u = w.toUpperCase(); if (set.has(u) && (!WORDLIKE.has(u) || w === u || q.trim().toUpperCase() === u) && free(m.index, m.index + w.length)) { used.push([m.index, m.index + w.length]); found.push({ sym: u, pos: m.index }); } }
   // company names, one segment at a time ("TCS vs Infosys", "HDFC Bank and ICICI Bank")
   let masked = low.split(''); for (const [a, b] of used) for (let i = a; i < b; i++) masked[i] = ' '; masked = masked.join('');
   const segs = []; let off = 0;
